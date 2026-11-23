@@ -119,3 +119,4 @@ details.rest ul{columns:2;padding-left:18px}
 footer{max-width:1120px;margin:0 auto;padding:18px 20px 28px;color:var(--mut);font-size:13px;border-top:1px solid var(--line)}
 .app~footer{display:none}
 @media(max-width:700px){.areas{columns:2}details.rest ul{columns:1}}
+.hl{margin:22px 0 0;font-size:14px;line-height:1.8}.flinks{font-weight:600}

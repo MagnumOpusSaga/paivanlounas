@@ -21,7 +21,9 @@ Rules:
 - Extract ONLY the weekday lunch (lounas, served on weekdays around 10.30–15). Ignore the regular à la carte / dinner menu, Christmas lunch (joululounas), brunch, events and drinks. If the page has no separate lunch offer, return empty "days" and "fixed". Photos of food or the room are not menus: return empty "days".
 - Dishes: keep the original language and wording, one dish per entry, without the price. Remove day names, opening hours and marketing text.
 - diet: only markings written next to the dish, normalised to: L, G, M, VL, Veg (vegan/vegaani/VE/V), K (kasvis).
-- price: the lunch price in euros as a number if shown for that dish or for the whole lunch; otherwise null.
+- price: the regular adult lunch price in euros for that dish (or for the whole lunch) if shown; otherwise null.
+  Use the normal price, NOT student, staff, child or senior prices, NOT the price of a side, extra, drink or dessert, and NOT a price for two people.
+  If the soup or salad is sold on its own as a cheaper lunch option, give that dish its own price and keep the word soup/keitto/salaatti in the dish.
 - hours: lunch serving hours if shown, like "10.30-14.00", else null.
 Answer with one compact JSON object only (no code fence, no prose). At most 15 dishes per day:
 {"belongs": true, "stale": false, "hours": null, "fixed": [], "days": {"YYYY-MM-DD": [{"dish": "...", "diet": ["L"], "price": 12.9}]}}"""

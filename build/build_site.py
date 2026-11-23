@@ -63,6 +63,40 @@ def district_of(lat, lon, ds):
     return None
 
 
+def clean_dish(d):
+    d = re.sub(r"\s*\((?:[A-Za-z]{1,4}[\s,+*/]*)+\)", "", d or "")
+    return re.sub(r"[\s,;·]+$", "", d)
+
+
+def menu_text(v):
+    return " ".join(" ".join(i["d"]) + " " + (i.get("t") or "") for i in v["menu"]["items"]).lower()
+
+
+def is_veg(v):
+    return any(("Veg" in i.get("diet", []) or "Kasvis" in i.get("diet", [])) for i in v["menu"]["items"]) or bool(re.search(r"kasvis|vegaan|vegan|vegetar", menu_text(v)))
+
+
+def lunch_price(m):
+    ps = [i["p"] for i in m["items"] if i.get("p") and 5 <= i["p"] <= 25]
+    return min(ps) if ps else None
+
+
+def entry_html(v, mp, t, lg, show_area=False):
+    m = v["menu"]; o = (v["oiva"] or {}).get("grade")
+    dishes = " · ".join(clean_dish(i["d"][0]) for i in m["items"][:4])
+    meta = " · ".join(x for x in ((v["district"] if show_area else ""), v["street"], (t["oiva"] + " " + t["oiva_txt"][o]) if o in ("A", "B") else "",
+                                  (AREA_T[lg]["until"] + m["hours"]) if m.get("hours") else "") if x)
+    pr = fmt_price(mp[v["slug"]]) if mp.get(v["slug"]) else ""
+    return (f'<article class="ent"><div class="row"><h3><a href="{t["venue"].format(s=v["slug"])}">{esc(v["name"])}</a></h3><span class="price">{pr}</span></div>'
+            f'<p class="dish">{esc(dishes)}</p><p class="meta">{esc(meta)}</p></article>')
+
+
+def public_price(prices):
+    """Chains list student / staff / other prices together: the regular (highest sensible) price is what most visitors pay."""
+    ps = [p for p in (prices or []) if 4 <= p <= 30]
+    return max(ps) if ps else None
+
+
 def menus_today(L, day):
     """Return {source_id: {items, source, url, kind}} from chain APIs, Raflaamo page and heuristic reader."""
     res = {}
@@ -82,7 +116,7 @@ def menus_today(L, day):
             if not dishes:
                 continue
             items.append({"t": it.get("title") or "", "d": dishes, "diet": sorted(set(diets_of(*it.get("diets", []), *dishes))),
-                          "p": min(it["prices"]) if it.get("prices") else None})
+                          "p": public_price(it.get("prices"))})
         if items:
             res[r["id"]] = {"items": items, "src": names[r["source"]], "url": meta.get("url"), "conf": "api",
                             "hours": meta.get("lunch_today")}
@@ -194,6 +228,36 @@ def ads_tag(path):
     return f'<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={esc(ADSENSE)}" crossorigin="anonymous"></script>'
 
 
+TOPIC_T = {
+    "fi": {"today": "tänään", "more": "Lisää lounaslistoja", "areas": "Suosituimmat alueet", "empty": "Tänään ei löytynyt listoja.",
+           "cheap": {"path": "/halvin-lounas-helsinki/", "h1": "Halvin lounas Helsingissä", "title": "Halvin lounas Helsingissä tänään – alle 13 € | Päivän lounas",
+                     "desc": "Helsingin halvimmat lounaat tänään ({d}): {n} lounasta alle 13 eurolla hintoineen ja ruokalistoineen.",
+                     "lead": "{d}: <b>{n} lounasta alle 13 eurolla</b>, halvin {p}. Lista päivittyy joka arkiaamu.",
+                     "outro": "Hinta on ravintolan ilmoittama tavallinen lounashinta. Opiskelija- ja henkilökuntahinnat voivat olla edullisempia."},
+           "veg": {"path": "/kasvislounas-helsinki/", "h1": "Kasvislounas Helsingissä", "title": "Kasvislounas Helsingissä tänään – kasvis- ja vegaanilounaat | Päivän lounas",
+                   "desc": "Kasvislounas Helsingissä tänään ({d}): {n} ravintolaa, joiden listalla on kasvis- tai vegaaniannos.",
+                   "lead": "{d}: <b>{n} ravintolaa</b>, joiden lounaslistalla on kasvis- tai vegaaniannos, alueittain. Halvin {p}.",
+                   "outro": "Merkinnät (Veg, K, vegaani) tulevat ravintolan omalta listalta. Tarkista erityisruokavaliot aina ravintolasta."},
+           "buffet": {"path": "/buffet-lounas-helsinki/", "h1": "Buffet-lounas Helsingissä", "title": "Buffet-lounas Helsingissä tänään – noutopöydät | Päivän lounas",
+                      "desc": "Buffet-lounaat Helsingissä tänään ({d}): {n} noutopöytälounasta alueittain hintoineen.",
+                      "lead": "{d}: <b>{n} buffet- ja noutopöytälounasta</b> alueittain. Halvin {p}.",
+                      "outro": "Buffet tarkoittaa, että ruokaa saa ottaa vapaasti. Hinnat ja sisältö ravintolan omalta listalta."}},
+    "en": {"today": "today", "more": "More lunch lists", "areas": "Popular areas", "empty": "No menus found today.",
+           "cheap": {"path": "/en/cheap-lunch-helsinki/", "h1": "Cheapest lunch in Helsinki", "title": "Cheapest lunch in Helsinki today – under 13 € | Päivän lounas",
+                     "desc": "The cheapest lunches in Helsinki today ({d}): {n} lunches under 13 euros with prices and menus.",
+                     "lead": "{d}: <b>{n} lunches under 13 euros</b>, cheapest {p}. Updated every weekday morning.",
+                     "outro": "The price is the restaurant's regular lunch price. Student and staff prices may be lower."},
+           "veg": {"path": "/en/vegetarian-lunch-helsinki/", "h1": "Vegetarian lunch in Helsinki", "title": "Vegetarian lunch in Helsinki today – vegetarian and vegan | Päivän lounas",
+                   "desc": "Vegetarian lunch in Helsinki today ({d}): {n} restaurants with a vegetarian or vegan dish.",
+                   "lead": "{d}: <b>{n} restaurants</b> with a vegetarian or vegan dish, by area. Cheapest {p}.",
+                   "outro": "Diet markings come from the restaurant's own menu. Always check special diets with the restaurant."},
+           "buffet": {"path": "/en/buffet-lunch-helsinki/", "h1": "Buffet lunch in Helsinki", "title": "Buffet lunch in Helsinki today | Päivän lounas",
+                      "desc": "Buffet lunches in Helsinki today ({d}): {n} all-you-can-eat lunches by area with prices.",
+                      "lead": "{d}: <b>{n} buffet lunches</b> by area. Cheapest {p}.",
+                      "outro": "Prices and contents from the restaurant's own menu."}},
+}
+
+
 AREA_T = {
     "fi": {"cheap_h": "Alle 13 euroa", "cheap_p": "Edullisimmat lounaat alueella {a} tänään", "veg_h": "Kasvisvaihtoehdot", "veg_p": "Listalla vähintään yksi kasvisannos",
            "buf_h": "Buffet-lounaat", "buf_p": "Noutopöytä – syö niin paljon kuin jaksat", "all_h": "Kaikki {n} lounaslistaa", "all_p": "Aakkosjärjestyksessä",
@@ -231,7 +295,7 @@ def page(lg, title, desc, path, alt_path, body, preview, extra_head=""):
 <link rel="stylesheet" href="/style.css">{extra_head}</head><body>{bar}
 <header class="top"><a class="logo" href="{t['home']}">Päivän lounas</a><nav><a href="{t['areas']}">{t['nav_areas']}</a><a href="{alt_path or t['other_home']}" hreflang="{other}">{t['other']}</a></nav></header>
 {body}
-<footer><p>{t['footer1']}</p><p>{t['footer2']}</p><p>© 2026 Päivän lounas · <a href="{t['about']}">{t['about_l']}</a> · <a href="{t['privacy']}">{t['privacy_l']}</a> · {CONTACT}</p></footer></body></html>"""
+<footer><p class="flinks">{' · '.join(f'<a href="{TOPIC_T[lg][k]["path"]}">{TOPIC_T[lg][k]["h1"]}</a>' for k in ("cheap", "veg", "buffet"))}</p><p>{t['footer1']}</p><p>{t['footer2']}</p><p>© 2026 Päivän lounas · <a href="{t['about']}">{t['about_l']}</a> · <a href="{t['privacy']}">{t['privacy_l']}</a> · {CONTACT}</p></footer></body></html>"""
 
 
 def fmt_price(p):
@@ -333,6 +397,10 @@ def main(L, out, day, preview):
                     hidden += 1
             v["menu"] = v["ms"].get(show_day)
     print("hidden by reports", hidden, file=sys.stderr)
+    os.makedirs(f"{out}/data", exist_ok=True)
+    if os.path.exists(rp):  # for the daily check: which menus people say are wrong
+        json.dump(sorted(({"venue": k[0], "day": k[1], "n": n} for k, n in reps.items()), key=lambda x: -x["n"])[:100],
+                  open(f"{out}/data/reports.json", "w"), ensure_ascii=False)
     with_menu = [v for v in venues if v["menu"]]
     print("venues", len(venues), "with menu", show_day, len(with_menu), "| week", {d: sum(1 for v in venues if d in v["ms"]) for d in days}, file=sys.stderr)
 
@@ -380,6 +448,7 @@ def main(L, out, day, preview):
 <div class="search"><input id="q" type="search" placeholder="{esc(t['search'])}" aria-label="{esc(t['search'])}"><button id="near" type="button">{t['near']}</button></div>
 <section class="top3" id="top3s" aria-labelledby="t3h" hidden><div class="t3head"><h2 id="t3h"></h2></div><div id="top3" class="t3"></div></section>
 <div class="chips" id="chips">{chips}</div><p id="count" class="count"></p><ol id="list" class="list"></ol><button id="more" class="btn ghost more" hidden></button>
+<p class="hl">{' · '.join(f'<a href="{TOPIC_T[lg][k]["path"]}">{TOPIC_T[lg][k]["h1"]}</a>' for k in ("cheap", "veg", "buffet"))} · <a href="{t['areas']}">{t['nav_areas']}</a></p>
 </section>
 <div id="map" role="region" aria-label="{t['v_map']}"></div>
 <nav class="dock" aria-label="{t['v_list']}"><button data-view="list">{t['d_list']}</button><button data-view="map">{t['d_map']}</button><button id="filt" type="button">{t['d_filter']}</button></nav>
@@ -460,6 +529,32 @@ def main(L, out, day, preview):
         open(f"{out}{t['areas']}index.html", "w").write(page(lg, t["areas_title"], t["areas_h1"], t["areas"], T[other]["areas"],
                                                               f'<main class="content"><h1>{t["areas_h1"]}</h1><ul class="areas">{lis}</ul></main>', preview))
         urls.append(t["areas"])
+        # topic pages (cheapest / vegetarian / buffet in all of Helsinki), refreshed daily
+        TP = TOPIC_T[lg]
+        allm_g = [v for v in venues if v["menu"]]
+        mp_g = {v["slug"]: lunch_price(v["menu"]) for v in allm_g}
+        topics = {
+            "cheap": sorted([v for v in allm_g if mp_g[v["slug"]] and mp_g[v["slug"]] < 13], key=lambda v: mp_g[v["slug"]])[:80],
+            "veg": sorted([v for v in allm_g if is_veg(v)], key=lambda v: (v["district"] or "", mp_g[v["slug"]] or 99))[:200],
+            "buffet": sorted([v for v in allm_g if re.search(r"buffet|noutopöytä|seisova", menu_text(v))], key=lambda v: (v["district"] or "", v["name"]))[:200],
+        }
+        top_areas = sorted(nmenu.items(), key=lambda kv: -kv[1])[:10]
+        for key, items in topics.items():
+            path, alt = TP[key]["path"], TOPIC_T[other][key]["path"]
+            ps = [mp_g[v["slug"]] for v in items if mp_g[v["slug"]]]
+            lead = TP[key]["lead"].format(d=esc(ds_), n=len(items), p=fmt_price(min(ps)) if ps else "–")
+            others_l = "".join(f'<li><a href="{TP[k]["path"]}">{esc(TP[k]["h1"])}</a></li>' for k in topics if k != key)
+            areas_l = "".join(f'<li><a href="{t["area"].format(s=k[0])}">{esc(t["area_h1"].format(a=k[1]))}</a> <small>· {n} {t["lists"]}</small></li>' for k, n in top_areas)
+            ents = "".join(entry_html(v, mp_g, t, lg, show_area=True) for v in items) or f'<p class="nomenu">{TP["empty"]}</p>'
+            body = f"""<main class="content"><nav class="crumbs"><a href="{t['home']}">{t['crumb_home']}</a> › {esc(TP[key]['h1'])}</nav>
+<h1>{esc(TP[key]['h1'])} {TP['today']}</h1><p class="lead">{lead}</p>
+<p class="trust"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2f6b3a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span>{AREA_T[lg]['trust']}</span></p>
+<div class="cols"><div class="maincol"><section class="sec">{ents}</section><p style="margin-top:22px">{TP[key]['outro']}</p></div>
+<aside class="side"><div class="box"><h2>{TP['more']}</h2><ul>{others_l}</ul></div><div class="box"><h2>{TP['areas']}</h2><ul>{areas_l}</ul></div>
+<div class="box"><a class="btn" href="{t['home']}">{t['show_map']}</a></div></aside></div></main>"""
+            os.makedirs(f"{out}{path}", exist_ok=True)
+            open(f"{out}{path}index.html", "w").write(page(lg, TP[key]["title"], TP[key]["desc"].format(d=ds_, n=len(items)), path, alt, body, preview))
+            urls.append(path)
         # venues
         for v in venues:
             if not (v["ms"] or v["sources"]):
