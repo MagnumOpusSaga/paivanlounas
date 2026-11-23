@@ -137,8 +137,8 @@ T = {
     "fi": {"home": "/", "areas": "/lounas/", "area": "/lounas/{s}/", "venue": "/ravintola/{s}/", "nav_areas": "Alueet", "other": "In English", "other_home": "/en/",
            "wd": ["maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai", "sunnuntai"],
            "wd_short": ["Ma", "Ti", "Ke", "To", "Pe", "La", "Su"],
-           "h1_home": "Lounas Helsinki", "v_map": "🗺️ Kartta", "v_list": "☰ Lista", "search": "Hae ravintolaa, ruokaa tai aluetta", "near": "📍 Lähellä",
-           "chips": [("menu", "Vain listalliset"), ("open", "Auki nyt"), ("cheap", "Halvin ensin"), ("Veg", "Veg"), ("G", "G"), ("L", "L"), ("M", "M"), ("oivaA", "Oiva 😃")],
+           "h1_home": "Lounas Helsinki", "v_map": "Kartta", "v_list": "Lista", "d_list": "Lista", "d_map": "Kartta", "d_filter": "Suodata", "search": "Hae ravintolaa, ruokaa tai aluetta", "near": "Lähellä",
+           "chips": [("menu", "Vain listalliset"), ("open", "Auki nyt"), ("u13", "Alle 13 €"), ("cheap", "Halvin ensin"), ("Veg", "Kasvis"), ("G", "G"), ("L", "L"), ("M", "M"), ("oivaA", "Oiva A")],
            "title_home": "Lounas Helsinki tänään – päivän lounaslistat kartalla | Päivän lounas",
            "desc_home": "Helsingin lounaslistat tänään ({d}): {n} ravintolan lista, hinnat, ruokavaliot ja Oiva-hymy kartalla.",
            "area_h1": "Lounas {a} tänään", "area_title": "Lounas {a} tänään – {n} lounaslistaa | Päivän lounas",
@@ -149,7 +149,7 @@ T = {
            "venue_desc": "{n} ({a}): päivän lounaslista, hinnat, ruokavaliot ja Oiva-arvosana.",
            "list_for": "Lounaslista {d}", "week": "Tämän viikon listat", "nomenu": "Tämän päivän listaa ei ole saatavilla. Katso ravintolan omat sivut.",
            "src": "Lähde", "orig": "alkuperäinen lista", "oiva": "Oiva-arvosana", "oiva_rep": "Oiva-raportti", "website": "Ravintolan verkkosivu",
-           "route": "Reittiohjeet", "park": "🅿️ Halvin parkki lähellä (Parkpenny)", "oiva_txt": {"A": "Oivallinen", "B": "Hyvä", "C": "Korjattavaa", "D": "Huono"},
+           "route": "Reittiohjeet", "park": "Halvin parkki lähellä (Parkpenny)", "oiva_txt": {"A": "Oivallinen", "B": "Hyvä", "C": "Korjattavaa", "D": "Huono"},
            "wrong": "Väärä tieto?", "wrong_ok": "Kiitos ilmoituksesta!", "report_h": "Onko tämä sinun ravintolasi?", "report_p": "Kerro, missä lounaslistasi julkaistaan (oma sivu, Facebook-sivu tai pdf). Haemme sen jatkossa automaattisesti joka aamu – sinun ei tarvitse tehdä muuta.",
            "report_url": "Lounaslistan osoite", "report_btn": "Lähetä", "report_ok": "Kiitos! Tarkistamme osoitteen seuraavassa päivityksessä.",
            "footer1": "Lounaslistat haetaan automaattisesti ravintoloiden ja ketjujen omista lähteistä joka arkiaamu. Tarkista erityisruokavaliot aina ravintolasta.",
@@ -159,8 +159,8 @@ T = {
     "en": {"home": "/en/", "areas": "/en/lunch/", "area": "/en/lunch/{s}/", "venue": "/en/restaurant/{s}/", "nav_areas": "Areas", "other": "Suomeksi", "other_home": "/",
            "wd": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
            "wd_short": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-           "h1_home": "Lunch in Helsinki", "v_map": "🗺️ Map", "v_list": "☰ List", "search": "Search restaurant, dish or area", "near": "📍 Near me",
-           "chips": [("menu", "With menu"), ("open", "Open now"), ("cheap", "Cheapest first"), ("Veg", "Veg"), ("G", "GF"), ("L", "LF"), ("M", "DF"), ("oivaA", "Oiva 😃")],
+           "h1_home": "Lunch in Helsinki", "v_map": "Map", "v_list": "List", "d_list": "List", "d_map": "Map", "d_filter": "Filter", "search": "Search restaurant, dish or area", "near": "Near me",
+           "chips": [("menu", "With menu"), ("open", "Open now"), ("u13", "Under 13 €"), ("cheap", "Cheapest first"), ("Veg", "Vegetarian"), ("G", "GF"), ("L", "LF"), ("M", "DF"), ("oivaA", "Oiva A")],
            "title_home": "Lunch in Helsinki today – lunch menus on a map | Päivän lounas",
            "desc_home": "Helsinki lunch menus today ({d}): {n} restaurants with menus, prices, diets and food-safety ratings on a map.",
            "area_h1": "Lunch in {a} today", "area_title": "Lunch in {a} today – {n} lunch menus | Päivän lounas",
@@ -171,7 +171,7 @@ T = {
            "venue_desc": "{n} ({a}): today's lunch menu, prices, diets and Oiva food-safety rating.",
            "list_for": "Lunch menu {d}", "week": "This week's menus", "nomenu": "Today's menu is not available. See the restaurant's own website.",
            "src": "Source", "orig": "original menu", "oiva": "Oiva food-safety rating", "oiva_rep": "Oiva report", "website": "Restaurant website",
-           "route": "Directions", "park": "🅿️ Cheapest parking nearby (Parkpenny)", "oiva_txt": {"A": "Excellent", "B": "Good", "C": "To be corrected", "D": "Poor"},
+           "route": "Directions", "park": "Cheapest parking nearby (Parkpenny)", "oiva_txt": {"A": "Excellent", "B": "Good", "C": "To be corrected", "D": "Poor"},
            "wrong": "Wrong info?", "wrong_ok": "Thanks for letting us know!", "report_h": "Is this your restaurant?", "report_p": "Tell us where your lunch menu is published (website, Facebook page or pdf). We will fetch it automatically every morning – nothing else is needed.",
            "report_url": "Lunch menu address", "report_btn": "Send", "report_ok": "Thank you! We will check the address in the next update.",
            "footer1": "Lunch menus are fetched automatically from restaurants' and chains' own sources every weekday morning. Menus are shown in the language the restaurant publishes them (mostly Finnish). Always check special diets with the restaurant.",
@@ -193,6 +193,28 @@ def ads_tag(path):
     return f'<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={esc(ADSENSE)}" crossorigin="anonymous"></script>'
 
 
+AREA_T = {
+    "fi": {"cheap_h": "Alle 13 euroa", "cheap_p": "Edullisimmat lounaat alueella {a} tänään", "veg_h": "Kasvisvaihtoehdot", "veg_p": "Listalla vähintään yksi kasvisannos",
+           "buf_h": "Buffet-lounaat", "buf_p": "Noutopöytä – syö niin paljon kuin jaksat", "all_h": "Kaikki {n} lounaslistaa", "all_p": "Aakkosjärjestyksessä",
+           "all_j": "Kaikki {n}", "rest": "Muut ravintolat ja kahvilat ilman tämän päivän listaa ({n})", "until": "lounas ",
+           "lead": "{d}: <b>{n} ravintolan lounaslista</b>. {c} Kasvisvaihtoehto {v} paikassa.", "lead0": "{d}: alueelta ei löytynyt tämän päivän lounaslistoja. Alueella on {t} ravintolaa ja kahvilaa.",
+           "none": "Alueelta {a} ei löytynyt tämän päivän lounaslistoja. Katso lähialueet.",
+           "trust": "Listat haetaan joka arkiaamu ravintoloiden ja ketjujen omista lähteistä. Lähde ja alkuperäinen lista näkyvät ravintolan sivulla.",
+           "jump": "Osiot", "map_h": "Kartalla", "map_p": "{n} listaa alueella {a} kartalla – lähin ja halvin heti näkyviin.", "near_h": "Lähialueet",
+           "rest_h": "Puuttuuko listasi?", "rest_p": "Kerro ravintolasi sivulla, missä lounaslistasi julkaistaan. Haemme sen joka aamu automaattisesti.",
+           "desc": "Lounas {a} tänään ({d}): {n} lounaslistaa hintoineen. {c} Kasvis-, buffet- ja halvimmat lounaat sekä Oiva-arvosanat."},
+    "en": {"cheap_h": "Under 13 euros", "cheap_p": "The most affordable lunches in {a} today", "veg_h": "Vegetarian options", "veg_p": "At least one vegetarian dish on the menu",
+           "buf_h": "Buffet lunches", "buf_p": "All you can eat", "all_h": "All {n} lunch menus", "all_p": "In alphabetical order",
+           "all_j": "All {n}", "rest": "Other restaurants and cafés without today's menu ({n})", "until": "lunch ",
+           "lead": "{d}: <b>{n} restaurants with today's lunch menu</b>. {c} Vegetarian option in {v} places.", "lead0": "{d}: no lunch menus found in this area today. The area has {t} restaurants and cafés.",
+           "none": "No lunch menus found in {a} today. See nearby areas.",
+           "trust": "Menus are fetched every weekday morning from restaurants' and chains' own sources. The source and original menu are shown on each restaurant's page.",
+           "jump": "Sections", "map_h": "On the map", "map_p": "{n} menus in {a} on the map – nearest and cheapest first.", "near_h": "Nearby areas",
+           "rest_h": "Is your menu missing?", "rest_p": "Tell us on your restaurant's page where your lunch menu is published. We fetch it automatically every morning.",
+           "desc": "Lunch in {a} today ({d}): {n} lunch menus with prices. {c} Vegetarian, buffet and cheapest lunches plus Oiva ratings."},
+}
+
+
 def page(lg, title, desc, path, alt_path, body, preview, extra_head=""):
     t = T[lg]
     extra_head += ads_tag(path)
@@ -206,7 +228,7 @@ def page(lg, title, desc, path, alt_path, body, preview, extra_head=""):
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><meta name="theme-color" content="#1f6f4a">
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}"><meta property="og:type" content="website">
 <link rel="stylesheet" href="/style.css">{extra_head}</head><body>{bar}
-<header class="top"><a class="logo" href="{t['home']}">🍽️ Päivän lounas</a><nav><a href="{t['areas']}">{t['nav_areas']}</a><a href="{alt_path or t['other_home']}" hreflang="{other}">{t['other']}</a></nav></header>
+<header class="top"><a class="logo" href="{t['home']}">Päivän lounas</a><nav><a href="{t['areas']}">{t['nav_areas']}</a><a href="{alt_path or t['other_home']}" hreflang="{other}">{t['other']}</a></nav></header>
 {body}
 <footer><p>{t['footer1']}</p><p>{t['footer2']}</p><p>© 2026 Päivän lounas · <a href="{t['about']}">{t['about_l']}</a> · <a href="{t['privacy']}">{t['privacy_l']}</a> · {CONTACT}</p></footer></body></html>"""
 
@@ -330,6 +352,12 @@ def main(L, out, day, preview):
         shutil.copy(f"{lf}/{f}", f"{out}/vendor/leaflet/{f}")
     for f in os.listdir(f"{lf}/images"):
         shutil.copy(f"{lf}/images/{f}", f"{out}/vendor/leaflet/images/{f}")
+    os.makedirs(f"{out}/fonts", exist_ok=True)
+    fs = os.path.join(here, "..", "node_modules", "@fontsource")
+    for src, dst in (("inter/files/inter-latin-400-normal.woff2", "inter-400.woff2"), ("inter/files/inter-latin-600-normal.woff2", "inter-600.woff2"),
+                     ("inter/files/inter-latin-700-normal.woff2", "inter-700.woff2"),
+                     ("bricolage-grotesque/files/bricolage-grotesque-latin-800-normal.woff2", "bricolage-800.woff2")):
+        shutil.copy(os.path.join(fs, src), f"{out}/fonts/{dst}")
 
     urls = []
     by_d = {}
@@ -343,11 +371,18 @@ def main(L, out, day, preview):
         # home / app
         chips = "".join(f'<button data-f="{k}"{" class=on" if k == "menu" else ""}>{esc(lbl)}</button>' for k, lbl in t["chips"])
         dchips = "".join(f'<button data-day="{d}"{" class=on" if d == show_day else ""}>{t["wd_short"][i]} {int(d[8:])}.{int(d[5:7])}.</button>' for i, d in enumerate(days))
-        body = f"""<main class="app" data-lang="{lg}"><div id="map"></div><section class="panel" id="panel">
-<div class="grip"></div><div class="views" role="tablist"><button data-view="map" class="on">{t['v_map']}</button><button data-view="list">{t['v_list']}</button></div><h1>{t['h1_home']} <small id="dlabel">{esc(ds_)}</small></h1>
+        body = f"""<main class="app" data-lang="{lg}">
+<section class="panel" id="panel">
+<div class="ptop"><div><p class="sub" id="dlabel">{esc(ds_)}</p><h1>{t['h1_home']}</h1></div>
+<div class="views" role="tablist"><button data-view="split" class="on">{t['v_map']}</button><button data-view="list">{t['v_list']}</button></div></div>
 <div class="days">{dchips}</div>
-<div class="search"><input id="q" type="search" placeholder="{esc(t['search'])}"><button id="near" type="button">{t['near']}</button></div>
-<div class="chips">{chips}</div><p id="count" class="count"></p><ol id="list" class="list"></ol><button id="more" class="btn ghost more" hidden></button></section></main>
+<div class="search"><input id="q" type="search" placeholder="{esc(t['search'])}" aria-label="{esc(t['search'])}"><button id="near" type="button">{t['near']}</button></div>
+<section class="top3" id="top3s" aria-labelledby="t3h" hidden><div class="t3head"><h2 id="t3h"></h2></div><div id="top3" class="t3"></div></section>
+<div class="chips" id="chips">{chips}</div><p id="count" class="count"></p><ol id="list" class="list"></ol><button id="more" class="btn ghost more" hidden></button>
+</section>
+<div id="map" role="region" aria-label="{t['v_map']}"></div>
+<nav class="dock" aria-label="{t['v_list']}"><button data-view="list">{t['d_list']}</button><button data-view="map">{t['d_map']}</button><button id="filt" type="button">{t['d_filter']}</button></nav>
+</main>
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css"><script src="/vendor/leaflet/leaflet.js"></script><script src="/app.js"></script><script src="/suggest.js" defer></script>"""
         ld = {"@context": "https://schema.org", "@type": "WebSite", "name": SITE, "url": DOMAIN + t["home"], "inLanguage": lg}
         hp = t["home"]
@@ -355,24 +390,68 @@ def main(L, out, day, preview):
         open(f"{out}{hp}index.html", "w").write(page(lg, t["title_home"], t["desc_home"].format(d=ds_, n=len(with_menu)), hp, T[other]["home"], body, preview,
                                                        f'<script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>'))
         urls.append(hp)
-        # districts
+        # districts (digest layout: sections people scan, then the full list)
+        A = AREA_T[lg]
+        cent = {k: (sum(v["lat"] for v in vs) / len(vs), sum(v["lon"] for v in vs) / len(vs)) for k, vs in by_d.items()}
+        nmenu = {k: sum(1 for v in vs if v["menu"]) for k, vs in by_d.items()}
         idx = []
         for (dslug, dn), vs in sorted(by_d.items(), key=lambda x: x[0][1]):
-            vs.sort(key=lambda v: (v["menu"] is None, (min([i["p"] for i in v["menu"]["items"] if i.get("p")] or [99]) if v["menu"] else 99), v["name"]))
-            nm = sum(1 for v in vs if v["menu"])
-            prices = [i["p"] for v in vs if v["menu"] for i in v["menu"]["items"] if i.get("p") and i["p"] >= 5]
+            withm = [v for v in vs if v["menu"]]
+            nm = len(withm)
+            mp = {}
+            for v in withm:
+                ps = [i["p"] for i in v["menu"]["items"] if i.get("p") and 5 <= i["p"] <= 25]
+                mp[v["slug"]] = min(ps) if ps else None
+            prices = [x for x in mp.values() if x]
             cheapest = t["cheapest"].format(p=fmt_price(min(prices))) if prices else ""
-            cards = []
-            for v in vs[:150]:
-                o = (v["oiva"] or {}).get("grade")
-                oiva = f'<span class="oiva" title="Oiva: {t["oiva_txt"].get(o, "")}">{"😃" if o == "A" else "🙂" if o == "B" else "😐" if o == "C" else "☹️"}</span>' if o else ""
-                cards.append(f'<li class="card"><h3><a href="{t["venue"].format(s=v["slug"])}">{esc(v["name"])}</a> {oiva}</h3><p class="addr">{esc(v["street"])}</p>{menu_html(v["menu"], lg) if v["menu"] else ""}</li>')
+            def clean(d):
+                d = re.sub(r"\s*\((?:[A-Za-z]{1,4}[\s,+*/]*)+\)", "", d)
+                return re.sub(r"[\s,;·]+$", "", d)
+            def txt(v):
+                return " ".join(" ".join(i["d"]) + " " + (i.get("t") or "") for i in v["menu"]["items"]).lower()
+            cheap = sorted([v for v in withm if mp[v["slug"]] and mp[v["slug"]] < 13], key=lambda v: mp[v["slug"]])[:6]
+            veg = [v for v in withm if any(("Veg" in i.get("diet", []) or "Kasvis" in i.get("diet", [])) for i in v["menu"]["items"]) or re.search(r"kasvis|vegaan|vegan|vegetar", txt(v))]
+            nveg = len(veg)
+            veg = sorted(veg, key=lambda v: (mp[v["slug"]] or 99))[:6]
+            buf = sorted([v for v in withm if re.search(r"buffet|noutopöytä|seisova", txt(v))], key=lambda v: v["name"])[:6]
+            def ent(v):
+                m = v["menu"]; o = (v["oiva"] or {}).get("grade")
+                dishes = " · ".join(clean(i["d"][0]) for i in m["items"][:4])
+                meta = " · ".join(x for x in (v["street"], (t["oiva"] + " " + t["oiva_txt"][o]) if o in ("A", "B") else "", (A["until"] + m["hours"]) if m.get("hours") else "") if x)
+                pr = fmt_price(mp[v["slug"]]) if mp.get(v["slug"]) else ""
+                return (f'<article class="ent"><div class="row"><h3><a href="{t["venue"].format(s=v["slug"])}">{esc(v["name"])}</a></h3><span class="price">{pr}</span></div>'
+                        f'<p class="dish">{esc(dishes)}</p><p class="meta">{esc(meta)}</p></article>')
+            secs, jumps = [], []
+            for sid, title, lead, items in (("halvat", A["cheap_h"], A["cheap_p"].format(a=dn), cheap), ("kasvis", A["veg_h"], A["veg_p"], veg),
+                                            ("buffet", A["buf_h"], A["buf_p"], buf)):
+                if len(items) >= 2:
+                    secs.append(f'<section class="sec" id="{sid}"><h2>{title}</h2><p>{lead}</p>{"".join(ent(v) for v in items)}</section>')
+                    jumps.append(f'<a href="#{sid}">{title}</a>')
+            allm = sorted(withm, key=lambda v: v["name"].lower())
+            if allm:
+                secs.append(f'<section class="sec" id="kaikki"><h2>{A["all_h"].format(n=nm)}</h2><p>{A["all_p"]}</p>{"".join(ent(v) for v in allm)}</section>')
+                jumps.append(f'<a href="#kaikki">{A["all_j"].format(n=nm)}</a>')
+            others = sorted([v for v in vs if not v["menu"]], key=lambda v: v["name"].lower())
+            if others:
+                lis_o = "".join((f'<li><a href="{t["venue"].format(s=v["slug"])}">{esc(v["name"])}</a></li>' if (v["ms"] or v["sources"]) else f'<li>{esc(v["name"])}</li>') for v in others[:200])
+                secs.append(f'<details class="rest"><summary>{A["rest"].format(n=len(others))}</summary><ul>{lis_o}</ul></details>')
+            if not withm:
+                secs.insert(0, f'<p class="nomenu">{A["none"].format(a=esc(dn))}</p>')
+            near = sorted((k for k in by_d if k[0] != dslug), key=lambda k: (cent[k][0] - cent[(dslug, dn)][0]) ** 2 + ((cent[k][1] - cent[(dslug, dn)][1]) * 0.5) ** 2)[:5]
+            near_li = "".join(f'<li><a href="{t["area"].format(s=k[0])}">{esc(k[1])}</a> <small>· {nmenu[k]} {t["lists"]}</small></li>' for k in near)
+            lead = A["lead"].format(d=esc(ds_), n=nm, c=esc(cheapest), v=nveg) if nm else A["lead0"].format(d=esc(ds_), t=len(vs))
             path, alt = t["area"].format(s=dslug), T[other]["area"].format(s=dslug)
             body = f"""<main class="content"><nav class="crumbs"><a href="{t['home']}">{t['crumb_home']}</a> › <a href="{t['areas']}">{t['nav_areas']}</a> › {esc(dn)}</nav>
-<h1>{t['area_h1'].format(a=esc(dn))}</h1><p class="lead">{esc(t['area_lead'].format(d=ds_, n=nm, a=dn, c=cheapest, t=len(vs)))}</p>
-<p><a class="btn" href="{t['home']}?d={dslug}">{t['show_map']}</a></p><ol class="cards">{''.join(cards)}</ol></main>"""
+<h1>{t['area_h1'].format(a=esc(dn))}</h1><p class="lead">{lead}</p>
+<p class="trust"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2f6b3a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span>{A['trust']}</span></p>
+<nav class="jump" aria-label="{A['jump']}">{''.join(jumps)}</nav>
+<div class="cols"><div class="maincol">{''.join(secs)}</div>
+<aside class="side"><div class="box"><h2>{A['map_h']}</h2><p style="margin:0 0 12px;color:var(--mut);font-size:14px">{A['map_p'].format(n=nm, a=esc(dn))}</p><a class="btn" href="{t['home']}?d={dslug}">{t['show_map']}</a></div>
+<div class="box"><h2>{A['near_h']}</h2><ul>{near_li}</ul></div>
+<div class="box tint"><h2>{A['rest_h']}</h2><p style="margin:0;font-size:14px">{A['rest_p']}</p></div></aside></div></main>"""
+            desc = (A["desc"].format(a=dn, d=ds_, n=nm, c=cheapest) if nm else A["lead0"].format(d=ds_, t=len(vs)))
             os.makedirs(f"{out}{path}", exist_ok=True)
-            open(f"{out}{path}index.html", "w").write(page(lg, t["area_title"].format(a=dn, n=nm), t["area_lead"].format(d=ds_, n=nm, a=dn, c=cheapest, t=len(vs)), path, alt, body, preview))
+            open(f"{out}{path}index.html", "w").write(page(lg, t["area_title"].format(a=dn, n=nm), desc, path, alt, body, preview))
             urls.append(path)
             idx.append((dn, dslug, nm, len(vs)))
         lis = "".join(f'<li><a href="{t["area"].format(s=s)}">{esc(n)}</a> <small>{m} {t["lists"]} · {tt} {t["places"]}</small></li>' for n, s, m, tt in idx)
