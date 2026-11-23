@@ -4,13 +4,14 @@
   var LG = root ? root.getAttribute("data-lang") : "fi";
   var S = {
     fi: { n: " ravintolaa", menu: " – lista", nomenu: "Ei listaa tälle päivälle.", site: "Ravintolan sivu", src: "Lähde", orig: "alkuperäinen",
-          from: "alk.", park: "🅿️ Parkki lähellä", venue: "/ravintola/", noloc: "Sijaintia ei saatu.",
+          from: "alk.", wrong: "Väärä tieto?", wrongOk: "Kiitos ilmoituksesta!", onmap: "📍 Kartalla", more: "Näytä lisää", park: "🅿️ Parkki lähellä", venue: "/ravintola/", noloc: "Sijaintia ei saatu.",
           wd: ["sunnuntai", "maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai"], pp: "https://parkpenny.com/" },
     en: { n: " restaurants", menu: " – with menu", nomenu: "No menu for this day.", site: "Restaurant website", src: "Source", orig: "original",
-          from: "from", park: "🅿️ Parking nearby", venue: "/en/restaurant/", noloc: "Could not get your location.",
+          from: "from", wrong: "Wrong info?", wrongOk: "Thanks for letting us know!", onmap: "📍 On map", more: "Show more", park: "🅿️ Parking nearby", venue: "/en/restaurant/", noloc: "Could not get your location.",
           wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], pp: "https://parkpenny.com/en/" }
   }[LG];
-  var state = { f: { menu: true }, q: "", me: null, data: [], day: null, days: [], markers: null, byId: {} };
+  var state = { f: { menu: true }, q: "", me: null, data: [], day: null, days: [], markers: null, byId: {}, view: "map", limit: 60 };
+  var main = document.querySelector("main.app");
   var params = new URLSearchParams(location.search);
   var map = L.map("map", { zoomControl: false }).setView([60.1699, 24.9384], 14);
   L.control.zoom({ position: "topright" }).addTo(map);
@@ -43,7 +44,8 @@
         return "<li>" + (i.t ? "<b>" + esc(i.t) + "</b> " : "") + esc(i.d.join(" · ")) + " " +
           (i.diet || []).map(function (d) { return '<span class="diet">' + esc(d) + "</span>"; }).join("") +
           (i.p ? ' <span class="price">' + fmt(i.p) + "</span>" : "") + "</li>";
-      }).join("") + "</ul>" + '<p class="src">' + S.src + ": " + esc(m.src) + (m.url ? ' – <a href="' + esc(m.url) + '" rel="nofollow noopener" target="_blank">' + S.orig + "</a>" : "") + "</p>";
+      }).join("") + "</ul>" + '<p class="src">' + S.src + ": " + esc(m.src) + (m.url ? ' – <a href="' + esc(m.url) + '" rel="nofollow noopener" target="_blank">' + S.orig + "</a>" : "") +
+        ' · <a href="#" class="wrong" data-wrong="' + esc(v.i) + '" data-day="' + state.day + '" data-ok="' + esc(S.wrongOk) + '" rel="nofollow">' + S.wrong + "</a></p>";
     return s + '<p class="pp"><a href="' + ppLink(v) + '" target="_blank" rel="noopener">' + S.park + "</a></p>";
   }
   function card(v) {
@@ -79,7 +81,12 @@
     document.getElementById("count").textContent = list.length + S.n + (state.f.menu ? S.menu : "");
     var dt = new Date(state.day + "T12:00:00");
     document.getElementById("dlabel").textContent = S.wd[dt.getDay()] + " " + dt.getDate() + "." + (dt.getMonth() + 1) + "." + dt.getFullYear();
-    document.getElementById("list").innerHTML = list.slice(0, 200).map(function (v) { return '<li data-i="' + esc(v.i) + '">' + card(v) + "</li>"; }).join("");
+    var lv = state.view === "list", n = lv ? state.limit : 200;
+    document.getElementById("list").innerHTML = list.slice(0, n).map(function (v) {
+      return '<li data-i="' + esc(v.i) + '">' + card(v) + (lv ? menuHtml(v).replace('<p class="pp">', '<p class="pp"><a href="#" class="onmap" data-go="' + esc(v.i) + '">' + S.onmap + "</a> ") : "") + "</li>";
+    }).join("");
+    var more = document.getElementById("more");
+    more.hidden = !(lv && list.length > n); more.textContent = S.more + " (" + (list.length - n) + ")";
     state.markers.clearLayers(); state.byId = {};
     list.slice(0, 900).forEach(function (v) {
       var mk = L.circleMarker([v.y, v.x], { radius: M(v) ? 7 : 4, weight: 1, color: "#fff", fillColor: M(v) ? "#1f6f4a" : "#8a8f8c", fillOpacity: 0.95 });
@@ -87,7 +94,23 @@
       mk.addTo(state.markers); state.byId[v.i] = mk;
     });
   }
+  function setView(v, keep) {
+    state.view = v; main.classList.toggle("listview", v === "list");
+    document.querySelectorAll(".views button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-view") === v); });
+    if (!keep) { try { localStorage.setItem("pl_view", v); } catch (e) {} }
+    if (v === "map") setTimeout(function () { map.invalidateSize(); }, 0);
+    state.limit = 60; render();
+  }
+  document.querySelectorAll(".views button").forEach(function (b) { b.addEventListener("click", function () { setView(b.getAttribute("data-view")); }); });
+  document.getElementById("more").addEventListener("click", function () { state.limit += 60; render(); });
   document.getElementById("list").addEventListener("click", function (e) {
+    var go = e.target.closest("[data-go]");
+    if (go) {
+      e.preventDefault(); var id = go.getAttribute("data-go"); setView("map");
+      var m = state.byId[id]; if (m) { map.setView(m.getLatLng(), 17); m.openPopup(); }
+      return;
+    }
+    if (state.view === "list") return;
     var li = e.target.closest("li[data-i]"); if (!li || e.target.tagName === "A") return;
     var mk = state.byId[li.getAttribute("data-i")]; if (mk) { map.flyTo(mk.getLatLng(), 17); mk.openPopup(); }
   });
@@ -112,6 +135,9 @@
   });
   fetch("/data/week.json").then(function (r) { return r.json(); }).then(function (d) {
     state.data = d.venues; state.days = d.days;
+    var pv = params.get("view"); if (!pv) { try { pv = localStorage.getItem("pl_view"); } catch (e) {} }
+    if (pv === "list" && !params.get("v")) { state.view = "list"; main.classList.add("listview");
+      document.querySelectorAll(".views button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-view") === "list"); }); }
     var t = today(); state.day = d.days.indexOf(t) >= 0 ? t : d.date;
     document.querySelectorAll(".days button").forEach(function (x) { x.classList.toggle("on", x.getAttribute("data-day") === state.day); });
     render();

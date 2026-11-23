@@ -15,7 +15,7 @@ Rules:
 - Return dishes only for the weekdays of the week given by the user. If the page clearly shows a different week (stale list, other dates), return "stale": true and empty "days".
 - If the page lists a fixed lunch that is the same every weekday (e.g. "Lounas ma-pe: ..."), put it in "fixed" instead of "days".
 - Set "belongs": false ONLY if the menu clearly belongs to another, differently named restaurant (e.g. a listing or chain page that shows other places and not this one). Brand names, company names, abbreviations and the restaurant's other spellings count as the same restaurant; a restaurant's own site is the same restaurant even if the name is not repeated.
-- Ignore special menus that are not the everyday weekday lunch (Christmas lunch/joululounas, brunch, events, à la carte, drinks). Photos of food or the room are not menus: return empty "days".
+- Extract ONLY the weekday lunch (lounas, served on weekdays around 10.30–15). Ignore the regular à la carte / dinner menu, Christmas lunch (joululounas), brunch, events and drinks. If the page has no separate lunch offer, return empty "days" and "fixed". Photos of food or the room are not menus: return empty "days".
 - Dishes: keep the original language and wording, one dish per entry, without the price. Remove day names, opening hours and marketing text.
 - diet: only markings written next to the dish, normalised to: L, G, M, VL, Veg (vegan/vegaani/VE/V), K (kasvis).
 - price: the lunch price in euros as a number if shown for that dish or for the whole lunch; otherwise null.
@@ -24,6 +24,7 @@ Answer with one compact JSON object only (no code fence, no prose). At most 15 d
 {"belongs": true, "stale": false, "hours": null, "fixed": [], "days": {"YYYY-MM-DD": [{"dish": "...", "diet": ["L"], "price": 12.9}]}}"""
 
 
+PV = hashlib.sha256(SYSTEM.encode()).hexdigest()[:6]  # prompt version: a changed prompt re-reads pages
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36"}
 IMG_TYPES = {"jpeg": "image/jpeg", "jpg": "image/jpeg", "png": "image/png", "webp": "image/webp", "gif": "image/gif"}
 
@@ -143,7 +144,7 @@ def main(inp, days, out):
         nonlocal hits
         k, v = kv
         text = "\n\n---\n\n".join(f"[{p['url']}]\n{p['text']}" for p in v["pages"])[:12000]
-        h = hashlib.sha256(f"{MODEL}|{v['name']}|{week[0]}|{text}".encode()).hexdigest()[:24]
+        h = hashlib.sha256(f"{MODEL}|{PV}|{v['name']}|{week[0]}|{text}".encode()).hexdigest()[:24]
         usage = {}
         if text and h in cache:
             hits += 1
@@ -158,7 +159,7 @@ def main(inp, days, out):
         if not has_menu(res) and (v.get("pdfs") or v.get("imgs")):
             blocks, ids = media_blocks(v)
             if blocks:
-                hm = hashlib.sha256(f"{MODEL}|media|{v['name']}|{week[0]}|{'|'.join(ids)}".encode()).hexdigest()[:24]
+                hm = hashlib.sha256(f"{MODEL}|{PV}|media|{v['name']}|{week[0]}|{'|'.join(ids)}".encode()).hexdigest()[:24]
                 if hm in cache:
                     hits += 1
                     r2 = cache[hm]["r"]

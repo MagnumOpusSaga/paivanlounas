@@ -137,8 +137,8 @@ T = {
     "fi": {"home": "/", "areas": "/lounas/", "area": "/lounas/{s}/", "venue": "/ravintola/{s}/", "nav_areas": "Alueet", "other": "In English", "other_home": "/en/",
            "wd": ["maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai", "sunnuntai"],
            "wd_short": ["Ma", "Ti", "Ke", "To", "Pe", "La", "Su"],
-           "h1_home": "Lounas Helsinki", "search": "Hae ravintolaa, ruokaa tai aluetta", "near": "📍 Lähellä",
-           "chips": [("menu", "Lista"), ("open", "Auki nyt"), ("cheap", "Halvin ensin"), ("Veg", "Veg"), ("G", "G"), ("L", "L"), ("M", "M"), ("oivaA", "Oiva 😃")],
+           "h1_home": "Lounas Helsinki", "v_map": "🗺️ Kartta", "v_list": "☰ Lista", "search": "Hae ravintolaa, ruokaa tai aluetta", "near": "📍 Lähellä",
+           "chips": [("menu", "Vain listalliset"), ("open", "Auki nyt"), ("cheap", "Halvin ensin"), ("Veg", "Veg"), ("G", "G"), ("L", "L"), ("M", "M"), ("oivaA", "Oiva 😃")],
            "title_home": "Lounas Helsinki tänään – päivän lounaslistat kartalla | Päivän lounas",
            "desc_home": "Helsingin lounaslistat tänään ({d}): {n} ravintolan lista, hinnat, ruokavaliot ja Oiva-hymy kartalla.",
            "area_h1": "Lounas {a} tänään", "area_title": "Lounas {a} tänään – {n} lounaslistaa | Päivän lounas",
@@ -150,7 +150,7 @@ T = {
            "list_for": "Lounaslista {d}", "week": "Tämän viikon listat", "nomenu": "Tämän päivän listaa ei ole saatavilla. Katso ravintolan omat sivut.",
            "src": "Lähde", "orig": "alkuperäinen lista", "oiva": "Oiva-arvosana", "oiva_rep": "Oiva-raportti", "website": "Ravintolan verkkosivu",
            "route": "Reittiohjeet", "park": "🅿️ Halvin parkki lähellä (Parkpenny)", "oiva_txt": {"A": "Oivallinen", "B": "Hyvä", "C": "Korjattavaa", "D": "Huono"},
-           "report_h": "Onko tämä sinun ravintolasi?", "report_p": "Kerro, missä lounaslistasi julkaistaan (oma sivu, Facebook-sivu tai pdf). Haemme sen jatkossa automaattisesti joka aamu – sinun ei tarvitse tehdä muuta.",
+           "wrong": "Väärä tieto?", "wrong_ok": "Kiitos ilmoituksesta!", "report_h": "Onko tämä sinun ravintolasi?", "report_p": "Kerro, missä lounaslistasi julkaistaan (oma sivu, Facebook-sivu tai pdf). Haemme sen jatkossa automaattisesti joka aamu – sinun ei tarvitse tehdä muuta.",
            "report_url": "Lounaslistan osoite", "report_btn": "Lähetä", "report_ok": "Kiitos! Tarkistamme osoitteen seuraavassa päivityksessä.",
            "footer1": "Lounaslistat haetaan automaattisesti ravintoloiden ja ketjujen omista lähteistä joka arkiaamu. Tarkista erityisruokavaliot aina ravintolasta.",
            "footer2": "Elintarvikevalvonnan tulokset: Oiva / Ruokavirasto (oivahymy.fi). Osoitteet ja kaupunginosat: Helsingin kaupunki, CC BY 4.0. Kartta: © OpenStreetMapin tekijät.",
@@ -158,8 +158,8 @@ T = {
     "en": {"home": "/en/", "areas": "/en/lunch/", "area": "/en/lunch/{s}/", "venue": "/en/restaurant/{s}/", "nav_areas": "Areas", "other": "Suomeksi", "other_home": "/",
            "wd": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
            "wd_short": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-           "h1_home": "Lunch in Helsinki", "search": "Search restaurant, dish or area", "near": "📍 Near me",
-           "chips": [("menu", "Menu"), ("open", "Open now"), ("cheap", "Cheapest first"), ("Veg", "Veg"), ("G", "GF"), ("L", "LF"), ("M", "DF"), ("oivaA", "Oiva 😃")],
+           "h1_home": "Lunch in Helsinki", "v_map": "🗺️ Map", "v_list": "☰ List", "search": "Search restaurant, dish or area", "near": "📍 Near me",
+           "chips": [("menu", "With menu"), ("open", "Open now"), ("cheap", "Cheapest first"), ("Veg", "Veg"), ("G", "GF"), ("L", "LF"), ("M", "DF"), ("oivaA", "Oiva 😃")],
            "title_home": "Lunch in Helsinki today – lunch menus on a map | Päivän lounas",
            "desc_home": "Helsinki lunch menus today ({d}): {n} restaurants with menus, prices, diets and food-safety ratings on a map.",
            "area_h1": "Lunch in {a} today", "area_title": "Lunch in {a} today – {n} lunch menus | Päivän lounas",
@@ -171,7 +171,7 @@ T = {
            "list_for": "Lunch menu {d}", "week": "This week's menus", "nomenu": "Today's menu is not available. See the restaurant's own website.",
            "src": "Source", "orig": "original menu", "oiva": "Oiva food-safety rating", "oiva_rep": "Oiva report", "website": "Restaurant website",
            "route": "Directions", "park": "🅿️ Cheapest parking nearby (Parkpenny)", "oiva_txt": {"A": "Excellent", "B": "Good", "C": "To be corrected", "D": "Poor"},
-           "report_h": "Is this your restaurant?", "report_p": "Tell us where your lunch menu is published (website, Facebook page or pdf). We will fetch it automatically every morning – nothing else is needed.",
+           "wrong": "Wrong info?", "wrong_ok": "Thanks for letting us know!", "report_h": "Is this your restaurant?", "report_p": "Tell us where your lunch menu is published (website, Facebook page or pdf). We will fetch it automatically every morning – nothing else is needed.",
            "report_url": "Lunch menu address", "report_btn": "Send", "report_ok": "Thank you! We will check the address in the next update.",
            "footer1": "Lunch menus are fetched automatically from restaurants' and chains' own sources every weekday morning. Menus are shown in the language the restaurant publishes them (mostly Finnish). Always check special diets with the restaurant.",
            "footer2": "Food-control results: Oiva / Finnish Food Authority (oivahymy.fi). Addresses and districts: City of Helsinki, CC BY 4.0. Map: © OpenStreetMap contributors.",
@@ -200,7 +200,7 @@ def fmt_price(p):
     return f"{p:.2f} €".replace(".", ",")
 
 
-def menu_html(m, lg):
+def menu_html(m, lg, slug_=None, day=None):
     t = T[lg]
     if not m:
         return f'<p class="nomenu">{t["nomenu"]}</p>'
@@ -210,7 +210,8 @@ def menu_html(m, lg):
         diet = "".join(f'<span class="diet">{esc(d)}</span>' for d in it.get("diet", []))
         title = f'<b>{esc(it["t"])}</b> ' if it.get("t") else ""
         out.append(f'<li>{title}{esc(" · ".join(it["d"]))} {diet} {price}</li>')
-    src = f'<p class="src">{t["src"]}: {esc(m["src"])}' + (f' – <a href="{esc(m["url"])}" rel="nofollow noopener">{t["orig"]}</a>' if m.get("url") else "") + "</p>"
+    wrong = f' · <a href="#" class="wrong" data-wrong="{esc(slug_)}" data-day="{day}" data-ok="{esc(t["wrong_ok"])}" rel="nofollow">{t["wrong"]}</a>' if slug_ else ""
+    src = f'<p class="src">{t["src"]}: {esc(m["src"])}' + (f' – <a href="{esc(m["url"])}" rel="nofollow noopener">{t["orig"]}</a>' if m.get("url") else "") + wrong + "</p>"
     return '<ul class="menu">' + "".join(out) + "</ul>" + src
 
 
@@ -278,6 +279,22 @@ def main(L, out, day, preview):
             if d not in v["ms"] and "sug:" + s in M[d]:
                 v["ms"][d] = M[d]["sug:" + s]
         v["menu"] = v["ms"].get(show_day)
+    rp = f"{L}/data/reports_raw.json"
+    hidden = 0
+    if os.path.exists(rp):
+        try:
+            reps = {(r["venue"], r["day"]): r["n"] for r in json.load(open(rp))[0]["results"]}
+        except Exception as e:
+            print("reports unreadable:", e, file=sys.stderr)
+            reps = {}
+        for v in venues:
+            for d in list(v["ms"]):
+                need = 3 if v["ms"][d].get("conf") == "api" else 2
+                if reps.get((v["slug"], d), 0) >= need:
+                    del v["ms"][d]
+                    hidden += 1
+            v["menu"] = v["ms"].get(show_day)
+    print("hidden by reports", hidden, file=sys.stderr)
     with_menu = [v for v in venues if v["menu"]]
     print("venues", len(venues), "with menu", show_day, len(with_menu), "| week", {d: sum(1 for v in venues if d in v["ms"]) for d in days}, file=sys.stderr)
 
@@ -312,11 +329,11 @@ def main(L, out, day, preview):
         chips = "".join(f'<button data-f="{k}"{" class=on" if k == "menu" else ""}>{esc(lbl)}</button>' for k, lbl in t["chips"])
         dchips = "".join(f'<button data-day="{d}"{" class=on" if d == show_day else ""}>{t["wd_short"][i]} {int(d[8:])}.{int(d[5:7])}.</button>' for i, d in enumerate(days))
         body = f"""<main class="app" data-lang="{lg}"><div id="map"></div><section class="panel" id="panel">
-<div class="grip"></div><h1>{t['h1_home']} <small id="dlabel">{esc(ds_)}</small></h1>
+<div class="grip"></div><div class="views" role="tablist"><button data-view="map" class="on">{t['v_map']}</button><button data-view="list">{t['v_list']}</button></div><h1>{t['h1_home']} <small id="dlabel">{esc(ds_)}</small></h1>
 <div class="days">{dchips}</div>
 <div class="search"><input id="q" type="search" placeholder="{esc(t['search'])}"><button id="near" type="button">{t['near']}</button></div>
-<div class="chips">{chips}</div><p id="count" class="count"></p><ol id="list" class="list"></ol></section></main>
-<link rel="stylesheet" href="/vendor/leaflet/leaflet.css"><script src="/vendor/leaflet/leaflet.js"></script><script src="/app.js"></script>"""
+<div class="chips">{chips}</div><p id="count" class="count"></p><ol id="list" class="list"></ol><button id="more" class="btn ghost more" hidden></button></section></main>
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css"><script src="/vendor/leaflet/leaflet.js"></script><script src="/app.js"></script><script src="/suggest.js" defer></script>"""
         ld = {"@context": "https://schema.org", "@type": "WebSite", "name": SITE, "url": DOMAIN + t["home"], "inLanguage": lg}
         hp = t["home"]
         os.makedirs(f"{out}{hp}", exist_ok=True)
@@ -357,7 +374,7 @@ def main(L, out, day, preview):
             oiva = f'<p class="oivabox">{t["oiva"]}: <b>{t["oiva_txt"].get(o.get("grade"), "")}</b> ({esc(o.get("date"))}) – <a href="https://www.oivahymy.fi/hae-yrityksia/" rel="nofollow noopener">{t["oiva_rep"]}</a></p>' if o.get("grade") else ""
             web = f'<p><a href="{esc(v["website"])}" rel="nofollow noopener">{t["website"]}</a></p>' if v.get("website") else ""
             dlink = f' · <a href="{t["area"].format(s=v["dslug"])}">{esc(t["area_h1"].format(a=v["district"]))}</a>' if v["dslug"] else ""
-            week = "".join(f'<h3>{esc(datestr(d, lg))}</h3>{menu_html(v["ms"].get(d), lg)}' for d in days if d != show_day and d in v["ms"])
+            week = "".join(f'<h3>{esc(datestr(d, lg))}</h3>{menu_html(v["ms"].get(d), lg, v["slug"], d)}' for d in days if d != show_day and d in v["ms"])
             week = f'<h2>{t["week"]}</h2>{week}' if week else ""
             jl = {"@context": "https://schema.org", "@type": "Restaurant", "name": v["name"],
                   "address": {"@type": "PostalAddress", "streetAddress": v["street"], "postalCode": v.get("postal"), "addressLocality": "Helsinki", "addressCountry": "FI"},
@@ -366,7 +383,7 @@ def main(L, out, day, preview):
                 jl["url"] = v["website"]
             body = f"""<main class="content"><nav class="crumbs"><a href="{t['home']}">{t['crumb_home']}</a>{dlink}</nav>
 <h1>{esc(t['venue_h1'].format(n=v['name']))}</h1><p class="addr">{esc(v['street'])}, Helsinki</p>
-<h2>{esc(t['list_for'].format(d=ds_))}</h2>{menu_html(v['menu'], lg)}{week}{oiva}{web}
+<h2>{esc(t['list_for'].format(d=ds_))}</h2>{menu_html(v['menu'], lg, v['slug'], show_day)}{week}{oiva}{web}
 <p class="actions"><a class="btn" href="{t['home']}?v={v['slug']}">{t['show_map']}</a> <a class="btn ghost" href="https://www.google.com/maps/dir/?api=1&destination={v['lat']},{v['lon']}" rel="nofollow noopener">{t['route']}</a> {parkpenny(v, lg)}</p>
 {report_form(v, lg)}</main><script src="/suggest.js" defer></script>"""
             os.makedirs(f"{out}{path}", exist_ok=True)
