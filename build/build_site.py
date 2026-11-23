@@ -187,8 +187,9 @@ OWNER = "BR Entertainment (toiminimi), Y-tunnus 3183394-5"
 
 
 def ads_tag(path):
-    """Auto ads only on content pages, never on the map app."""
-    if not ADSENSE or path in ("/", "/en/") or path.startswith(("/tietosuoja", "/en/privacy", "/404")):
+    """AdSense script on every page (site verification needs the front page too).
+    Keep auto ads off the map app with AdSense's page exclusions (/ and /en/)."""
+    if not ADSENSE or path.startswith("/404"):
         return ""
     return f'<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={esc(ADSENSE)}" crossorigin="anonymous"></script>'
 
