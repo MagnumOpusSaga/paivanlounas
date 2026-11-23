@@ -14,7 +14,7 @@ a{color:var(--p)}a:hover{color:var(--p-dark)}
 h1,h2{font-family:var(--display);font-weight:800;letter-spacing:-.3px;line-height:1.1}
 .preview{background:#ffe36e;color:#3b3000;text-align:center;font-size:13px;padding:4px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);position:relative;z-index:1000}
-.logo{font-family:var(--display);font-weight:800;text-decoration:none;color:var(--ink);font-size:19px}
+.logo{font-family:var(--display);font-weight:800;text-decoration:none;color:var(--ink);font-size:19px;display:inline-flex;align-items:center;gap:9px}.logo img{border-radius:7px}
 .top nav{display:flex;gap:16px}.top nav a{text-decoration:none;font-weight:600;font-size:15px}
 .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border-radius:12px;border:0;background:var(--p);color:var(--p-ink);font:700 15px var(--body);cursor:pointer;text-decoration:none}
 .btn:hover{background:var(--p-dark);color:#fff}

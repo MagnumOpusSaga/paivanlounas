@@ -290,10 +290,11 @@ def page(lg, title, desc, path, alt_path, body, preview, extra_head=""):
           f'<link rel="alternate" hreflang="x-default" href="{DOMAIN}{path if lg == "fi" else alt_path}">') if alt_path else ""
     return f"""<!doctype html><html lang="{lg}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title><meta name="description" content="{esc(desc)}"><link rel="canonical" href="{DOMAIN}{path}">{hl}{robots}
-<link rel="icon" href="/favicon.svg" type="image/svg+xml"><meta name="theme-color" content="#1f6f4a">
+<link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#c2410c">
+<meta property="og:image" content="{DOMAIN}/icon-512.png">
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}"><meta property="og:type" content="website">
 <link rel="stylesheet" href="/style.css">{extra_head}</head><body>{bar}
-<header class="top"><a class="logo" href="{t['home']}">Päivän lounas</a><nav><a href="{t['areas']}">{t['nav_areas']}</a><a href="{alt_path or t['other_home']}" hreflang="{other}">{t['other']}</a></nav></header>
+<header class="top"><a class="logo" href="{t['home']}"><img src="/favicon.svg" width="28" height="28" alt="">Päivän lounas</a><nav><a href="{t['areas']}">{t['nav_areas']}</a><a href="{alt_path or t['other_home']}" hreflang="{other}">{t['other']}</a></nav></header>
 {body}
 <footer><p class="flinks">{' · '.join(f'<a href="{TOPIC_T[lg][k]["path"]}">{TOPIC_T[lg][k]["h1"]}</a>' for k in ("cheap", "veg", "buffet"))}</p><p>{t['footer1']}</p><p>{t['footer2']}</p><p>© 2026 Päivän lounas · <a href="{t['about']}">{t['about_l']}</a> · <a href="{t['privacy']}">{t['privacy_l']}</a> · {CONTACT}</p></footer></body></html>"""
 
@@ -413,7 +414,7 @@ def main(L, out, day, preview):
     json.dump({"date": show_day, "days": days, "venues": app}, open(f"{out}/data/week.json", "w"), ensure_ascii=False, separators=(",", ":"))
 
     here = os.path.dirname(__file__)
-    for f in ("style.css", "app.js", "suggest.js", "favicon.svg", "logo.png", "brand.html"):
+    for f in ("style.css", "app.js", "suggest.js", "favicon.svg", "favicon.ico", "apple-touch-icon.png", "icon-48.png", "icon-192.png", "icon-512.png", "logo.png", "brand.html"):
         shutil.copy(os.path.join(here, f), f"{out}/{f}")
     os.makedirs(f"{out}/vendor/leaflet/images", exist_ok=True)
     lf = os.path.join(here, "..", "node_modules", "leaflet", "dist")
@@ -454,7 +455,8 @@ def main(L, out, day, preview):
 <nav class="dock" aria-label="{t['v_list']}"><button data-view="list">{t['d_list']}</button><button data-view="map">{t['d_map']}</button><button id="filt" type="button">{t['d_filter']}</button></nav>
 </main>
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css"><script src="/vendor/leaflet/leaflet.js"></script><script src="/app.js"></script><script src="/suggest.js" defer></script>"""
-        ld = {"@context": "https://schema.org", "@type": "WebSite", "name": SITE, "url": DOMAIN + t["home"], "inLanguage": lg}
+        ld = [{"@context": "https://schema.org", "@type": "WebSite", "name": SITE, "url": DOMAIN + t["home"], "inLanguage": lg},
+              {"@context": "https://schema.org", "@type": "Organization", "name": SITE, "url": DOMAIN + "/", "logo": DOMAIN + "/icon-512.png"}]
         hp = t["home"]
         os.makedirs(f"{out}{hp}", exist_ok=True)
         open(f"{out}{hp}index.html", "w").write(page(lg, t["title_home"], t["desc_home"].format(d=ds_, n=len(with_menu)), hp, T[other]["home"], body, preview,

@@ -1,6 +1,6 @@
 """Find websites for registry venues that have none, by trying likely domains (name.fi, name.com, ...)
 and keeping only a site whose front page shows the venue's street name or postal code and part of its name.
-Usage: find_websites.py <registry.json> <out.json> [limit]"""
+Usage: find_websites.py <registry.json> <out.json> [limit|0] [round 1|2]"""
 import json, re, sys, html, unicodedata, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
@@ -23,8 +23,10 @@ def tokens(name):
     return t[:4]
 
 
-def candidates(name):
+def candidates(name, operator=None, round2=False):
     t = tokens(name)
+    if round2:
+        return candidates2(name, operator)
     if not t or len("".join(t)) < 4:
         return []
     j, h = "".join(t), "-".join(t)
@@ -36,6 +38,27 @@ def candidates(name):
         if x not in out and len(x) <= 40:
             out.append(x)
     return out
+
+
+def candidates2(name, operator):
+    """Second round: patterns the first round did not try."""
+    t = tokens(name)
+    out = []
+    if t and len("".join(t)) >= 4:
+        j, h = "".join(t), "-".join(t)
+        out += [f"cafe{j}.fi", f"kahvila{j}.fi", f"{j}.eu", f"{j}.net", f"{h}.com", f"{j}restaurant.fi", f"{j}ravintola.fi", f"{j}lounas.fi",
+                f"ravintola{j}.com", f"{j}hki.fi", f"{h}-helsinki.fi"]
+        if len(t) > 2:
+            out += [f"{t[0]}{t[1]}{t[2]}.fi", f"{t[0]}-{t[1]}.fi", f"{t[0]}{t[1]}.com"]
+    op = [w for w in re.findall(r"[a-z0-9]+", ascii_(operator or "")) if w not in STOP]
+    if op and len("".join(op)) >= 4:
+        oj = "".join(op[:3])
+        out += [f"{oj}.fi", f"{'-'.join(op[:3])}.fi", f"{oj}.com"]
+    res = []
+    for x in out:
+        if x not in res and len(x) <= 40:
+            res.append(x)
+    return res
 
 
 def fetch(url):
@@ -53,12 +76,15 @@ def text_of(s):
     return html.unescape(re.sub(r"<[^>]+>", " ", s))
 
 
+ROUND2 = False
+
+
 def check(v):
     street = re.match(r"([^\d,]+)", v.get("street") or "")
     street = ascii_(street.group(1)).strip() if street else ""
     postal = v.get("postal") or ""
     toks = tokens(v["name"])
-    for dom in candidates(v["name"]):
+    for dom in candidates(v["name"], v.get("operator"), ROUND2):
         final, body = fetch("https://" + dom)
         if not final:
             final, body = fetch("https://www." + dom)
@@ -74,11 +100,13 @@ def check(v):
     return None
 
 
-def main(reg_path, out, limit=None):
+def main(reg_path, out, limit=None, rnd="1"):
+    global ROUND2
+    ROUND2 = rnd == "2"
     reg = json.load(open(reg_path))
     todo = [v for v in reg if not v.get("website") and not v["sources"] and not SKIP_NAME.search(v["name"])
             and v.get("kind") in (None, "Kahvilat ja ravintolat", "Ruokalat")]
-    if limit:
+    if limit and int(limit):
         todo = todo[:int(limit)]
     print("venues to try", len(todo), file=sys.stderr)
     with ThreadPoolExecutor(24) as ex:
@@ -88,4 +116,4 @@ def main(reg_path, out, limit=None):
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:4])
+    main(*sys.argv[1:5])
