@@ -6,7 +6,10 @@ import json, os, re, sys, time, hashlib, base64, collections, urllib.request, ur
 from concurrent.futures import ThreadPoolExecutor
 
 MODEL = os.environ.get("LOUNAS_AI_MODEL", "claude-haiku-5-5")
-MAX_SITES = int(os.environ.get("LOUNAS_AI_MAX", "450"))
+MAX_SITES = int(os.environ.get("LOUNAS_AI_MAX", "700"))
+BUDGET = float(os.environ.get("LOUNAS_AI_BUDGET", "0.12"))  # max new spend per run in USD; cached readings are free
+MAX_CHARS = 9000
+PRICE_IN, PRICE_OUT = 0.10, 0.50  # Claude Haiku 5.5, USD per million tokens
 WD = ["maanantai", "tiistai", "keskiviikko", "torstai", "perjantai"]
 
 SYSTEM = """You extract lunch menus (lounas) from the text of a Finnish restaurant's web page.
@@ -46,7 +49,7 @@ def media_blocks(v):
         if b and b[:4] == b"%PDF":
             blocks.append({"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": base64.b64encode(b).decode()}})
             ids.append(hashlib.sha256(b).hexdigest()[:16])
-    for u in v.get("imgs", [])[:2]:
+    for u in v.get("imgs", [])[:1]:
         b, ct = download(u, 4_000_000)
         if not b or len(b) < 15_000:  # tiny images are icons, not menus
             continue
@@ -135,45 +138,87 @@ def main(inp, days, out):
         cache = {}
     hits = 0
     media_n = [0]
+    todo.sort(key=lambda kv: f"last:{kv[0]}" not in cache)  # sites that had a menu go first when the budget is tight
 
     def has_menu(r):
         return isinstance(r, dict) and not r.get("error") and r.get("belongs") is not False and not r.get("stale") and \
             (any(r.get("days", {}).get(d) for d in week) or bool(r.get("fixed")))
 
+    import threading
+    lock = threading.Lock()
+    spent = [0.0]
+    skipped = {"budget": 0, "neg": 0}
+    today = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=2))).date()
+    budget = BUDGET * (3 if today.weekday() == 0 else 1)  # Monday: new week, everything is read once
+
+    def can_spend():
+        with lock:
+            if spent[0] >= budget:
+                skipped["budget"] += 1
+                return False
+            return True
+
+    def add_cost(u):
+        c = u.get("input_tokens", 0) / 1e6 * PRICE_IN + u.get("output_tokens", 0) / 1e6 * PRICE_OUT
+        with lock:
+            spent[0] += c
+
+    def neg_recent(key):
+        """Site found no lunch in the last 3 days of this week → don't pay to read it again yet."""
+        x = cache.get(key)
+        return bool(x and x["d"] == week[0] and (today - datetime.date.fromisoformat(x["t"])).days < 3)
+
     def one(kv):
         nonlocal hits
         k, v = kv
-        text = "\n\n---\n\n".join(f"[{p['url']}]\n{p['text']}" for p in v["pages"])[:12000]
+        text = "\n\n---\n\n".join(f"[{p['url']}]\n{p['text']}" for p in v["pages"])[:MAX_CHARS]
         h = hashlib.sha256(f"{MODEL}|{PV}|{v['name']}|{week[0]}|{text}".encode()).hexdigest()[:24]
+        last, neg = f"last:{k}", f"neg:{k}"
         usage = {}
+        res = {}
         if text and h in cache:
             hits += 1
             res = cache[h]["r"]
-        elif text:
+        elif text and neg_recent(neg):
+            skipped["neg"] += 1
+        elif text and can_spend():
             res, usage = call(text, v["name"], week)
+            add_cost(usage)
             if isinstance(res, dict) and not res.get("error"):
                 cache[h] = {"r": res, "d": week[0]}
-        else:
-            res = {}
-        # nothing from the text → try the menu PDF / images
-        if not has_menu(res) and (v.get("pdfs") or v.get("imgs")):
-            blocks, ids = media_blocks(v)
+        elif text and last in cache and cache[last]["d"] == week[0]:
+            res = cache[last]["r"]  # out of budget: keep this week's last good reading
+        # nothing from the text → try the menu PDF / one image (images only when the page talks about lunch)
+        imgs_ok = bool(v["pages"])
+        if not has_menu(res) and (v.get("pdfs") or (imgs_ok and v.get("imgs"))) and not neg_recent(neg + ":m"):
+            blocks, ids = media_blocks(v if imgs_ok else {**v, "imgs": []})
             if blocks:
                 hm = hashlib.sha256(f"{MODEL}|{PV}|media|{v['name']}|{week[0]}|{'|'.join(ids)}".encode()).hexdigest()[:24]
+                r2 = {}
                 if hm in cache:
                     hits += 1
                     r2 = cache[hm]["r"]
-                else:
+                elif can_spend():
                     r2, u2 = call(text, v["name"], week, blocks)
+                    add_cost(u2)
                     for kk, n in u2.items():
                         if isinstance(n, int):
                             usage[kk] = usage.get(kk, 0) + n
                     if isinstance(r2, dict) and not r2.get("error"):
                         cache[hm] = {"r": r2, "d": week[0]}
-                media_n[0] += 1
+                    media_n[0] += 1
                 if has_menu(r2):
                     r2["_media"] = True
                     res = r2
+                elif isinstance(r2, dict) and r2 and not r2.get("error"):
+                    with lock:
+                        cache[neg + ":m"] = {"d": week[0], "t": today.isoformat()}
+        with lock:
+            if has_menu(res):
+                cache[last] = {"r": res, "d": week[0]}
+                cache.pop(neg, None)
+            elif isinstance(res, dict) and res and not res.get("error"):
+                cache[neg] = {"d": week[0], "t": today.isoformat()}
         return k, v, res, usage
 
     with ThreadPoolExecutor(4) as ex:
@@ -185,7 +230,7 @@ def main(inp, days, out):
     tin = sum(u.get("input_tokens", 0) for *_, u in results)
     tout = sum(u.get("output_tokens", 0) for *_, u in results)
     per_day = {d: [] for d in week}
-    stats = {"sites": len(results), "cache_hits": hits, "media_tried": media_n[0], "ok": 0, "fixed": 0, "stale": 0, "other_restaurant": 0, "errors": 0, "empty": 0}
+    stats = {"sites": len(results), "cache_hits": hits, "skipped_budget": skipped["budget"], "skipped_no_lunch": skipped["neg"], "media_tried": media_n[0], "ok": 0, "fixed": 0, "stale": 0, "other_restaurant": 0, "errors": 0, "empty": 0}
     for k, v, r, _ in results:
         if not r:
             stats["empty"] += 1
