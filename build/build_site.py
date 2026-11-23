@@ -520,7 +520,8 @@ INFO = {
 <li><b>Asetukset:</b> kartta- tai listanäkymän valinta tallennetaan selaimesi paikalliseen muistiin (localStorage). Se ei lähde meille.</li>
 <li><b>”Väärä tieto?” -ilmoitukset ja ravintoloiden listaosoitteet:</b> tallennamme ravintolan, päivän ja ilmoitetun osoitteen. IP-osoitetta ei tallenneta; siitä lasketaan päiväkohtainen tiiviste, jolla rajoitetaan toistuvia ilmoituksia.</li>
 <li><b>Palvelin:</b> sivusto toimii Cloudflaren palveluissa, jotka käsittelevät teknisiä yhteystietoja (esim. IP-osoite) sivun toimittamiseksi ja tietoturvan vuoksi.</li>
-<li><b>Karttatiilet</b> ladataan OpenStreetMapin palvelimilta, jotka näkevät IP-osoitteesi.</li></ul>
+<li><b>Karttatiilet</b> ladataan OpenStreetMapin palvelimilta, jotka näkevät IP-osoitteesi.</li>
+<li><b>Kävijätilastot:</b> Cloudflare Web Analytics laskee sivujen katselut ilman evästeitä eikä tunnista yksittäisiä kävijöitä.</li></ul>
 {ads}
 <h2>Säilytys ja oikeutesi</h2><p>Ilmoitukset poistetaan, kun niitä ei enää tarvita, viimeistään 24 kuukauden kuluttua. Voit pyytää tietoja tai niiden poistamista osoitteesta {contact}. Sinulla on oikeus tehdä valitus tietosuojavaltuutetulle (tietosuoja.fi).</p>"""),
         "ads": """<h2>Mainonta</h2><p>Sivustolla näytetään Google AdSense -mainoksia. Google ja sen kumppanit voivat käyttää evästeitä ja muita tunnisteita mainosten näyttämiseen ja mittaamiseen. Euroopan talousalueella kysymme suostumuksesi Googlen sertifioimalla suostumusikkunalla, ja voit muuttaa valintaasi milloin tahansa. Lisätietoja: <a href="https://policies.google.com/technologies/ads" rel="nofollow noopener">policies.google.com/technologies/ads</a>.</p>""",
@@ -549,7 +550,8 @@ INFO = {
 <li><b>Settings:</b> your choice of map or list view is stored in your browser (localStorage). It is not sent to us.</li>
 <li><b>“Wrong info?” reports and menu addresses sent by restaurants:</b> we store the restaurant, the day and the submitted address. IP addresses are not stored; a daily hash of it is used to limit repeated reports.</li>
 <li><b>Hosting:</b> the site runs on Cloudflare, which processes technical connection data (e.g. IP address) to deliver pages and for security.</li>
-<li><b>Map tiles</b> are loaded from OpenStreetMap's servers, which see your IP address.</li></ul>
+<li><b>Map tiles</b> are loaded from OpenStreetMap's servers, which see your IP address.</li>
+<li><b>Visitor statistics:</b> Cloudflare Web Analytics counts page views without cookies and does not identify individual visitors.</li></ul>
 {ads}
 <h2>Retention and your rights</h2><p>Reports are deleted when no longer needed, at the latest after 24 months. You can request access or deletion at {contact}. You have the right to lodge a complaint with the Finnish Data Protection Ombudsman (tietosuoja.fi).</p>"""),
         "ads": """<h2>Advertising</h2><p>The site shows Google AdSense ads. Google and its partners may use cookies and other identifiers to show and measure ads. In the European Economic Area we ask for your consent with a Google-certified consent message, and you can change your choice at any time. More: <a href="https://policies.google.com/technologies/ads" rel="nofollow noopener">policies.google.com/technologies/ads</a>.</p>""",
