@@ -19,13 +19,13 @@ Rules:
 - diet: only markings written next to the dish, normalised to: L, G, M, VL, Veg (vegan/vegaani/VE/V), K (kasvis).
 - price: the lunch price in euros as a number if shown for that dish or for the whole lunch; otherwise null.
 - hours: lunch serving hours if shown, like "10.30-14.00", else null.
-Answer with JSON only, no prose:
+Answer with one compact JSON object only (no code fence, no prose). At most 15 dishes per day:
 {"belongs": true, "stale": false, "hours": null, "fixed": [], "days": {"YYYY-MM-DD": [{"dish": "...", "diet": ["L"], "price": 12.9}]}}"""
 
 
 def call(text, name, week):
     wk = ", ".join(f"{WD[i]} {d}" for i, d in enumerate(week))
-    body = {"model": MODEL, "max_tokens": 1800, "system": SYSTEM,
+    body = {"model": MODEL, "max_tokens": 4000, "system": SYSTEM,
             "messages": [{"role": "user", "content": f"Restaurant: {name}\nThis week: {wk}\n\nPage text:\n{text}"}]}
     req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode(),
                                  headers={"x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01",
@@ -35,11 +35,13 @@ def call(text, name, week):
             with urllib.request.urlopen(req, timeout=90) as r:
                 j = json.load(r)
             out = "".join(c.get("text", "") for c in j.get("content", []))
-            m = re.search(r"\{.*\}", out, re.S)
+            i = out.find("{")
+            if i < 0:
+                return {"error": "no json: " + out[:60]}, j.get("usage", {})
             try:
-                return (json.loads(m.group(0)) if m else {"error": "no json"}), j.get("usage", {})
+                return json.JSONDecoder().raw_decode(out[i:])[0], j.get("usage", {})
             except ValueError:
-                return {"error": "bad json"}, j.get("usage", {})
+                return {"error": "bad json" + (" (cut)" if j.get("stop_reason") == "max_tokens" else "")}, j.get("usage", {})
         except urllib.error.HTTPError as e:
             if e.code in (429, 500, 502, 503, 529) and attempt < 5:
                 try:
