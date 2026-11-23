@@ -24,3 +24,6 @@ npx wrangler@3 pages deploy dist --project-name paivanlounas --branch main
 - `data/registry_helsinki.json` – 3 233 lounaspaikkaa (Oiva + OpenStreetMap + ketjut), rakennetaan `pipeline/build_registry.py`:llä.
 - Oiva / Ruokavirasto, Helsingin kaupunki (osoitteet, kaupunginosat, CC BY 4.0), © OpenStreetMapin tekijät (ODbL).
 - lounaat.infon tietoja ei käytetä.
+
+## Website discovery
+`pipeline/find_websites.py data/registry_helsinki.json data/websites_found.json` tries likely domains (name.fi, name.com, ravintola-name.fi …) for venues without a website and keeps a site only if its front page shows the venue's street or postal code and its name. Results were merged into the registry (field `website_found: "guess"`).
