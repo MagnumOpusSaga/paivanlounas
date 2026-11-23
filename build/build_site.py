@@ -345,7 +345,7 @@ def main(L, out, day, preview):
     json.dump({"date": show_day, "days": days, "venues": app}, open(f"{out}/data/week.json", "w"), ensure_ascii=False, separators=(",", ":"))
 
     here = os.path.dirname(__file__)
-    for f in ("style.css", "app.js", "suggest.js", "favicon.svg"):
+    for f in ("style.css", "app.js", "suggest.js", "favicon.svg", "logo.png", "brand.html"):
         shutil.copy(os.path.join(here, f), f"{out}/{f}")
     os.makedirs(f"{out}/vendor/leaflet/images", exist_ok=True)
     lf = os.path.join(here, "..", "node_modules", "leaflet", "dist")
