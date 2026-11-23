@@ -2,7 +2,7 @@
 Usage: ai_reader.py <web_pages.json> <comma-separated week dates> <out pattern with {day}>
 Needs ANTHROPIC_API_KEY. Without it, writes nothing and exits 0.
 Input: pages saved by fetch_independent.py (text already extracted from HTML)."""
-import json, os, re, sys, time, urllib.request, urllib.error, datetime
+import json, os, re, sys, time, hashlib, collections, urllib.request, urllib.error, datetime
 from concurrent.futures import ThreadPoolExecutor
 
 MODEL = os.environ.get("LOUNAS_AI_MODEL", "claude-haiku-5-5")
@@ -14,7 +14,7 @@ Rules:
 - Use ONLY what the text says. Never invent dishes, prices or dates.
 - Return dishes only for the weekdays of the week given by the user. If the page clearly shows a different week (stale list, other dates), return "stale": true and empty "days".
 - If the page lists a fixed lunch that is the same every weekday (e.g. "Lounas ma-pe: ..."), put it in "fixed" instead of "days".
-- If the text belongs to a different restaurant than the one named (shared site, chain page with many places), set "belongs": false.
+- Set "belongs": false ONLY if the menu clearly belongs to another, differently named restaurant (e.g. a listing or chain page that shows other places and not this one). Brand names, company names, abbreviations and the restaurant's other spellings count as the same restaurant; a restaurant's own site is the same restaurant even if the name is not repeated.
 - Dishes: keep the original language and wording, one dish per entry, without the price. Remove day names, opening hours and marketing text.
 - diet: only markings written next to the dish, normalised to: L, G, M, VL, Veg (vegan/vegaani/VE/V), K (kasvis).
 - price: the lunch price in euros as a number if shown for that dish or for the whole lunch; otherwise null.
@@ -30,18 +30,29 @@ def call(text, name, week):
     req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode(),
                                  headers={"x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01",
                                           "content-type": "application/json"})
-    for attempt in range(4):
+    for attempt in range(6):
         try:
             with urllib.request.urlopen(req, timeout=90) as r:
                 j = json.load(r)
             out = "".join(c.get("text", "") for c in j.get("content", []))
             m = re.search(r"\{.*\}", out, re.S)
-            return (json.loads(m.group(0)) if m else None), j.get("usage", {})
+            try:
+                return (json.loads(m.group(0)) if m else {"error": "no json"}), j.get("usage", {})
+            except ValueError:
+                return {"error": "bad json"}, j.get("usage", {})
         except urllib.error.HTTPError as e:
-            if e.code in (429, 500, 502, 503, 529) and attempt < 3:
-                time.sleep(5 * (attempt + 1))
+            if e.code in (429, 500, 502, 503, 529) and attempt < 5:
+                try:
+                    wait = float(e.headers.get("retry-after") or 0)
+                except ValueError:
+                    wait = 0
+                time.sleep(max(wait, 6 * (attempt + 1)))
                 continue
-            return {"error": f"http {e.code}"}, {}
+            try:
+                msg = json.load(e).get("error", {}).get("message", "")[:80]
+            except Exception:
+                msg = ""
+            return {"error": f"http {e.code} {msg}"}, {}
         except Exception as e:  # network, bad JSON
             if attempt < 3:
                 time.sleep(3)
@@ -76,18 +87,36 @@ def main(inp, days, out):
     pages = json.load(open(inp))
     todo = [(k, v) for k, v in pages.items() if v["pages"]][:MAX_SITES]
 
+    cp = os.path.join(os.path.dirname(inp) or ".", "ai_cache.json")
+    try:
+        cache = json.load(open(cp))
+    except Exception:
+        cache = {}
+    hits = 0
+
     def one(kv):
+        nonlocal hits
         k, v = kv
         text = "\n\n---\n\n".join(f"[{p['url']}]\n{p['text']}" for p in v["pages"])[:12000]
+        h = hashlib.sha256(f"{MODEL}|{v['name']}|{week[0]}|{text}".encode()).hexdigest()[:24]
+        if h in cache:
+            hits += 1
+            return k, v, cache[h]["r"], {}
         res, usage = call(text, v["name"], week)
+        if isinstance(res, dict) and not res.get("error"):
+            cache[h] = {"r": res, "d": week[0]}
         return k, v, res, usage
 
-    with ThreadPoolExecutor(6) as ex:
+    with ThreadPoolExecutor(4) as ex:
         results = list(ex.map(one, todo))
+    # keep only this and last week's entries
+    keep = (datetime.date.fromisoformat(week[0]) - datetime.timedelta(days=7)).isoformat()
+    json.dump({h: x for h, x in cache.items() if x["d"] >= keep}, open(cp, "w"), ensure_ascii=False)
+    errs = collections.Counter(r["error"] for _, _, r, _ in results if isinstance(r, dict) and r.get("error"))
     tin = sum(u.get("input_tokens", 0) for *_, u in results)
     tout = sum(u.get("output_tokens", 0) for *_, u in results)
     per_day = {d: [] for d in week}
-    stats = {"sites": len(results), "ok": 0, "fixed": 0, "stale": 0, "other_restaurant": 0, "errors": 0, "empty": 0}
+    stats = {"sites": len(results), "cache_hits": hits, "ok": 0, "fixed": 0, "stale": 0, "other_restaurant": 0, "errors": 0, "empty": 0}
     for k, v, r, _ in results:
         if not isinstance(r, dict) or r.get("error"):
             stats["errors"] += 1
@@ -120,7 +149,7 @@ def main(inp, days, out):
     cost = tin / 1e6 * 0.10 + tout / 1e6 * 0.50
     print(f"ai_reader: {json.dumps(stats)} tokens in {tin} out {tout} ≈ ${cost:.3f}", file=sys.stderr)
     with open(os.path.join(os.path.dirname(out) or ".", "ai_stats.json"), "w") as f:
-        json.dump({"stats": stats, "tokens_in": tin, "tokens_out": tout, "usd": round(cost, 4),
+        json.dump({"stats": stats, "errors": dict(errs.most_common(5)), "tokens_in": tin, "tokens_out": tout, "usd": round(cost, 4),
                    "at": datetime.datetime.utcnow().isoformat() + "Z"}, f)
 
 

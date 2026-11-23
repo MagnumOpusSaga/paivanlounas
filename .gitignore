@@ -8,3 +8,4 @@ data/suggestions_raw.json
 data/web_pages.json
 data/ai_stats.json
 .wrangler/
+data/ai_cache.json
