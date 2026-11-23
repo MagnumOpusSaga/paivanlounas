@@ -1,0 +1,6 @@
+node_modules/
+dist/
+raw/
+data/menus_*
+data/web_todo.json
+__pycache__/
