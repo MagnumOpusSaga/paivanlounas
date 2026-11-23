@@ -154,6 +154,7 @@ T = {
            "report_url": "Lounaslistan osoite", "report_btn": "Lähetä", "report_ok": "Kiitos! Tarkistamme osoitteen seuraavassa päivityksessä.",
            "footer1": "Lounaslistat haetaan automaattisesti ravintoloiden ja ketjujen omista lähteistä joka arkiaamu. Tarkista erityisruokavaliot aina ravintolasta.",
            "footer2": "Elintarvikevalvonnan tulokset: Oiva / Ruokavirasto (oivahymy.fi). Osoitteet ja kaupunginosat: Helsingin kaupunki, CC BY 4.0. Kartta: © OpenStreetMapin tekijät.",
+           "about": "/tietoa/", "about_l": "Tietoa palvelusta", "privacy": "/tietosuoja/", "privacy_l": "Tietosuoja",
            "preview": "Esikatselu – sivusto on vielä kehitysvaiheessa", "notfound": "Sivua ei löytynyt", "tohome": "Etusivulle", "crumb_home": "Etusivu", "lang": "fi", "menu_lang": ""},
     "en": {"home": "/en/", "areas": "/en/lunch/", "area": "/en/lunch/{s}/", "venue": "/en/restaurant/{s}/", "nav_areas": "Areas", "other": "Suomeksi", "other_home": "/",
            "wd": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
@@ -175,12 +176,26 @@ T = {
            "report_url": "Lunch menu address", "report_btn": "Send", "report_ok": "Thank you! We will check the address in the next update.",
            "footer1": "Lunch menus are fetched automatically from restaurants' and chains' own sources every weekday morning. Menus are shown in the language the restaurant publishes them (mostly Finnish). Always check special diets with the restaurant.",
            "footer2": "Food-control results: Oiva / Finnish Food Authority (oivahymy.fi). Addresses and districts: City of Helsinki, CC BY 4.0. Map: © OpenStreetMap contributors.",
+           "about": "/en/about/", "about_l": "About", "privacy": "/en/privacy/", "privacy_l": "Privacy",
            "preview": "Preview – the site is still under development", "notfound": "Page not found", "tohome": "Front page", "crumb_home": "Home", "lang": "en", "menu_lang": "en"},
 }
 
 
+ADSENSE = os.environ.get("ADSENSE_CLIENT", "").strip()  # ca-pub-…; empty = no ads anywhere
+CONTACT = "info@paivanlounas.fi"
+OWNER = "BR Entertainment (toiminimi), Y-tunnus 3183394-5"
+
+
+def ads_tag(path):
+    """Auto ads only on content pages, never on the map app."""
+    if not ADSENSE or path in ("/", "/en/") or path.startswith(("/tietosuoja", "/en/privacy", "/404")):
+        return ""
+    return f'<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={esc(ADSENSE)}" crossorigin="anonymous"></script>'
+
+
 def page(lg, title, desc, path, alt_path, body, preview, extra_head=""):
     t = T[lg]
+    extra_head += ads_tag(path)
     robots = '<meta name="robots" content="noindex,nofollow">' if preview else ""
     bar = f'<div class="preview">{t["preview"]}</div>' if preview else ""
     other = "en" if lg == "fi" else "fi"
@@ -193,7 +208,7 @@ def page(lg, title, desc, path, alt_path, body, preview, extra_head=""):
 <link rel="stylesheet" href="/style.css">{extra_head}</head><body>{bar}
 <header class="top"><a class="logo" href="{t['home']}">🍽️ Päivän lounas</a><nav><a href="{t['areas']}">{t['nav_areas']}</a><a href="{alt_path or t['other_home']}" hreflang="{other}">{t['other']}</a></nav></header>
 {body}
-<footer><p>{t['footer1']}</p><p>{t['footer2']}</p><p>© 2026 Päivän lounas</p></footer></body></html>"""
+<footer><p>{t['footer1']}</p><p>{t['footer2']}</p><p>© 2026 Päivän lounas · <a href="{t['about']}">{t['about_l']}</a> · <a href="{t['privacy']}">{t['privacy_l']}</a> · {CONTACT}</p></footer></body></html>"""
 
 
 def fmt_price(p):
@@ -390,12 +405,89 @@ def main(L, out, day, preview):
             open(f"{out}{path}index.html", "w").write(page(lg, t["venue_title"].format(n=v["name"]), t["venue_desc"].format(n=v["name"], a=v["street"]), path, alt, body, preview,
                                                            f'<script type="application/ld+json">{json.dumps(jl, ensure_ascii=False)}</script>'))
             urls.append(path)
+    write_info_pages(out, preview, urls)
+    if ADSENSE:
+        open(f"{out}/ads.txt", "w").write(f"google.com, {ADSENSE.replace('ca-', '')}, DIRECT, f08c47fec0942fa0\n")
     open(f"{out}/404.html", "w").write(page("fi", "Sivua ei löytynyt | Päivän lounas", "", "/404", None, '<main class="content"><h1>Sivua ei löytynyt</h1><p><a href="/">Etusivulle</a></p></main>', True))
     open(f"{out}/robots.txt", "w").write("User-agent: *\nDisallow: /\n" if preview else f"User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {DOMAIN}/sitemap.xml\n")
     sm = "".join(f"<url><loc>{DOMAIN}{u}</loc><lastmod>{show_day}</lastmod></url>" for u in urls)
     open(f"{out}/sitemap.xml", "w").write(f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{sm}</urlset>')
     open(f"{out}/_headers", "w").write("/data/*\n  Cache-Control: public, max-age=600\n/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n")
     print("pages", len(urls), file=sys.stderr)
+
+
+INFO = {
+    "fi": {
+        "about": ("/tietoa/", "/en/about/", "Tietoa palvelusta | Päivän lounas", "Mikä Päivän lounas on ja mistä lounaslistat tulevat.", """
+<h1>Tietoa palvelusta</h1>
+<p>Päivän lounas kokoaa Helsingin lounaslistat yhteen paikkaan: kartalle ja listaksi, päivittäin ja koko viikolle. Mukana ovat myös ravintolat, jotka eivät ole itse ilmoittaneet listaansa mihinkään.</p>
+<h2>Mistä listat tulevat</h2>
+<ul><li>Ravintolaketjujen julkiset ruokalistapalvelut (esim. Compass Group, Sodexo, UniCafe) ja Raflaamon julkinen lounassivu.</li>
+<li>Ravintoloiden omat verkkosivut, PDF-listat ja listakuvat. Ne luetaan joka arkiaamu koneellisesti, osin tekoälyn avulla (Anthropicin Claude).</li></ul>
+<p>Lähde ja linkki alkuperäiseen listaan näkyvät jokaisen listan alla. Lista voi joskus olla vanha tai väärä – tarkista erityisruokavaliot ja hinnat aina ravintolasta. Jos huomaat virheen, paina listan alla <b>Väärä tieto?</b>. Kun ilmoituksia tulee useampi, lista piilotetaan.</p>
+<h2>Muut tiedot</h2>
+<p>Oiva-hymyt: Ruokaviraston ja kuntien elintarvikevalvonta (oivahymy.fi). Osoitteet ja kaupunginosat: Helsingin kaupunki, CC BY 4.0. Kartta: © OpenStreetMapin tekijät.</p>
+<h2>Ravintoloille</h2>
+<p>Listaa ei tarvitse syöttää meille. Jos listasi puuttuu, kerro ravintolasi sivulla, missä osoitteessa lounaslistasi julkaistaan – haemme sen sieltä joka aamu automaattisesti.</p>
+<h2>Ylläpitäjä ja yhteystiedot</h2>
+<p>{owner}<br>Sähköposti: {contact}</p>"""),
+        "privacy": ("/tietosuoja/", "/en/privacy/", "Tietosuojaseloste | Päivän lounas", "Mitä tietoja Päivän lounas käsittelee.", """
+<h1>Tietosuojaseloste</h1>
+<p>Päivitetty {date}.</p>
+<h2>Rekisterinpitäjä</h2><p>{owner}, {contact}</p>
+<h2>Mitä tietoja käsitellään</h2>
+<ul><li><b>Ei käyttäjätilejä.</b> Palvelua käytetään kirjautumatta.</li>
+<li><b>Sijainti:</b> jos painat ”Lähellä”, selain kysyy luvan ja sijaintia käytetään vain selaimessasi ravintoloiden järjestämiseen. Sitä ei lähetetä meille.</li>
+<li><b>Asetukset:</b> kartta- tai listanäkymän valinta tallennetaan selaimesi paikalliseen muistiin (localStorage). Se ei lähde meille.</li>
+<li><b>”Väärä tieto?” -ilmoitukset ja ravintoloiden listaosoitteet:</b> tallennamme ravintolan, päivän ja ilmoitetun osoitteen. IP-osoitetta ei tallenneta; siitä lasketaan päiväkohtainen tiiviste, jolla rajoitetaan toistuvia ilmoituksia.</li>
+<li><b>Palvelin:</b> sivusto toimii Cloudflaren palveluissa, jotka käsittelevät teknisiä yhteystietoja (esim. IP-osoite) sivun toimittamiseksi ja tietoturvan vuoksi.</li>
+<li><b>Karttatiilet</b> ladataan OpenStreetMapin palvelimilta, jotka näkevät IP-osoitteesi.</li></ul>
+{ads}
+<h2>Säilytys ja oikeutesi</h2><p>Ilmoitukset poistetaan, kun niitä ei enää tarvita, viimeistään 24 kuukauden kuluttua. Voit pyytää tietoja tai niiden poistamista osoitteesta {contact}. Sinulla on oikeus tehdä valitus tietosuojavaltuutetulle (tietosuoja.fi).</p>"""),
+        "ads": """<h2>Mainonta</h2><p>Sivustolla näytetään Google AdSense -mainoksia. Google ja sen kumppanit voivat käyttää evästeitä ja muita tunnisteita mainosten näyttämiseen ja mittaamiseen. Euroopan talousalueella kysymme suostumuksesi Googlen sertifioimalla suostumusikkunalla, ja voit muuttaa valintaasi milloin tahansa. Lisätietoja: <a href="https://policies.google.com/technologies/ads" rel="nofollow noopener">policies.google.com/technologies/ads</a>.</p>""",
+    },
+    "en": {
+        "about": ("/en/about/", "/tietoa/", "About | Päivän lounas", "What Päivän lounas is and where the lunch menus come from.", """
+<h1>About</h1>
+<p>Päivän lounas collects Helsinki's lunch menus in one place – on a map and as a list, for today and the whole week – including restaurants that never submitted their menu anywhere.</p>
+<h2>Where the menus come from</h2>
+<ul><li>Restaurant chains' public menu services (e.g. Compass Group, Sodexo, UniCafe) and Raflaamo's public lunch page.</li>
+<li>Restaurants' own websites, PDF menus and menu images, read automatically every weekday morning, partly with AI (Anthropic's Claude).</li></ul>
+<p>The source and a link to the original menu are shown under every menu. A menu can sometimes be outdated or wrong – always check special diets and prices with the restaurant. If you spot a mistake, press <b>Wrong info?</b> under the menu; menus with several reports are hidden.</p>
+<h2>Other data</h2>
+<p>Oiva ratings: Finnish Food Authority and municipal food control (oivahymy.fi). Addresses and districts: City of Helsinki, CC BY 4.0. Map: © OpenStreetMap contributors.</p>
+<h2>For restaurants</h2>
+<p>You don't need to send us your menu. If it is missing, tell us on your restaurant's page where your lunch menu is published – we fetch it automatically every morning.</p>
+<h2>Operator and contact</h2>
+<p>{owner}<br>Email: {contact}</p>"""),
+        "privacy": ("/en/privacy/", "/tietosuoja/", "Privacy policy | Päivän lounas", "What data Päivän lounas processes.", """
+<h1>Privacy policy</h1>
+<p>Updated {date}.</p>
+<h2>Controller</h2><p>{owner}, {contact}</p>
+<h2>What we process</h2>
+<ul><li><b>No user accounts.</b> The service is used without signing in.</li>
+<li><b>Location:</b> if you press “Near me”, your browser asks for permission and the location is used only in your browser to sort restaurants. It is not sent to us.</li>
+<li><b>Settings:</b> your choice of map or list view is stored in your browser (localStorage). It is not sent to us.</li>
+<li><b>“Wrong info?” reports and menu addresses sent by restaurants:</b> we store the restaurant, the day and the submitted address. IP addresses are not stored; a daily hash of it is used to limit repeated reports.</li>
+<li><b>Hosting:</b> the site runs on Cloudflare, which processes technical connection data (e.g. IP address) to deliver pages and for security.</li>
+<li><b>Map tiles</b> are loaded from OpenStreetMap's servers, which see your IP address.</li></ul>
+{ads}
+<h2>Retention and your rights</h2><p>Reports are deleted when no longer needed, at the latest after 24 months. You can request access or deletion at {contact}. You have the right to lodge a complaint with the Finnish Data Protection Ombudsman (tietosuoja.fi).</p>"""),
+        "ads": """<h2>Advertising</h2><p>The site shows Google AdSense ads. Google and its partners may use cookies and other identifiers to show and measure ads. In the European Economic Area we ask for your consent with a Google-certified consent message, and you can change your choice at any time. More: <a href="https://policies.google.com/technologies/ads" rel="nofollow noopener">policies.google.com/technologies/ads</a>.</p>""",
+    },
+}
+
+
+def write_info_pages(out, preview, urls):
+    today = datetime.date.today()
+    for lg in ("fi", "en"):
+        for key in ("about", "privacy"):
+            path, alt, title, desc, body = INFO[lg][key]
+            body = body.format(owner=OWNER if lg == "fi" else OWNER.replace("toiminimi", "sole trader").replace("Y-tunnus", "Business ID"),
+                               contact=CONTACT, date=f"{today.day}.{today.month}.{today.year}", ads=INFO[lg]["ads"] if ADSENSE else "")
+            os.makedirs(f"{out}{path}", exist_ok=True)
+            open(f"{out}{path}index.html", "w").write(page(lg, title, desc, path, alt, f'<main class="content">{body}</main>', preview))
+            urls.append(path)
 
 
 if __name__ == "__main__":

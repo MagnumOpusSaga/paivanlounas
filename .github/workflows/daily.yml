@@ -48,6 +48,7 @@ jobs:
       - name: Fetch lunch lists and build site
         env:
           PUBLIC: ${{ vars.PUBLIC }}
+          ADSENSE_CLIENT: ${{ vars.ADSENSE_CLIENT }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # morning run may spend up to $0.12 on new readings, the midday refresh and code pushes less
           LOUNAS_AI_BUDGET: ${{ github.event.schedule == '7 4 * * 1-5' && '0.12' || github.event.schedule == '37 8 * * 1-5' && '0.03' || '0.05' }}
