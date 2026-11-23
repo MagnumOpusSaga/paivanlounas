@@ -25,7 +25,7 @@ Answer with one compact JSON object only (no code fence, no prose). At most 15 d
 
 def call(text, name, week):
     wk = ", ".join(f"{WD[i]} {d}" for i, d in enumerate(week))
-    body = {"model": MODEL, "max_tokens": 4000, "system": SYSTEM,
+    body = {"model": MODEL, "max_tokens": 8000, "system": SYSTEM,
             "messages": [{"role": "user", "content": f"Restaurant: {name}\nThis week: {wk}\n\nPage text:\n{text}"}]}
     req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode(),
                                  headers={"x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01",
