@@ -2,7 +2,7 @@
 Usage: ai_reader.py <web_pages.json> <comma-separated week dates> <out pattern with {day}>
 Needs ANTHROPIC_API_KEY. Without it, writes nothing and exits 0.
 Input: pages saved by fetch_independent.py (text already extracted from HTML)."""
-import json, os, re, sys, time, hashlib, collections, urllib.request, urllib.error, datetime
+import json, os, re, sys, time, hashlib, base64, collections, urllib.request, urllib.error, datetime
 from concurrent.futures import ThreadPoolExecutor
 
 MODEL = os.environ.get("LOUNAS_AI_MODEL", "claude-haiku-5-5")
@@ -15,6 +15,7 @@ Rules:
 - Return dishes only for the weekdays of the week given by the user. If the page clearly shows a different week (stale list, other dates), return "stale": true and empty "days".
 - If the page lists a fixed lunch that is the same every weekday (e.g. "Lounas ma-pe: ..."), put it in "fixed" instead of "days".
 - Set "belongs": false ONLY if the menu clearly belongs to another, differently named restaurant (e.g. a listing or chain page that shows other places and not this one). Brand names, company names, abbreviations and the restaurant's other spellings count as the same restaurant; a restaurant's own site is the same restaurant even if the name is not repeated.
+- Ignore special menus that are not the everyday weekday lunch (Christmas lunch/joululounas, brunch, events, à la carte, drinks). Photos of food or the room are not menus: return empty "days".
 - Dishes: keep the original language and wording, one dish per entry, without the price. Remove day names, opening hours and marketing text.
 - diet: only markings written next to the dish, normalised to: L, G, M, VL, Veg (vegan/vegaani/VE/V), K (kasvis).
 - price: the lunch price in euros as a number if shown for that dish or for the whole lunch; otherwise null.
@@ -23,10 +24,47 @@ Answer with one compact JSON object only (no code fence, no prose). At most 15 d
 {"belongs": true, "stale": false, "hours": null, "fixed": [], "days": {"YYYY-MM-DD": [{"dish": "...", "diet": ["L"], "price": 12.9}]}}"""
 
 
-def call(text, name, week):
+UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36"}
+IMG_TYPES = {"jpeg": "image/jpeg", "jpg": "image/jpeg", "png": "image/png", "webp": "image/webp", "gif": "image/gif"}
+
+
+def download(url, maxb):
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=20) as r:
+            b = r.read(maxb + 1)
+            return (b if len(b) <= maxb else None), r.headers.get("Content-Type", "")
+    except Exception:
+        return None, ""
+
+
+def media_blocks(v):
+    """PDF and image blocks for the API, downloaded here (PDF max 8 MB, image max 4 MB)."""
+    blocks, ids = [], []
+    for u in v.get("pdfs", [])[:1]:
+        b, ct = download(u, 8_000_000)
+        if b and b[:4] == b"%PDF":
+            blocks.append({"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": base64.b64encode(b).decode()}})
+            ids.append(hashlib.sha256(b).hexdigest()[:16])
+    for u in v.get("imgs", [])[:2]:
+        b, ct = download(u, 4_000_000)
+        if not b or len(b) < 15_000:  # tiny images are icons, not menus
+            continue
+        kind = ct.split("/")[-1].split(";")[0].strip().lower() if ct.startswith("image/") else u.lower().rsplit(".", 1)[-1].split("?")[0]
+        if kind not in IMG_TYPES:
+            continue
+        blocks.append({"type": "image", "source": {"type": "base64", "media_type": IMG_TYPES[kind], "data": base64.b64encode(b).decode()}})
+        ids.append(hashlib.sha256(b).hexdigest()[:16])
+    return blocks, ids
+
+
+def call(text, name, week, blocks=None):
     wk = ", ".join(f"{WD[i]} {d}" for i, d in enumerate(week))
-    body = {"model": MODEL, "max_tokens": 8000, "system": SYSTEM,
-            "messages": [{"role": "user", "content": f"Restaurant: {name}\nThis week: {wk}\n\nPage text:\n{text}"}]}
+    if blocks:
+        content = blocks + [{"type": "text", "text": f"Restaurant: {name}\nThis week: {wk}\n\nThe attached PDF/images are from the restaurant's website. "
+                                                       f"Read the lunch menu from them. Page text for context:\n{text[:3000]}"}]
+    else:
+        content = f"Restaurant: {name}\nThis week: {wk}\n\nPage text:\n{text}"
+    body = {"model": MODEL, "max_tokens": 8000, "system": SYSTEM, "messages": [{"role": "user", "content": content}]}
     req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode(),
                                  headers={"x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01",
                                           "content-type": "application/json"})
@@ -87,7 +125,7 @@ def main(inp, days, out):
         print("ai_reader: no ANTHROPIC_API_KEY, skipping", file=sys.stderr)
         return
     pages = json.load(open(inp))
-    todo = [(k, v) for k, v in pages.items() if v["pages"]][:MAX_SITES]
+    todo = list(pages.items())[:MAX_SITES]
 
     cp = os.path.join(os.path.dirname(inp) or ".", "ai_cache.json")
     try:
@@ -95,18 +133,46 @@ def main(inp, days, out):
     except Exception:
         cache = {}
     hits = 0
+    media_n = [0]
+
+    def has_menu(r):
+        return isinstance(r, dict) and not r.get("error") and r.get("belongs") is not False and not r.get("stale") and \
+            (any(r.get("days", {}).get(d) for d in week) or bool(r.get("fixed")))
 
     def one(kv):
         nonlocal hits
         k, v = kv
         text = "\n\n---\n\n".join(f"[{p['url']}]\n{p['text']}" for p in v["pages"])[:12000]
         h = hashlib.sha256(f"{MODEL}|{v['name']}|{week[0]}|{text}".encode()).hexdigest()[:24]
-        if h in cache:
+        usage = {}
+        if text and h in cache:
             hits += 1
-            return k, v, cache[h]["r"], {}
-        res, usage = call(text, v["name"], week)
-        if isinstance(res, dict) and not res.get("error"):
-            cache[h] = {"r": res, "d": week[0]}
+            res = cache[h]["r"]
+        elif text:
+            res, usage = call(text, v["name"], week)
+            if isinstance(res, dict) and not res.get("error"):
+                cache[h] = {"r": res, "d": week[0]}
+        else:
+            res = {}
+        # nothing from the text → try the menu PDF / images
+        if not has_menu(res) and (v.get("pdfs") or v.get("imgs")):
+            blocks, ids = media_blocks(v)
+            if blocks:
+                hm = hashlib.sha256(f"{MODEL}|media|{v['name']}|{week[0]}|{'|'.join(ids)}".encode()).hexdigest()[:24]
+                if hm in cache:
+                    hits += 1
+                    r2 = cache[hm]["r"]
+                else:
+                    r2, u2 = call(text, v["name"], week, blocks)
+                    for kk, n in u2.items():
+                        if isinstance(n, int):
+                            usage[kk] = usage.get(kk, 0) + n
+                    if isinstance(r2, dict) and not r2.get("error"):
+                        cache[hm] = {"r": r2, "d": week[0]}
+                media_n[0] += 1
+                if has_menu(r2):
+                    r2["_media"] = True
+                    res = r2
         return k, v, res, usage
 
     with ThreadPoolExecutor(4) as ex:
@@ -118,8 +184,11 @@ def main(inp, days, out):
     tin = sum(u.get("input_tokens", 0) for *_, u in results)
     tout = sum(u.get("output_tokens", 0) for *_, u in results)
     per_day = {d: [] for d in week}
-    stats = {"sites": len(results), "cache_hits": hits, "ok": 0, "fixed": 0, "stale": 0, "other_restaurant": 0, "errors": 0, "empty": 0}
+    stats = {"sites": len(results), "cache_hits": hits, "media_tried": media_n[0], "ok": 0, "fixed": 0, "stale": 0, "other_restaurant": 0, "errors": 0, "empty": 0}
     for k, v, r, _ in results:
+        if not r:
+            stats["empty"] += 1
+            continue
         if not isinstance(r, dict) or r.get("error"):
             stats["errors"] += 1
             continue
@@ -129,7 +198,9 @@ def main(inp, days, out):
         if r.get("stale"):
             stats["stale"] += 1
             continue
-        url = v["pages"][0]["url"]
+        url = ((v.get("pdfs") or [None])[0] if r.get("_media") and v.get("pdfs") else None) or (v["pages"][0]["url"] if v["pages"] else v.get("website"))
+        if r.get("_media"):
+            stats["media_ok"] = stats.get("media_ok", 0) + 1
         got = False
         dd = r.get("days") or {}
         for d in week:

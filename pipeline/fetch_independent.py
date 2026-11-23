@@ -47,6 +47,30 @@ def links(base, b):
     return out
 
 
+IMG_WORDS = re.compile(r"lounas|lunch|ruokalista|menu|viikko|week|vko|ruoka", re.I)
+IMG_SKIP = re.compile(r"logo|icon|favicon|sprite|banner-?ad|avatar|flag|payment|wolt|foodora", re.I)
+
+
+def images(base, b):
+    """Image URLs that look like a lunch menu (file name or alt text mentions lunch/menu)."""
+    s = b.decode("utf-8", "replace")
+    out = []
+    for m in re.finditer(r"<img\b[^>]*>", s, re.I):
+        tag = m.group(0)
+        src = re.search(r'(?:data-src|data-lazy-src|src)=["\']([^"\']+)["\']', tag, re.I)
+        if not src:
+            continue
+        alt = re.search(r'(?:alt|title)=["\']([^"\']*)["\']', tag, re.I)
+        u = urllib.parse.urljoin(base, html.unescape(src.group(1)))
+        name = urllib.parse.unquote(urllib.parse.urlparse(u).path.rsplit("/", 1)[-1])
+        if not re.search(r"\.(jpe?g|png|webp)$", name, re.I) or IMG_SKIP.search(name):
+            continue
+        if IMG_WORDS.search(name) or (alt and IMG_WORDS.search(alt.group(1))):
+            if u.startswith("http") and u not in out:
+                out.append(u)
+    return out[:3]
+
+
 TIME_LINE = re.compile(r"^[\w\s.,–:-]{0,20}\d{1,2}([.:]\d{2})?\s*[-–]\s*\d{1,2}([.:]\d{2})?\s*$")
 FOODISH = re.compile(r"(?i)\b(L|G|M|VL|VE|VEG|VS)\b|\(|kastike|keitto|pihvi|broiler|kana|lohi|kala|riisi|peruna|pasta|salaatti|"
                      r"curry|pata|uuni|paisti|vegaani|kasvis|soup|chicken|salmon|beef|pork|tofu|wok|nuudeli|noodle|jälki|dessert")
@@ -114,8 +138,10 @@ def read(r, days):
         pages.append(fetch(u))
         time.sleep(0.2)
     saw_pdf = saw_lunch_word = False
-    texts = []
+    texts, imgs = [], []
     for url, ct, body in pages:
+        if body and "html" in ct:
+            imgs += [i for i in images(url, body) if i not in imgs]
         if "pdf" in ct:
             saw_pdf = True
             continue
@@ -150,7 +176,10 @@ def read(r, days):
     # pages that mention lunch, kept for the AI reader (main page first)
     lp = [(u, t) for u, t in texts if re.search(r"(?i)\blounas|\blunch", t)]
     out["_pages"] = [{"url": u, "text": t[:9000]} for u, t in lp[:2]]
-    out["_pdfs"] = [u for u, ct, _ in pages if "pdf" in ct][:1]
+    pdfs = [u for u, ct, _ in pages if "pdf" in ct]
+    pdfs += [u for u in links(final, b) if u.lower().split("?")[0].endswith(".pdf") and u not in pdfs]
+    out["_pdfs"] = pdfs[:2]
+    out["_imgs"] = imgs[:3]
     return out
 
 
@@ -160,8 +189,8 @@ def main(inp, days, out):
     rest = json.load(open(inp))
     with ThreadPoolExecutor(8) as ex:
         res = list(ex.map(lambda r: (r, read(r, days)), rest))
-    pages = {r["id"]: {"name": r["name"], "website": r.get("website"), "pages": x["_pages"], "pdfs": x["_pdfs"]}
-             for r, x in res if "status" not in x and (x["_pages"] or x["_pdfs"])}
+    pages = {r["id"]: {"name": r["name"], "website": r.get("website"), "pages": x["_pages"], "pdfs": x["_pdfs"], "imgs": x["_imgs"]}
+             for r, x in res if "status" not in x and (x["_pages"] or x["_pdfs"] or x["_imgs"])}
     json.dump(pages, open(os.path.join(os.path.dirname(out), "web_pages.json"), "w"), ensure_ascii=False)
     for d in days:
         rows = [{"id": r["id"], "name": r["name"], "website": r.get("website"), **(x if "status" in x else x[d])} for r, x in res]
