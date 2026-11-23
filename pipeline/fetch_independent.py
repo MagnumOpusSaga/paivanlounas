@@ -1,7 +1,7 @@
 """Read today's lunch from independent restaurants' own websites (heuristic pilot reader).
 Usage: fetch_independent.py <restaurants.json> <YYYY-MM-DD> <out.json>
 Each restaurant needs: id, name, website."""
-import json, re, sys, time, html, datetime, urllib.request, urllib.parse
+import os, json, re, sys, time, html, datetime, urllib.request, urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
@@ -87,7 +87,7 @@ def weekly_lunch(text):
     return None
 
 
-def read(r, day):
+def read(r, days):
     site = r.get("website")
     if not site:
         return {"status": "no_website"}
@@ -114,7 +114,7 @@ def read(r, day):
         pages.append(fetch(u))
         time.sleep(0.2)
     saw_pdf = saw_lunch_word = False
-    best_weekly = None
+    texts = []
     for url, ct, body in pages:
         if "pdf" in ct:
             saw_pdf = True
@@ -124,26 +124,50 @@ def read(r, day):
         t = to_text(body)
         if re.search(r"(?i)\blounas|\blunch", t):
             saw_lunch_word = True
-        blk = day_block(t, day)
-        if blk and saw_lunch_word:
-            return {"status": "ok_daily", "url": url, "text": blk[:1500]}
-        w = weekly_lunch(t)
-        if w and not best_weekly:
-            best_weekly = (url, w)
-    if best_weekly:
-        return {"status": "ok_fixed", "url": best_weekly[0], "text": best_weekly[1][:800]}
-    if saw_pdf:
-        return {"status": "pdf_menu", "url": final}
-    if saw_lunch_word:
-        return {"status": "lunch_mentioned_unparsed", "url": final}
-    return {"status": "no_lunch_found", "url": final}
+        texts.append((url, t))
+    out = {}
+    for d in days:
+        res = None
+        best_weekly = None
+        for url, t in texts:
+            blk = day_block(t, d)
+            if blk and saw_lunch_word:
+                res = {"status": "ok_daily", "url": url, "text": blk[:1500]}
+                break
+            w = weekly_lunch(t)
+            if w and not best_weekly:
+                best_weekly = (url, w)
+        if not res:
+            if best_weekly:
+                res = {"status": "ok_fixed", "url": best_weekly[0], "text": best_weekly[1][:800]}
+            elif saw_pdf:
+                res = {"status": "pdf_menu", "url": final}
+            elif saw_lunch_word:
+                res = {"status": "lunch_mentioned_unparsed", "url": final}
+            else:
+                res = {"status": "no_lunch_found", "url": final}
+        out[d] = res
+    # pages that mention lunch, kept for the AI reader (main page first)
+    lp = [(u, t) for u, t in texts if re.search(r"(?i)\blounas|\blunch", t)]
+    out["_pages"] = [{"url": u, "text": t[:9000]} for u, t in lp[:2]]
+    out["_pdfs"] = [u for u, ct, _ in pages if "pdf" in ct][:1]
+    return out
 
 
-def main(inp, day, out):
+def main(inp, days, out):
+    """days: comma-separated dates; out: path with {day} placeholder (or a plain path for one day)."""
+    days = days.split(",")
     rest = json.load(open(inp))
     with ThreadPoolExecutor(8) as ex:
-        res = list(ex.map(lambda r: {"id": r["id"], "name": r["name"], "website": r.get("website"), **read(r, day)}, rest))
-    json.dump({"date": day, "results": res}, open(out, "w"), ensure_ascii=False, indent=1)
+        res = list(ex.map(lambda r: (r, read(r, days)), rest))
+    pages = {r["id"]: {"name": r["name"], "website": r.get("website"), "pages": x["_pages"], "pdfs": x["_pdfs"]}
+             for r, x in res if "status" not in x and (x["_pages"] or x["_pdfs"])}
+    json.dump(pages, open(os.path.join(os.path.dirname(out), "web_pages.json"), "w"), ensure_ascii=False)
+    for d in days:
+        rows = [{"id": r["id"], "name": r["name"], "website": r.get("website"), **(x if "status" in x else x[d])} for r, x in res]
+        json.dump({"date": d, "results": rows}, open(out.replace("{day}", d), "w"), ensure_ascii=False, indent=1)
+
+
 
 
 if __name__ == "__main__":

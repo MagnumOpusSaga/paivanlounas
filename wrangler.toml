@@ -1,0 +1,8 @@
+name = "paivanlounas"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-11-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "paivanlounas"
+database_id = "98bc03b1-516b-4f82-9059-1566753b2fa2"

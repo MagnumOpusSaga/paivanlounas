@@ -6,6 +6,8 @@ on:
     - cron: "7 4 * * 1-5"
     - cron: "37 8 * * 1-5"
   workflow_dispatch:
+  push:
+    branches: [main]
 
 concurrency:
   group: daily
@@ -25,9 +27,16 @@ jobs:
           node-version: "20"
       - name: Install Leaflet
         run: npm install --no-save leaflet@1.9.4
+      - name: Read menu addresses sent through the site form
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@3 d1 execute paivanlounas --remote --json --command "SELECT venue, url FROM suggestions WHERE status != 'rejected' ORDER BY id" > data/suggestions_raw.json
       - name: Fetch lunch lists and build site
         env:
           PUBLIC: ${{ vars.PUBLIC }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python3 -I pipeline/daily.py
       - name: Deploy to Cloudflare Pages
         env:

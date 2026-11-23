@@ -4,3 +4,7 @@ raw/
 data/menus_*
 data/web_todo.json
 __pycache__/
+data/suggestions_raw.json
+data/web_pages.json
+data/ai_stats.json
+.wrangler/
