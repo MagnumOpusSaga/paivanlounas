@@ -47,7 +47,7 @@ jobs:
           restore-keys: ai-cache-
       - name: Fetch lunch lists and build site
         env:
-          PUBLIC: ${{ vars.PUBLIC }}
+          PUBLIC: "1"  # site open to search engines since 24.11.2026
           ADSENSE_CLIENT: ${{ vars.ADSENSE_CLIENT }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # morning run may spend up to $0.12 on new readings, the midday refresh and code pushes less
