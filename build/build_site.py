@@ -63,6 +63,16 @@ def district_of(lat, lon, ds):
     return None
 
 
+def decap(s):
+    """'VOISSA PAISTETTUA KUHAA' -> 'Voissa paistettua kuhaa' (short codes like BBQ, L, G stay)."""
+    letters = [c for c in s if c.isalpha()]
+    if len(letters) < 8 or sum(c.isupper() for c in letters) < 0.8 * len(letters):
+        return s
+    out = s.lower()
+    out = re.sub(r"\b(bbq|vl|veg|ve|l|g|m|k|tm|xl)\b", lambda m: m.group(0).upper(), out)
+    return out[:1].upper() + out[1:]
+
+
 def clean_dish(d):
     d = re.sub(r"\s*\((?:[A-Za-z]{1,4}[\s,+*/]*)+\)", "", d or "")
     return re.sub(r"[\s,;·]+$", "", d)
@@ -306,7 +316,7 @@ def fmt_price(p):
     return f"{p:.2f} €".replace(".", ",")
 
 
-def menu_html(m, lg, slug_=None, day=None):
+def menu_html(m, lg, slug_=None, day=None, show_src=True):
     t = T[lg]
     if not m:
         return f'<p class="nomenu">{t["nomenu"]}</p>'
@@ -318,6 +328,8 @@ def menu_html(m, lg, slug_=None, day=None):
         out.append(f'<li>{title}{esc(" · ".join(it["d"]))} {diet} {price}</li>')
     wrong = f' · <a href="#" class="wrong" data-wrong="{esc(slug_)}" data-day="{day}" data-ok="{esc(t["wrong_ok"])}" rel="nofollow">{t["wrong"]}</a>' if slug_ else ""
     src = f'<p class="src">{t["src"]}: {esc(m["src"])}' + (f' – <a href="{esc(m["url"])}" rel="nofollow noopener">{t["orig"]}</a>' if m.get("url") else "") + wrong + "</p>"
+    if not show_src:
+        src = f'<p class="src">{wrong[3:]}</p>' if wrong else ""
     return '<ul class="menu">' + "".join(out) + "</ul>" + src
 
 
@@ -372,6 +384,29 @@ def main(L, out, day, preview):
             ms[show_day] = R.pop(norm(v["name"]))["menu"]
         dd = district_of(v["lat"], v["lon"], ds)
         venues.append({**v, "ms": ms, "menu": ms.get(show_day), "district": dd["name"] if dd else None, "dslug": dd["slug"] if dd else None})
+    GENERIC = {"ravintola", "restaurant", "cafe", "café", "kahvila", "helsinki", "lounas", "bar", "bistro", "kitchen", "and", "the"}
+    def words(n):
+        return {w for w in re.findall(r"[a-zåäö0-9]+", n.lower()) if len(w) > 3 and w not in GENERIC}
+    for v in venues:  # tidy shouting menus
+        for m in v["ms"].values():
+            for it in m["items"]:
+                it["d"] = [decap(x) for x in it["d"]]
+                if it.get("t"):
+                    it["t"] = decap(it["t"])
+    sig, drop = {}, set()
+    for i, v in enumerate(venues):  # same venue twice in the registry: same menu, <250 m apart, a shared name word
+        if not v["menu"]:
+            continue
+        key = " | ".join(" ".join(it["d"]) for it in v["menu"]["items"]).lower()[:300]
+        for j in sig.get(key, []):
+            w = venues[j]
+            if abs(w["lat"] - v["lat"]) < 0.0023 and abs(w["lon"] - v["lon"]) < 0.0045 and words(w["name"]) & words(v["name"]):
+                drop.add(i if (w.get("oiva") or w.get("website") or len(w["ms"]) >= len(v["ms"])) else j)
+                break
+        sig.setdefault(key, []).append(i)
+    if drop:
+        print("duplicates merged", len(drop), sorted(venues[i]["name"] for i in drop)[:30], file=sys.stderr)
+    venues = [v for i, v in enumerate(venues) if i not in drop]
     seen = {}
     for v in venues:
         s = slug(v["name"])
@@ -488,18 +523,22 @@ def main(L, out, day, preview):
             nveg = len(veg)
             veg = sorted(veg, key=lambda v: (mp[v["slug"]] or 99))[:6]
             buf = sorted([v for v in withm if re.search(r"buffet|noutopöytä|seisova", txt(v))], key=lambda v: v["name"])[:6]
+            def mini(v):
+                m = v["menu"]
+                pr = fmt_price(mp[v["slug"]]) if mp.get(v["slug"]) else ""
+                return (f'<li><a href="#v-{v["slug"]}">{esc(v["name"])}</a> <span class="mdish">{esc(clean(m["items"][0]["d"][0]))}</span><span class="price">{pr}</span></li>')
             def ent(v):
                 m = v["menu"]; o = (v["oiva"] or {}).get("grade")
                 dishes = " · ".join(clean(i["d"][0]) for i in m["items"][:4])
                 meta = " · ".join(x for x in (v["street"], (t["oiva"] + " " + t["oiva_txt"][o]) if o in ("A", "B") else "", (A["until"] + m["hours"]) if m.get("hours") else "") if x)
                 pr = fmt_price(mp[v["slug"]]) if mp.get(v["slug"]) else ""
-                return (f'<article class="ent"><div class="row"><h3><a href="{t["venue"].format(s=v["slug"])}">{esc(v["name"])}</a></h3><span class="price">{pr}</span></div>'
+                return (f'<article class="ent" id="v-{v["slug"]}"><div class="row"><h3><a href="{t["venue"].format(s=v["slug"])}">{esc(v["name"])}</a></h3><span class="price">{pr}</span></div>'
                         f'<p class="dish">{esc(dishes)}</p><p class="meta">{esc(meta)}</p></article>')
             secs, jumps = [], []
             for sid, title, lead, items in (("halvat", A["cheap_h"], A["cheap_p"].format(a=dn), cheap), ("kasvis", A["veg_h"], A["veg_p"], veg),
                                             ("buffet", A["buf_h"], A["buf_p"], buf)):
                 if len(items) >= 2:
-                    secs.append(f'<section class="sec" id="{sid}"><h2>{title}</h2><p>{lead}</p>{"".join(ent(v) for v in items)}</section>')
+                    secs.append(f'<section class="sec" id="{sid}"><h2>{title}</h2><p>{lead}</p><ul class="picks">{"".join(mini(v) for v in items)}</ul></section>')
                     jumps.append(f'<a href="#{sid}">{title}</a>')
             allm = sorted(withm, key=lambda v: v["name"].lower())
             if allm:
@@ -517,7 +556,6 @@ def main(L, out, day, preview):
             path, alt = t["area"].format(s=dslug), T[other]["area"].format(s=dslug)
             body = f"""<main class="content"><nav class="crumbs"><a href="{t['home']}">{t['crumb_home']}</a> › <a href="{t['areas']}">{t['nav_areas']}</a> › {esc(dn)}</nav>
 <h1>{t['area_h1'].format(a=esc(dn))}</h1><p class="lead">{lead}</p>
-<p class="trust"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2f6b3a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span>{A['trust']}</span></p>
 <nav class="jump" aria-label="{A['jump']}">{''.join(jumps)}</nav>
 <div class="cols"><div class="maincol">{''.join(secs)}</div>
 <aside class="side"><div class="box"><h2>{A['map_h']}</h2><p style="margin:0 0 12px;color:var(--mut);font-size:14px">{A['map_p'].format(n=nm, a=esc(dn))}</p><a class="btn" href="{t['home']}?d={dslug}">{t['show_map']}</a></div>
@@ -552,7 +590,6 @@ def main(L, out, day, preview):
             ents = "".join(entry_html(v, mp_g, t, lg, show_area=True) for v in items) or f'<p class="nomenu">{TP["empty"]}</p>'
             body = f"""<main class="content"><nav class="crumbs"><a href="{t['home']}">{t['crumb_home']}</a> › {esc(TP[key]['h1'])}</nav>
 <h1>{esc(TP[key]['h1'])} {TP['today']}</h1><p class="lead">{lead}</p>
-<p class="trust"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2f6b3a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span>{AREA_T[lg]['trust']}</span></p>
 <div class="cols"><div class="maincol"><section class="sec">{ents}</section><p style="margin-top:22px">{TP[key]['outro']}</p></div>
 <aside class="side"><div class="box"><h2>{TP['more']}</h2><ul>{others_l}</ul></div><div class="box"><h2>{TP['areas']}</h2><ul>{areas_l}</ul></div>
 <div class="box"><a class="btn" href="{t['home']}">{t['show_map']}</a></div></aside></div></main>"""
@@ -568,7 +605,8 @@ def main(L, out, day, preview):
             oiva = f'<p class="oivabox">{t["oiva"]}: <b>{t["oiva_txt"].get(o.get("grade"), "")}</b> ({esc(o.get("date"))}) – <a href="https://www.oivahymy.fi/hae-yrityksia/" rel="nofollow noopener">{t["oiva_rep"]}</a></p>' if o.get("grade") else ""
             web = f'<p><a href="{esc(v["website"])}" rel="nofollow noopener">{t["website"]}</a></p>' if v.get("website") else ""
             dlink = f' · <a href="{t["area"].format(s=v["dslug"])}">{esc(t["area_h1"].format(a=v["district"]))}</a>' if v["dslug"] else ""
-            week = "".join(f'<h3>{esc(datestr(d, lg))}</h3>{menu_html(v["ms"].get(d), lg, v["slug"], d)}' for d in days if d != show_day and d in v["ms"])
+            src0 = (v["menu"] or {}).get("url")
+            week = "".join(f'<h3>{esc(datestr(d, lg))}</h3>{menu_html(v["ms"].get(d), lg, v["slug"], d, show_src=not v["menu"] or v["ms"][d].get("url") != src0)}' for d in days if d != show_day and d in v["ms"])
             week = f'<h2>{t["week"]}</h2>{week}' if week else ""
             jl = {"@context": "https://schema.org", "@type": "Restaurant", "name": v["name"],
                   "address": {"@type": "PostalAddress", "streetAddress": v["street"], "postalCode": v.get("postal"), "addressLocality": "Helsinki", "addressCountry": "FI"},

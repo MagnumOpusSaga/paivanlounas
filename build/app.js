@@ -109,13 +109,15 @@
   // three good picks: menu with a price, open now when the day is today, nearest to you (or to the map centre)
   function renderTop3(list) {
     var box = $("top3s");
-    if (state.view === "list" && !state.me) { box.hidden = true; return; }
+    state.t3 = {};
+    if (state.f.fav || (state.view === "list" && !state.me)) { box.hidden = true; return; }
     var ref = state.me || [map.getCenter().lat, map.getCenter().lng];
     var isToday = state.day === today();
     var c = list.filter(function (v) { return M(v) && minPrice(v) && (!isToday || !hours(v) || openNow(v)); })
       .map(function (v) { return [km(ref, [v.y, v.x]), v]; }).filter(function (x) { return x[0] < 1.5; })
       .sort(function (a, b) { return a[0] - b[0]; }).slice(0, 3);
     if (c.length < 3) { box.hidden = true; return; }
+    c.forEach(function (x) { state.t3[x[1].i] = 1; });
     $("t3h").textContent = state.me ? S.t3me : S.t3map;
     $("top3").innerHTML = c.map(function (x) {
       var v = x[1], h = hours(v), mins = Math.max(1, Math.round(x[0] * 1000 / 80));
@@ -130,8 +132,9 @@
     return L.circleMarker([v.y, v.x], { radius: m ? 6 : 4, weight: 1.5, color: "#fff", fillColor: m ? "#c2410c" : "#9b8e86", fillOpacity: 0.95 });
   }
   function renderList(list) {
-    var lv = state.view === "list", n = state.limit;
-    $("count").textContent = list.length + S.n + (state.f.menu ? S.menu : "") + (list.length > n && !state.f.cheap ? " · " + n + " " + S.near : "");
+    var lv = state.view === "list", n = state.limit, t3 = state.t3 || {}, total = list.length;
+    list = list.filter(function (v) { return !t3[v.i]; });  // the three picks are already shown above
+    $("count").textContent = total + S.n + (state.f.menu ? S.menu : "") + (list.length > n && !state.f.cheap ? " · " + n + " " + S.near : "");
     if (state.f.fav && !list.length) $("count").textContent = S.nofav;
     $("list").innerHTML = list.slice(0, n).map(function (v) {
       var m = M(v);
@@ -145,8 +148,7 @@
     var list = filtered();
     var dt = new Date(state.day + "T12:00:00");
     $("dlabel").textContent = S.wd[dt.getDay()] + " " + dt.getDate() + "." + (dt.getMonth() + 1) + "." + dt.getFullYear();
-    var dt = new Date(state.day + "T12:00:00");
-    $("dlabel").textContent = S.wd[dt.getDay()] + " " + dt.getDate() + "." + (dt.getMonth() + 1) + "." + dt.getFullYear();
+    renderTop3(list);
     renderList(list);
     layer.clearLayers(); state.byId = {};
     list.slice(0, 900).forEach(function (v) {
@@ -155,7 +157,6 @@
       mk.on("popupopen", function () { select(v.i); });
       mk.addTo(layer); state.byId[v.i] = mk;
     });
-    renderTop3(list);
   }
   function select(id) {
     state.sel = id;
