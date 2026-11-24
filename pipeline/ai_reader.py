@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 MODEL = os.environ.get("LOUNAS_AI_MODEL", "claude-haiku-5-5")
 MAX_SITES = int(os.environ.get("LOUNAS_AI_MAX", "700"))
-BUDGET = float(os.environ.get("LOUNAS_AI_BUDGET", "0.12"))  # max new spend per run in USD; cached readings are free
+BUDGET = float(os.environ.get("LOUNAS_AI_BUDGET", "0.23"))  # max new spend per run in USD (~0.20 EUR); cached readings are free
 MAX_CHARS = 12000  # changing this changes cache keys (all pages re-read), so keep it stable
 PRICE_IN, PRICE_OUT = 0.10, 0.50  # Claude Haiku 5.5, USD per million tokens
 WD = ["maanantai", "tiistai", "keskiviikko", "torstai", "perjantai"]
