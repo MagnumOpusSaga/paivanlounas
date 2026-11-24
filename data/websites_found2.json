@@ -1,0 +1,338 @@
+[
+ {
+  "id": "oiva:1034338",
+  "name": "Finlandia Café & Wine",
+  "website": "https://www.finlandiatalo.fi/",
+  "domain": "finlandiatalo.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1125572",
+  "name": "Finlandia Bistro",
+  "website": "https://www.finlandiatalo.fi/",
+  "domain": "finlandiatalo.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1142132",
+  "name": "Psh-love-ka",
+  "website": "https://psh-love-ka.com",
+  "domain": "psh-love-ka.com",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1021315",
+  "name": "Ravintola Arthur Helsinki",
+  "website": "https://www.hotelarthur.fi/",
+  "domain": "hotelarthur.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:1142562",
+  "name": "Esmes",
+  "website": "https://www.esmeshki.fi/",
+  "domain": "esmeshki.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1101911",
+  "name": "Ravintola MyStuu",
+  "website": "https://www.ravintolamystuu.com/",
+  "domain": "ravintolamystuu.com",
+  "lunch": true
+ },
+ {
+  "id": "oiva:208861",
+  "name": "Southpark Restaurant",
+  "website": "https://www.southparkrestaurant.fi/",
+  "domain": "southparkrestaurant.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:1016078",
+  "name": "Ravintola Alexanderplats",
+  "website": "https://alexanderplats.fi",
+  "domain": "alexanderplats.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:1014143",
+  "name": "Ravintola Palace",
+  "website": "https://palacerestaurant.fi",
+  "domain": "palacerestaurant.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:1129461",
+  "name": "Hanayagi Omakase",
+  "website": "https://hanayagi-omakase.com",
+  "domain": "hanayagi-omakase.com",
+  "lunch": false
+ },
+ {
+  "id": "oiva:352771",
+  "name": "Moko Market & Café Punavuori",
+  "website": "https://moko.fi",
+  "domain": "moko.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:1090372",
+  "name": "Ravintola Viiskulma",
+  "website": "https://www.viiskulmaravintola.fi/",
+  "domain": "viiskulmaravintola.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1002095",
+  "name": "Ravintola Manna",
+  "website": "https://mannaravintola.fi",
+  "domain": "mannaravintola.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:209046",
+  "name": "Ravintola Nerone",
+  "website": "https://www.ravintolanerone.com/",
+  "domain": "ravintolanerone.com",
+  "lunch": true
+ },
+ {
+  "id": "oiva:1090003",
+  "name": "Cafe Amore",
+  "website": "https://www.cafeamore.fi/",
+  "domain": "cafeamore.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:454362",
+  "name": "Café Viola",
+  "website": "https://www.cafeviola.fi/",
+  "domain": "cafeviola.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:1030625",
+  "name": "Viet Balo",
+  "website": "https://thevietbalo.com/",
+  "domain": "vietbalo.com",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1156642",
+  "name": "Patisserie Teemu Aura Valla",
+  "website": "https://patisserieteemuaura.fi",
+  "domain": "patisserieteemuaura.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:1043352",
+  "name": "Ravintola Piilo",
+  "website": "https://ravintolapiilo.com",
+  "domain": "ravintolapiilo.com",
+  "lunch": true
+ },
+ {
+  "id": "oiva:1063356",
+  "name": "Lazy Fox",
+  "website": "https://lazyfox.fi",
+  "domain": "lazyfox.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1088561",
+  "name": "Mutteri Kahvila",
+  "website": "https://cafemutteri.fi",
+  "domain": "cafemutteri.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:220351",
+  "name": "Kahvila Mutteri",
+  "website": "https://cafemutteri.fi",
+  "domain": "cafemutteri.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:226662",
+  "name": "Ravintola Long River",
+  "website": "https://www.ravintolalongriver.com/",
+  "domain": "ravintolalongriver.com",
+  "lunch": true
+ },
+ {
+  "id": "oiva:372114",
+  "name": "Ravintola Wanha Herra",
+  "website": "https://ravintolawanhaherra591062107.wordpress.com/",
+  "domain": "ravintolawanhaherra.com",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1004817",
+  "name": "Töölö Towers",
+  "website": "https://unihome.fi",
+  "domain": "unihome.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:216926",
+  "name": "Cafe Regatta",
+  "website": "https://www.caferegatta.fi/",
+  "domain": "caferegatta.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1135854",
+  "name": "Monal Ravintola",
+  "website": "https://www.monalravintola.fi/",
+  "domain": "monalravintola.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:1076565",
+  "name": "Cafe Makiata",
+  "website": "https://www.makiata.fi/",
+  "domain": "makiata.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:1160306",
+  "name": "Ester’s Grocery Kallio",
+  "website": "https://estersgrocery.com",
+  "domain": "estersgrocery.com",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1078417",
+  "name": "Sivuraide",
+  "website": "https://sivuraideravintola.fi",
+  "domain": "sivuraideravintola.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:1142931",
+  "name": "Cela Coffee",
+  "website": "https://siltaasia.com/",
+  "domain": "siltaasia.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1019335",
+  "name": "Lepakkomies",
+  "website": "https://www.lepis.fi/",
+  "domain": "lepis.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1154815",
+  "name": "Klandestina",
+  "website": "https://klande.fi",
+  "domain": "klande.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:1117775",
+  "name": "Döner House, Burger Vibes",
+  "website": "https://doner-house.fi",
+  "domain": "doner-house.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1034105",
+  "name": "Sizzle Station Tripla",
+  "website": "https://www.sizzlestation.com/",
+  "domain": "sizzlestation.com",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1083472",
+  "name": "Rice Story Kallio",
+  "website": "https://www.noodlestory.fi/",
+  "domain": "noodlestory.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1156369",
+  "name": "Patisserie Teemu Aura Hakaniemi",
+  "website": "https://patisserieteemuaura.fi",
+  "domain": "patisserieteemuaura.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:217871",
+  "name": "Ravintola Cafe Del Mar",
+  "website": "https://cafedelmar.fi",
+  "domain": "cafedelmar.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1004514",
+  "name": "Roots Helsinki Vallila",
+  "website": "https://www.rootshki.fi/",
+  "domain": "rootshki.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:396226",
+  "name": "Ravintola Koskenranta",
+  "website": "https://koskenranta.net/fi/",
+  "domain": "koskenranta.net",
+  "lunch": false
+ },
+ {
+  "id": "oiva:533089",
+  "name": "Café Amore",
+  "website": "https://www.cafeamore.fi/",
+  "domain": "cafeamore.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:215287",
+  "name": "Kahvila Ravintola Paloheinä",
+  "website": "https://paloheinagolf.fi",
+  "domain": "paloheinagolf.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1069585",
+  "name": "Robin Hood Pizza Grilli",
+  "website": "https://www.robinhoodpizza.fi/",
+  "domain": "robinhoodpizza.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1125721",
+  "name": "King Kebab Malmi",
+  "website": "https://www.malminking.fi/",
+  "domain": "malminking.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1067091",
+  "name": "Ravintola Station",
+  "website": "https://stationravintola.fi",
+  "domain": "stationravintola.fi",
+  "lunch": true
+ },
+ {
+  "id": "oiva:1152393",
+  "name": "Kulosaaren Kartanon kahvila",
+  "website": "https://www.kulosaarenkartano.fi/",
+  "domain": "kulosaarenkartano.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1150511",
+  "name": "GINZA SUSHI EXPRESS ITIS",
+  "website": "https://ginzasushiexpress.fi",
+  "domain": "ginzasushiexpress.fi",
+  "lunch": false
+ },
+ {
+  "id": "oiva:1117845",
+  "name": "Kahvila Kameleontti",
+  "website": "https://megaelain.fi",
+  "domain": "megaelain.fi",
+  "lunch": false
+ }
+]
