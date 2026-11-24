@@ -27,7 +27,7 @@ h1,h2{font-family:var(--display);font-weight:800;letter-spacing:-.3px;line-heigh
 .ptop{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
 .panel h1{font-size:26px;margin:2px 0 0}
 .sub{margin:0;font-size:13px;color:var(--mut)}
-.views{display:none;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:none}
+.views{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:none}
 .views button{border:0;background:var(--card);color:var(--ink);padding:8px 14px;font:700 14px var(--body);cursor:pointer;min-height:38px}
 .views button.on{background:var(--p);color:var(--p-ink)}
 .days{display:flex;gap:6px;margin:12px 0 10px;overflow-x:auto;scrollbar-width:none}
@@ -61,9 +61,9 @@ h3{margin:0;font-size:16px}h3 a{color:var(--ink);text-decoration:none}h3 a:hover
 .price{font-weight:800;white-space:nowrap}
 .src{font-size:12px;color:var(--mut)}.nomenu{color:var(--mut);font-size:14px}
 .oiva{font-size:12px;font-weight:700;color:var(--g);background:var(--g-tint);border-radius:5px;padding:1px 6px;vertical-align:2px;margin-left:4px}
-.dock{position:fixed;left:12px;right:12px;bottom:12px;z-index:1200;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;background:var(--ink);padding:8px;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.22)}
-.dock button{border:0;background:transparent;color:#fff;border-radius:12px;font:700 15px var(--body);min-height:48px;cursor:pointer}
-.dock button.on{background:var(--p);color:var(--p-ink)}
+.leaflet-bar a.locbtn{display:flex;align-items:center;justify-content:center;width:44px;height:44px;color:var(--p-dark,#9A3412)}
+.leaflet-bar a.locbtn.busy{animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.4}}
+.mapbtn{border:0;background:var(--ink);color:#fff;border-radius:999px;padding:9px 14px;font:700 14px var(--body);box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer;min-height:40px}
 .app.mapview #map{height:calc(100vh - 58px);height:calc(100dvh - 58px)}
 .app.mapview .panel{display:none}
 .app.listview #map{display:none}
@@ -80,7 +80,7 @@ h3{margin:0;font-size:16px}h3 a{color:var(--ink);text-decoration:none}h3 a:hover
   .app{display:grid;grid-template-columns:minmax(380px,470px) 1fr;height:calc(100vh - 58px);height:calc(100dvh - 58px)}
   #map{order:0;height:auto}
   .panel{overflow:auto;border-right:1px solid var(--line);padding:18px 20px 24px}
-  .views{display:flex}.dock{display:none}
+  .views{display:flex}.mapctl{display:none}
   .t3{flex-direction:column;overflow:visible;margin:0;padding:0}.t3 a{flex:none;max-width:none}
   .list>li.sel{margin:0 -20px;padding:12px 20px}
   .app.listview{grid-template-columns:1fr;height:auto}.app.listview .panel{max-width:900px;width:100%;margin:0 auto;border:0;overflow:visible}

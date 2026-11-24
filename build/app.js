@@ -6,12 +6,12 @@
     fi: { n: " ravintolaa", menu: " – lista", nomenu: "Ei listaa tälle päivälle.", site: "Ravintolan sivu", src: "Lähde", orig: "alkuperäinen",
           wrong: "Väärä tieto?", wrongOk: "Kiitos ilmoituksesta!", onmap: "Kartalla", more: "Näytä lisää", park: "Parkki lähellä",
           venue: "/ravintola/", noloc: "Sijaintia ei saatu.", walk: " min kävely", until: "auki ", untilEnd: " asti", t3me: "Kolme hyvää lähelläsi",
-          t3map: "Kolme hyvää tällä alueella", route: "Reitti",
+          t3map: "Kolme hyvää tällä alueella", route: "Reitti", loc: "Näytä sijaintini",
           wd: ["sunnuntai", "maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai"], pp: "https://parkpenny.com/" },
     en: { n: " restaurants", menu: " – with menu", nomenu: "No menu for this day.", site: "Restaurant website", src: "Source", orig: "original",
           wrong: "Wrong info?", wrongOk: "Thanks for letting us know!", onmap: "On map", more: "Show more", park: "Parking nearby",
           venue: "/en/restaurant/", noloc: "Could not get your location.", walk: " min walk", until: "open until ", untilEnd: "", t3me: "Three good picks near you",
-          t3map: "Three good picks in this area", route: "Directions",
+          t3map: "Three good picks in this area", route: "Directions", loc: "Show my location",
           wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], pp: "https://parkpenny.com/en/" }
   }[LG];
   var state = { f: { menu: true }, q: "", me: null, data: [], day: null, days: [], byId: {}, view: "split", limit: 60, sel: null };
@@ -21,6 +21,15 @@
   L.control.zoom({ position: "topright" }).addTo(map);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
   var layer = L.layerGroup().addTo(map);
+  // mobile: one small button on the map itself (full-screen map / back to list) instead of a floating bar over the content
+  var mapEl = document.getElementById("map"), bigBtn;
+  var Ctl = L.Control.extend({ options: { position: "topleft" }, onAdd: function () {
+    var d = L.DomUtil.create("div", "mapctl leaflet-control");
+    bigBtn = L.DomUtil.create("button", "mapbtn", d); bigBtn.type = "button"; bigBtn.textContent = mapEl.getAttribute("data-big");
+    L.DomEvent.disableClickPropagation(d);
+    L.DomEvent.on(bigBtn, "click", function () { setView(state.view === "map" ? "split" : "map"); if (state.view === "split") window.scrollTo(0, 0); });
+    return d; } });
+  new Ctl().addTo(map);
 
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -156,6 +165,7 @@
       var bv = b.getAttribute("data-view");
       b.classList.toggle("on", bv === v || (bv === "split" && v === "map"));
     });
+    if (bigBtn) bigBtn.textContent = mapEl.getAttribute(v === "map" ? "data-back" : "data-big");
     if (!keep) { try { localStorage.setItem("pl_view", v === "list" ? "list" : "split"); } catch (e) {} }
     setTimeout(function () { map.invalidateSize(); }, 0);
     state.limit = 60; render();
@@ -166,10 +176,6 @@
       if (v === state.view && !wide.matches) v = "split";
       setView(v);
     });
-  });
-  $("filt").addEventListener("click", function () {
-    if (state.view === "map") setView("split");
-    $("chips").scrollIntoView({ behavior: "smooth", block: "center" });
   });
   $("more").addEventListener("click", function () { state.limit += 60; render(); });
   $("list").addEventListener("click", function (e) {
@@ -195,13 +201,28 @@
   var qt, mt;
   $("q").addEventListener("input", function (e) { clearTimeout(qt); qt = setTimeout(function () { state.q = e.target.value.trim(); render(); }, 150); });
   map.on("moveend", function () { if (state.me || !state.data.length) return; clearTimeout(mt); mt = setTimeout(function () { renderTop3(filtered()); }, 200); });
-  $("near").addEventListener("click", function () {
-    if (!navigator.geolocation) return;
+  var meDot = null, locBtn;
+  function locate() {
+    if (!navigator.geolocation) { $("count").textContent = S.noloc; return; }
+    if (locBtn) locBtn.classList.add("busy");
     navigator.geolocation.getCurrentPosition(function (p) {
+      if (locBtn) locBtn.classList.remove("busy");
       state.me = [p.coords.latitude, p.coords.longitude]; map.setView(state.me, 16);
-      L.circleMarker(state.me, { radius: 8, color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }).addTo(map); render();
-    }, function () { $("count").textContent = S.noloc; }, { enableHighAccuracy: true, timeout: 8000 });
-  });
+      if (meDot) meDot.setLatLng(state.me);
+      else meDot = L.circleMarker(state.me, { radius: 8, color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }).addTo(map);
+      render();
+    }, function () { if (locBtn) locBtn.classList.remove("busy"); $("count").textContent = S.noloc; }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+  }
+  $("near").addEventListener("click", locate);
+  var Loc = L.Control.extend({ options: { position: "topright" }, onAdd: function () {
+    var d = L.DomUtil.create("div", "leaflet-bar leaflet-control");
+    locBtn = L.DomUtil.create("a", "locbtn", d); locBtn.href = "#"; locBtn.setAttribute("role", "button");
+    locBtn.title = S.loc; locBtn.setAttribute("aria-label", S.loc);
+    locBtn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2"/></svg>';
+    L.DomEvent.disableClickPropagation(d);
+    L.DomEvent.on(locBtn, "click", function (e) { L.DomEvent.preventDefault(e); locate(); });
+    return d; } });
+  new Loc().addTo(map);
   fetch("/data/week.json").then(function (r) { return r.json(); }).then(function (d) {
     state.data = d.venues; state.days = d.days;
     var t = today(); state.day = d.days.indexOf(t) >= 0 ? t : d.date;

@@ -171,7 +171,7 @@ T = {
     "fi": {"home": "/", "areas": "/lounas/", "area": "/lounas/{s}/", "venue": "/ravintola/{s}/", "nav_areas": "Alueet", "other": "In English", "other_home": "/en/",
            "wd": ["maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai", "sunnuntai"],
            "wd_short": ["Ma", "Ti", "Ke", "To", "Pe", "La", "Su"],
-           "h1_home": "Lounas Helsinki", "v_map": "Kartta", "v_list": "Lista", "d_list": "Lista", "d_map": "Kartta", "d_filter": "Suodata", "search": "Hae ravintolaa, ruokaa tai aluetta", "near": "Lähellä",
+           "h1_home": "Lounas Helsinki", "v_map": "Kartta", "v_list": "Lista", "d_list": "Lista", "d_map": "Kartta", "d_filter": "Suodata", "d_big": "Koko kartta", "d_back": "Takaisin listaan", "search": "Hae ravintolaa, ruokaa tai aluetta", "near": "Lähellä",
            "chips": [("menu", "Vain listalliset"), ("open", "Auki nyt"), ("u13", "Alle 13 €"), ("cheap", "Halvin ensin"), ("Veg", "Kasvis"), ("G", "G"), ("L", "L"), ("M", "M"), ("oivaA", "Oiva A")],
            "title_home": "Lounas Helsinki tänään – päivän lounaslistat kartalla | Päivän lounas",
            "desc_home": "Helsingin lounaslistat tänään ({d}): {n} ravintolan lista, hinnat, ruokavaliot ja Oiva-hymy kartalla.",
@@ -193,7 +193,7 @@ T = {
     "en": {"home": "/en/", "areas": "/en/lunch/", "area": "/en/lunch/{s}/", "venue": "/en/restaurant/{s}/", "nav_areas": "Areas", "other": "Suomeksi", "other_home": "/",
            "wd": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
            "wd_short": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-           "h1_home": "Lunch in Helsinki", "v_map": "Map", "v_list": "List", "d_list": "List", "d_map": "Map", "d_filter": "Filter", "search": "Search restaurant, dish or area", "near": "Near me",
+           "h1_home": "Lunch in Helsinki", "v_map": "Map", "v_list": "List", "d_list": "List", "d_map": "Map", "d_filter": "Filter", "d_big": "Full map", "d_back": "Back to list", "search": "Search restaurant, dish or area", "near": "Near me",
            "chips": [("menu", "With menu"), ("open", "Open now"), ("u13", "Under 13 €"), ("cheap", "Cheapest first"), ("Veg", "Vegetarian"), ("G", "GF"), ("L", "LF"), ("M", "DF"), ("oivaA", "Oiva A")],
            "title_home": "Lunch in Helsinki today – lunch menus on a map | Päivän lounas",
            "desc_home": "Helsinki lunch menus today ({d}): {n} restaurants with menus, prices, diets and food-safety ratings on a map.",
@@ -451,8 +451,7 @@ def main(L, out, day, preview):
 <div class="chips" id="chips">{chips}</div><p id="count" class="count"></p><ol id="list" class="list"></ol><button id="more" class="btn ghost more" hidden></button>
 <p class="hl">{' · '.join(f'<a href="{TOPIC_T[lg][k]["path"]}">{TOPIC_T[lg][k]["h1"]}</a>' for k in ("cheap", "veg", "buffet"))} · <a href="{t['areas']}">{t['nav_areas']}</a></p>
 </section>
-<div id="map" role="region" aria-label="{t['v_map']}"></div>
-<nav class="dock" aria-label="{t['v_list']}"><button data-view="list">{t['d_list']}</button><button data-view="map">{t['d_map']}</button><button id="filt" type="button">{t['d_filter']}</button></nav>
+<div id="map" role="region" aria-label="{t['v_map']}" data-big="{t['d_big']}" data-back="{t['d_back']}"></div>
 </main>
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css"><script src="/vendor/leaflet/leaflet.js"></script><script src="/app.js"></script><script src="/suggest.js" defer></script>"""
         ld = [{"@context": "https://schema.org", "@type": "WebSite", "name": SITE, "url": DOMAIN + t["home"], "inLanguage": lg},
