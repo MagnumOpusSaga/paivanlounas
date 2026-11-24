@@ -6,15 +6,19 @@
     fi: { n: " ravintolaa", menu: " – lista", nomenu: "Ei listaa tälle päivälle.", site: "Ravintolan sivu", src: "Lähde", orig: "alkuperäinen",
           wrong: "Väärä tieto?", wrongOk: "Kiitos ilmoituksesta!", onmap: "Kartalla", more: "Näytä lisää", park: "Parkki lähellä",
           venue: "/ravintola/", noloc: "Sijaintia ei saatu.", walk: " min kävely", until: "auki ", untilEnd: " asti", t3me: "Kolme hyvää lähelläsi",
-          t3map: "Kolme hyvää tällä alueella", route: "Reitti", loc: "Näytä sijaintini",
+          t3map: "Kolme hyvää tällä alueella", route: "Reitti", loc: "Näytä sijaintini", fav: "Lisää suosikiksi", unfav: "Poista suosikeista", near: "lähintä näkyvissä", nofav: "Ei vielä suosikkeja – lisää niitä tähdestä ravintolan nimen vierestä.",
           wd: ["sunnuntai", "maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai"], pp: "https://parkpenny.com/" },
     en: { n: " restaurants", menu: " – with menu", nomenu: "No menu for this day.", site: "Restaurant website", src: "Source", orig: "original",
           wrong: "Wrong info?", wrongOk: "Thanks for letting us know!", onmap: "On map", more: "Show more", park: "Parking nearby",
           venue: "/en/restaurant/", noloc: "Could not get your location.", walk: " min walk", until: "open until ", untilEnd: "", t3me: "Three good picks near you",
-          t3map: "Three good picks in this area", route: "Directions", loc: "Show my location",
+          t3map: "Three good picks in this area", route: "Directions", loc: "Show my location", fav: "Add to favourites", unfav: "Remove from favourites", near: "nearest shown", nofav: "No favourites yet – add them with the star next to a restaurant name.",
           wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], pp: "https://parkpenny.com/en/" }
   }[LG];
-  var state = { f: { menu: true }, q: "", me: null, data: [], day: null, days: [], byId: {}, view: "split", limit: 60, sel: null };
+  var favs = {}; try { (JSON.parse(localStorage.getItem("pl_fav") || "[]")).forEach(function (k) { favs[k] = 1; }); } catch (e) {}
+  function isFav(id) { return !!favs[id]; }
+  function saveFavs() { try { localStorage.setItem("pl_fav", JSON.stringify(Object.keys(favs))); } catch (e) {} }
+  var STAR = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg>';
+  var state = { f: { menu: true }, q: "", me: null, data: [], day: null, days: [], byId: {}, view: "split", limit: 30, sel: null };
   var params = new URLSearchParams(location.search);
   var wide = window.matchMedia("(min-width: 900px)");
   var map = L.map("map", { zoomControl: false }).setView([60.1680, 24.9400], 15);
@@ -71,13 +75,15 @@
   function head(v) {
     var p = minPrice(v), h = hours(v);
     var meta = [distTxt(dist(v)), v.d, h ? S.until + h[2] + S.untilEnd : ""].filter(Boolean).join(" · ");
-    return '<div class="row"><h3><a href="' + S.venue + esc(v.i) + '/">' + esc(v.n) + "</a>" + (v.o === "A" ? '<span class="oiva">Oiva A</span>' : "") + "</h3>" +
+    var fv = isFav(v.i);
+    return '<div class="row"><h3><button type="button" class="fav' + (fv ? " on" : "") + '" data-fav="' + esc(v.i) + '" aria-pressed="' + fv + '" title="' + (fv ? S.unfav : S.fav) + '" aria-label="' + (fv ? S.unfav : S.fav) + '">' + STAR + '</button><a href="' + S.venue + esc(v.i) + '/">' + esc(v.n) + "</a>" + (v.o === "A" ? '<span class="oiva">Oiva A</span>' : "") + "</h3>" +
       (p ? '<span class="from">' + fmt(p) + "</span>" : "") + "</div>" + '<p class="addr">' + esc(meta || v.a || "") + "</p>";
   }
   function filtered() {
     var q = state.q.toLowerCase(), f = state.f, dq = params.get("d");
     var out = state.data.filter(function (v) {
       var m = M(v);
+      if (f.fav && !isFav(v.i)) return false;
       if (f.menu && !m) return false;
       if (f.open && !openNow(v)) return false;
       if (f.oivaA && v.o !== "A") return false;
@@ -90,10 +96,13 @@
       }
       return true;
     });
+    var ref = state.me || [map.getCenter().lat, map.getCenter().lng];
+    out.forEach(function (v) { v._k = km(ref, [v.y, v.x]); });
     out.sort(function (a, b) {
+      var fa = isFav(a.i) ? 0 : 1, fb = isFav(b.i) ? 0 : 1;
+      if (fa !== fb) return fa - fb;
       if (f.cheap) return (minPrice(a) || 99) - (minPrice(b) || 99);
-      if (state.me) return km(state.me, [a.y, a.x]) - km(state.me, [b.y, b.x]);
-      return (M(b) ? 1 : 0) - (M(a) ? 1 : 0) || a.n.localeCompare(b.n, "fi");
+      return a._k - b._k;
     });
     return out;
   }
@@ -117,22 +126,28 @@
   }
   function pinFor(v) {
     var p = minPrice(v), m = M(v);
-    if (m && p) return L.marker([v.y, v.x], { icon: L.divIcon({ className: "", html: '<span class="pin">' + fmt(p).replace(" €", "") + "</span>", iconSize: [0, 0] }), riseOnHover: true });
+    if (m && p) return L.marker([v.y, v.x], { icon: L.divIcon({ className: "", html: '<span class="pin' + (isFav(v.i) ? " fv" : "") + '">' + fmt(p).replace(" €", "") + "</span>", iconSize: [0, 0] }), riseOnHover: true });
     return L.circleMarker([v.y, v.x], { radius: m ? 6 : 4, weight: 1.5, color: "#fff", fillColor: m ? "#c2410c" : "#9b8e86", fillOpacity: 0.95 });
   }
-  function render() {
-    var list = filtered();
-    $("count").textContent = list.length + S.n + (state.f.menu ? S.menu : "");
-    var dt = new Date(state.day + "T12:00:00");
-    $("dlabel").textContent = S.wd[dt.getDay()] + " " + dt.getDate() + "." + (dt.getMonth() + 1) + "." + dt.getFullYear();
-    var lv = state.view === "list", n = lv ? state.limit : 200;
+  function renderList(list) {
+    var lv = state.view === "list", n = state.limit;
+    $("count").textContent = list.length + S.n + (state.f.menu ? S.menu : "") + (list.length > n && !state.f.cheap ? " · " + n + " " + S.near : "");
+    if (state.f.fav && !list.length) $("count").textContent = S.nofav;
     $("list").innerHTML = list.slice(0, n).map(function (v) {
       var m = M(v);
       return '<li data-i="' + esc(v.i) + '"' + (state.sel === v.i ? ' class="sel"' : "") + ">" + head(v) +
         (lv ? menuHtml(v, true) : (m ? '<p class="dish">' + esc(m.items.slice(0, 3).map(function (i) { return clean(i.d[0]); }).join(" · ")) + "</p>" : "")) + "</li>";
     }).join("");
     var more = $("more");
-    more.hidden = !(lv && list.length > n); more.textContent = S.more + " (" + (list.length - n) + ")";
+    more.hidden = !(list.length > n); more.textContent = S.more + " (" + (list.length - n) + ")";
+  }
+  function render() {
+    var list = filtered();
+    var dt = new Date(state.day + "T12:00:00");
+    $("dlabel").textContent = S.wd[dt.getDay()] + " " + dt.getDate() + "." + (dt.getMonth() + 1) + "." + dt.getFullYear();
+    var dt = new Date(state.day + "T12:00:00");
+    $("dlabel").textContent = S.wd[dt.getDay()] + " " + dt.getDate() + "." + (dt.getMonth() + 1) + "." + dt.getFullYear();
+    renderList(list);
     layer.clearLayers(); state.byId = {};
     list.slice(0, 900).forEach(function (v) {
       var mk = pinFor(v);
@@ -168,7 +183,7 @@
     if (bigBtn) bigBtn.textContent = mapEl.getAttribute(v === "map" ? "data-back" : "data-big");
     if (!keep) { try { localStorage.setItem("pl_view", v === "list" ? "list" : "split"); } catch (e) {} }
     setTimeout(function () { map.invalidateSize(); }, 0);
-    state.limit = 60; render();
+    state.limit = v === "list" ? 40 : 30; render();
   }
   document.querySelectorAll("[data-view]").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -177,7 +192,21 @@
       setView(v);
     });
   });
-  $("more").addEventListener("click", function () { state.limit += 60; render(); });
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-fav]"); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    var id = b.getAttribute("data-fav");
+    if (favs[id]) delete favs[id]; else favs[id] = 1;
+    saveFavs();
+    document.querySelectorAll('[data-fav="' + CSS.escape(id) + '"]').forEach(function (x) {
+      var on = !!favs[id]; x.classList.toggle("on", on); x.setAttribute("aria-pressed", on);
+      x.title = on ? S.unfav : S.fav; x.setAttribute("aria-label", x.title);
+    });
+    var mk = state.byId[id], el = mk && mk.getElement && mk.getElement();
+    if (el && el.firstChild && el.firstChild.classList) el.firstChild.classList.toggle("fv", !!favs[id]);
+    if (state.f.fav) render();
+  }, true);
+  $("more").addEventListener("click", function () { state.limit += 40; renderList(filtered()); });
   $("list").addEventListener("click", function (e) {
     var go = e.target.closest("[data-go]");
     if (go) { e.preventDefault(); openOnMap(go.getAttribute("data-go")); return; }
@@ -200,7 +229,7 @@
   });
   var qt, mt;
   $("q").addEventListener("input", function (e) { clearTimeout(qt); qt = setTimeout(function () { state.q = e.target.value.trim(); render(); }, 150); });
-  map.on("moveend", function () { if (state.me || !state.data.length) return; clearTimeout(mt); mt = setTimeout(function () { renderTop3(filtered()); }, 200); });
+  map.on("moveend", function () { if (state.me || !state.data.length) return; clearTimeout(mt); mt = setTimeout(function () { var l = filtered(); renderTop3(l); if (state.view !== "list") renderList(l); }, 250); });
   var meDot = null, locBtn;
   function locate() {
     if (!navigator.geolocation) { $("count").textContent = S.noloc; return; }
