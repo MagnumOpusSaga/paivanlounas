@@ -163,6 +163,9 @@ def raflaamo_today(L):
 FOOD = re.compile(r"(?i)\(?\b(L|G|M|VL|VEG|VE|K)\b[,)]|kastike|keitto|pihvi|broiler|kana\b|kanaa|lohi|lohta|kala|riisi|peruna|pasta|salaatti|curry|pata|paisti|kasvis|soup|chicken|salmon|beef|pork|tofu|wok|nuudeli|noodle|lammas|naudan|härkä|vegaani|masala|tikka|pyöry|laatikko|risotto|leike|muhennos")
 FASTFOOD = re.compile(r"(?i)burger king|mcdonald|hesburger|subway|kotipizza|taco bell|kfc|domino")
 CSS = open(os.path.join(os.path.dirname(__file__), "style.css")).read()
+import hashlib
+# cache-busting: each deploy points pages at /app.js?v=<content hash>, so phones never mix new HTML with an old cached script
+VER = {f: hashlib.md5(open(os.path.join(os.path.dirname(__file__), f), "rb").read()).hexdigest()[:8] for f in ("style.css", "app.js", "suggest.js")}
 
 
 
@@ -293,7 +296,7 @@ def page(lg, title, desc, path, alt_path, body, preview, extra_head=""):
 <link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#c2410c">
 <meta property="og:image" content="{DOMAIN}/icon-512.png">
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}"><meta property="og:type" content="website">
-<link rel="stylesheet" href="/style.css">{extra_head}</head><body>{bar}
+<link rel="stylesheet" href="/style.css?v={VER['style.css']}">{extra_head}</head><body>{bar}
 <header class="top"><a class="logo" href="{t['home']}"><img src="/favicon.svg" width="28" height="28" alt="">Päivän lounas</a><nav><a href="{t['areas']}">{t['nav_areas']}</a><a href="{alt_path or t['other_home']}" hreflang="{other}">{t['other']}</a></nav></header>
 {body}
 <footer><p class="flinks">{' · '.join(f'<a href="{TOPIC_T[lg][k]["path"]}">{TOPIC_T[lg][k]["h1"]}</a>' for k in ("cheap", "veg", "buffet"))}</p><p>{t['footer1']}</p><p>{t['footer2']}</p><p>© 2026 Päivän lounas · <a href="{t['about']}">{t['about_l']}</a> · <a href="{t['privacy']}">{t['privacy_l']}</a> · {CONTACT}</p></footer></body></html>"""
@@ -453,7 +456,7 @@ def main(L, out, day, preview):
 </section>
 <div id="map" role="region" aria-label="{t['v_map']}" data-big="{t['d_big']}" data-back="{t['d_back']}"></div>
 </main>
-<link rel="stylesheet" href="/vendor/leaflet/leaflet.css"><script src="/vendor/leaflet/leaflet.js"></script><script src="/app.js"></script><script src="/suggest.js" defer></script>"""
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css"><script src="/vendor/leaflet/leaflet.js"></script><script src="/app.js?v={VER['app.js']}"></script><script src="/suggest.js?v={VER['suggest.js']}" defer></script>"""
         ld = [{"@context": "https://schema.org", "@type": "WebSite", "name": SITE, "url": DOMAIN + t["home"], "inLanguage": lg},
               {"@context": "https://schema.org", "@type": "Organization", "name": SITE, "url": DOMAIN + "/", "logo": DOMAIN + "/icon-512.png"}]
         hp = t["home"]
@@ -576,7 +579,7 @@ def main(L, out, day, preview):
 <h1>{esc(t['venue_h1'].format(n=v['name']))}</h1><p class="addr">{esc(v['street'])}, Helsinki</p>
 <h2>{esc(t['list_for'].format(d=ds_))}</h2>{menu_html(v['menu'], lg, v['slug'], show_day)}{week}{oiva}{web}
 <p class="actions"><a class="btn" href="{t['home']}?v={v['slug']}">{t['show_map']}</a> <a class="btn ghost" href="https://www.google.com/maps/dir/?api=1&destination={v['lat']},{v['lon']}" rel="nofollow noopener">{t['route']}</a> {parkpenny(v, lg)}</p>
-{report_form(v, lg)}</main><script src="/suggest.js" defer></script>"""
+{report_form(v, lg)}</main><script src="/suggest.js?v={VER['suggest.js']}" defer></script>"""
             os.makedirs(f"{out}{path}", exist_ok=True)
             open(f"{out}{path}index.html", "w").write(page(lg, t["venue_title"].format(n=v["name"]), t["venue_desc"].format(n=v["name"], a=v["street"]), path, alt, body, preview,
                                                            f'<script type="application/ld+json">{json.dumps(jl, ensure_ascii=False)}</script>'))

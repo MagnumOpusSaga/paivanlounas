@@ -45,8 +45,19 @@ jobs:
           path: data/ai_cache.json
           key: ai-cache-${{ github.run_id }}
           restore-keys: ai-cache-
+      - name: Restore last fetched lists (code pushes only)
+        if: github.event_name == 'push'
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            data/menus_*.json
+            data/ai_stats.json
+            raw/raf_hki_parsed.json
+          key: lists-${{ github.run_id }}
+          restore-keys: lists-
       - name: Fetch lunch lists and build site
         env:
+          QUICK: ${{ github.event_name == 'push' && '1' || '' }}
           PUBLIC: "1"  # site open to search engines since 24.11.2026
           ADSENSE_CLIENT: ca-pub-1421922359984193
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -59,6 +70,14 @@ jobs:
         with:
           path: data/ai_cache.json
           key: ai-cache-${{ github.run_id }}
+      - name: Save fetched lists
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/menus_*.json
+            data/ai_stats.json
+            raw/raf_hki_parsed.json
+          key: lists-${{ github.run_id }}
       - name: Deploy to Cloudflare Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

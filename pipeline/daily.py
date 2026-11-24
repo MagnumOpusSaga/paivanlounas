@@ -18,6 +18,12 @@ def run(*args, ok_fail=False):
 def main():
     day = sys.argv[1] if len(sys.argv) > 1 else datetime.datetime.now(ZoneInfo("Europe/Helsinki")).date().isoformat()
     os.makedirs(f"{ROOT}/raw", exist_ok=True)
+    preview = [] if os.environ.get("PUBLIC") == "1" else ["--preview"]
+    # code push: rebuild from the lists the last scheduled run fetched (restored from the Actions cache) – minutes instead of ~20
+    if os.environ.get("QUICK") == "1" and os.path.exists(f"{ROOT}/data/menus_chains_{day}.json"):
+        print("quick rebuild from cached lists", flush=True)
+        run("build/build_site.py", ".", "dist", day, *preview)
+        return
     dt = datetime.date.fromisoformat(day)
     mon = dt - datetime.timedelta(days=dt.weekday()) + datetime.timedelta(days=7 if dt.weekday() >= 5 else 0)
     week = [(mon + datetime.timedelta(days=i)).isoformat() for i in range(5)]
@@ -54,7 +60,6 @@ def main():
     # 4. AI reader for the saved lunch pages (skips itself without ANTHROPIC_API_KEY)
     run(f"{P}/ai_reader.py", "data/web_pages.json", ",".join(week), "data/menus_ai_{day}.json", ok_fail=True)
     # 5. build
-    preview = [] if os.environ.get("PUBLIC") == "1" else ["--preview"]
     run("build/build_site.py", ".", "dist", day, *preview)
 
 
