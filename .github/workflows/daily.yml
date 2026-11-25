@@ -25,6 +25,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+      - name: Install image tools (share pictures)
+        run: pip install --quiet pillow fonttools
       - name: Install Leaflet
         run: npm install --no-save leaflet@1.9.4 @fontsource/inter@5 @fontsource/bricolage-grotesque@5
       - name: Read menu addresses sent through the site form

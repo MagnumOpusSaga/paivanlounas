@@ -281,7 +281,7 @@ AREA_T = {
            "lead": "{d}: <b>{n} ravintolan lounaslista</b>. {c} Kasvisvaihtoehto {v} paikassa.", "lead0": "{d}: alueelta ei löytynyt tämän päivän lounaslistoja. Alueella on {t} ravintolaa ja kahvilaa.",
            "none": "Alueelta {a} ei löytynyt tämän päivän lounaslistoja. Katso lähialueet.",
            "trust": "Listat haetaan joka arkiaamu ravintoloiden ja ketjujen omista lähteistä. Lähde ja alkuperäinen lista näkyvät ravintolan sivulla.",
-           "jump": "Osiot", "map_h": "Kartalla", "map_p": "{n} listaa alueella {a} kartalla – lähin ja halvin heti näkyviin.", "near_h": "Lähialueet",
+           "jump": "Osiot", "share_h": "Jaa päivän halvimmat", "share_p": "Kuva päivittyy joka aamu. Lähetä se työkavereille tai WhatsApp-ryhmään.", "share_b": "Jaa", "share_dl": "Lataa kuva", "map_h": "Kartalla", "map_p": "{n} listaa alueella {a} kartalla – lähin ja halvin heti näkyviin.", "near_h": "Lähialueet",
            "rest_h": "Puuttuuko listasi?", "rest_p": "Kerro ravintolasi sivulla, missä lounaslistasi julkaistaan. Haemme sen joka aamu automaattisesti.",
            "desc": "Lounas {a} tänään ({d}): {n} lounaslistaa hintoineen. {c} Kasvis-, buffet- ja halvimmat lounaat sekä Oiva-arvosanat."},
     "en": {"cheap_h": "Under 13 euros", "cheap_p": "The most affordable lunches in {a} today", "veg_h": "Vegetarian options", "veg_p": "At least one vegetarian dish on the menu",
@@ -290,13 +290,38 @@ AREA_T = {
            "lead": "{d}: <b>{n} restaurants with today's lunch menu</b>. {c} Vegetarian option in {v} places.", "lead0": "{d}: no lunch menus found in this area today. The area has {t} restaurants and cafés.",
            "none": "No lunch menus found in {a} today. See nearby areas.",
            "trust": "Menus are fetched every weekday morning from restaurants' and chains' own sources. The source and original menu are shown on each restaurant's page.",
-           "jump": "Sections", "map_h": "On the map", "map_p": "{n} menus in {a} on the map – nearest and cheapest first.", "near_h": "Nearby areas",
+           "jump": "Sections", "share_h": "Share today's cheapest", "share_p": "The picture updates every morning. Send it to colleagues or a WhatsApp group.", "share_b": "Share", "share_dl": "Download", "map_h": "On the map", "map_p": "{n} menus in {a} on the map – nearest and cheapest first.", "near_h": "Nearby areas",
            "rest_h": "Is your menu missing?", "rest_p": "Tell us on your restaurant's page where your lunch menu is published. We fetch it automatically every morning.",
            "desc": "Lunch in {a} today ({d}): {n} lunch menus with prices. {c} Vegetarian, buffet and cheapest lunches plus Oiva ratings."},
 }
 
 
-def page(lg, title, desc, path, alt_path, body, preview, extra_head=""):
+SHARE_JS = """<script>document.querySelectorAll('[data-share]').forEach(function(b){b.addEventListener('click',async function(){
+var u=location.href,t=b.getAttribute('data-title');
+try{var r=await fetch(b.getAttribute('data-share'));var f=new File([await r.blob()],'lounas.png',{type:'image/png'});
+if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:t,text:t+' '+u});return}}catch(e){if(e&&e.name==='AbortError')return}
+if(navigator.share){try{await navigator.share({title:t,url:u})}catch(e){}return}
+try{await navigator.clipboard.writeText(u);b.textContent='\u2713'}catch(e){location.href=b.getAttribute('data-share')}})});</script>"""
+
+
+def share_image(out, key, title, ds_, items, mp, url_path):
+    """/jako/<key>.png – cheapest lunches of the day as a picture for WhatsApp / Instagram; None if not enough priced menus."""
+    rows = sorted([v for v in items if mp.get(v["slug"])], key=lambda v: mp[v["slug"]])[:6]
+    if len(rows) < 3:
+        return None
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import share_img
+        os.makedirs(f"{out}/jako", exist_ok=True)
+        share_img.make(f"{out}/jako/{key}.png", "Halvimmat lounaat tänään", title, ds_,
+                       [(v["name"], clean_dish(v["menu"]["items"][0]["d"][0]), fmt_price(mp[v["slug"]])) for v in rows], "paivanlounas.fi" + url_path)
+        return f"/jako/{key}.png"
+    except Exception as e:  # never let a picture break the daily build
+        print("share image failed", key, e, file=sys.stderr)
+        return None
+
+
+def page(lg, title, desc, path, alt_path, body, preview, extra_head="", og_image=None):
     t = T[lg]
     extra_head += ads_tag(path)
     robots = '<meta name="robots" content="noindex,nofollow">' if preview else ""
@@ -307,7 +332,7 @@ def page(lg, title, desc, path, alt_path, body, preview, extra_head=""):
     return f"""<!doctype html><html lang="{lg}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title><meta name="description" content="{esc(desc)}"><link rel="canonical" href="{DOMAIN}{path}">{hl}{robots}
 <link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#c2410c"><meta name="color-scheme" content="light dark">
-<meta property="og:image" content="{DOMAIN}/icon-512.png">
+<meta property="og:image" content="{DOMAIN}{og_image or '/icon-512.png'}">
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}"><meta property="og:type" content="website">
 <link rel="stylesheet" href="/style.css?v={VER['style.css']}">{extra_head}</head><body>{bar}
 <header class="top"><a class="logo" href="{t['home']}"><img src="/favicon.svg" width="28" height="28" alt="">Päivän lounas</a><nav><a href="{t['areas']}">{t['nav_areas']}</a><a href="{alt_path or t['other_home']}" hreflang="{other}">{t['other']}</a></nav></header>
@@ -555,6 +580,11 @@ def main(L, out, day, preview):
                 secs.append(f'<details class="rest"><summary>{A["rest"].format(n=len(others))}</summary><ul>{lis_o}</ul></details>')
             if not withm:
                 secs.insert(0, f'<p class="nomenu">{A["none"].format(a=esc(dn))}</p>')
+            img = share_image(out, dslug, dn, ds_, withm, mp, T["fi"]["area"].format(s=dslug)) if lg == "fi" else (f"/jako/{dslug}.png" if os.path.exists(f"{out}/jako/{dslug}.png") else None)
+            share_box = (f'<div class="box share"><h2>{A["share_h"]}</h2><p style="margin:0 0 12px;color:var(--mut);font-size:14px">{A["share_p"]}</p>'
+                         f'<img src="{img}" alt="" width="270" height="338" loading="lazy" style="width:100%;height:auto;border-radius:12px;border:1px solid var(--line)">'
+                         f'<p style="margin:12px 0 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" data-share="{img}" data-title="{esc(t["area_h1"].format(a=dn))}">{A["share_b"]}</button>'
+                         f'<a class="btn ghost" href="{img}" download>{A["share_dl"]}</a></p></div>') if img else ""
             near = sorted((k for k in by_d if k[0] != dslug), key=lambda k: (cent[k][0] - cent[(dslug, dn)][0]) ** 2 + ((cent[k][1] - cent[(dslug, dn)][1]) * 0.5) ** 2)[:5]
             near_li = "".join(f'<li><a href="{t["area"].format(s=k[0])}">{esc(k[1])}</a> <small>· {nmenu[k]} {t["lists"]}</small></li>' for k in near)
             lead = A["lead"].format(d=esc(ds_), n=nm, c=esc(cheapest), v=nveg) if nm else A["lead0"].format(d=esc(ds_), t=len(vs))
@@ -564,7 +594,7 @@ def main(L, out, day, preview):
 <nav class="jump" aria-label="{A['jump']}">{''.join(jumps)}</nav>
 <div class="cols"><div class="maincol">{''.join(secs)}</div>
 <aside class="side"><div class="box"><h2>{A['map_h']}</h2><p style="margin:0 0 12px;color:var(--mut);font-size:14px">{A['map_p'].format(n=nm, a=esc(dn))}</p><a class="btn" href="{t['home']}?d={dslug}">{t['show_map']}</a></div>
-<div class="box"><h2>{A['near_h']}</h2><ul>{near_li}</ul></div>
+{share_box}<div class="box"><h2>{A['near_h']}</h2><ul>{near_li}</ul></div>
 <div class="box tint"><h2>{A['rest_h']}</h2><p style="margin:0;font-size:14px">{A['rest_p']}</p></div></aside></div></main>"""
             desc = (A["desc"].format(a=dn, d=ds_, n=nm, c=cheapest) if nm else A["lead0"].format(d=ds_, t=len(vs)))
             ld = [{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
@@ -576,7 +606,7 @@ def main(L, out, day, preview):
                            "itemListElement": [{"@type": "ListItem", "position": k + 1, "name": v["name"], "url": DOMAIN + t["venue"].format(s=v["slug"])} for k, v in enumerate(allm)]})
             ldh = "".join(f'<script type="application/ld+json">{json.dumps(x, ensure_ascii=False)}</script>' for x in ld)
             os.makedirs(f"{out}{path}", exist_ok=True)
-            open(f"{out}{path}index.html", "w").write(page(lg, t["area_title"].format(a=dn, n=nm), desc, path, alt, body, preview, ldh))
+            open(f"{out}{path}index.html", "w").write(page(lg, t["area_title"].format(a=dn, n=nm), desc, path, alt, body + (SHARE_JS if img else ""), preview, ldh, img))
             urls.append(path)
             idx.append((dn, dslug, nm, len(vs)))
         lis = "".join(f'<li><a href="{t["area"].format(s=s)}">{esc(n)}</a> <small>{m} {t["lists"]} · {tt} {t["places"]}</small></li>' for n, s, m, tt in idx)
@@ -600,14 +630,21 @@ def main(L, out, day, preview):
             lead = TP[key]["lead"].format(d=esc(ds_), n=len(items), p=fmt_price(min(ps)) if ps else "–")
             others_l = "".join(f'<li><a href="{TP[k]["path"]}">{esc(TP[k]["h1"])}</a></li>' for k in topics if k != key)
             areas_l = "".join(f'<li><a href="{t["area"].format(s=k[0])}">{esc(t["area_h1"].format(a=k[1]))}</a> <small>· {n} {t["lists"]}</small></li>' for k, n in top_areas)
+            img = None
+            if key == "cheap":
+                img = share_image(out, "helsinki", "Helsinki", ds_, items, mp_g, TOPIC_T["fi"]["cheap"]["path"]) if lg == "fi" else ("/jako/helsinki.png" if os.path.exists(f"{out}/jako/helsinki.png") else None)
+            A = AREA_T[lg]
+            share_box = (f'<div class="box share"><h2>{A["share_h"]}</h2><img src="{img}" alt="" width="270" height="338" loading="lazy" style="width:100%;height:auto;border-radius:12px;border:1px solid var(--line)">'
+                         f'<p style="margin:12px 0 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" data-share="{img}" data-title="{esc(TP[key]["h1"])}">{A["share_b"]}</button>'
+                         f'<a class="btn ghost" href="{img}" download>{A["share_dl"]}</a></p></div>') if img else ""
             ents = "".join(entry_html(v, mp_g, t, lg, show_area=True) for v in items) or f'<p class="nomenu">{TP["empty"]}</p>'
             body = f"""<main class="content"><nav class="crumbs"><a href="{t['home']}">{t['crumb_home']}</a> › {esc(TP[key]['h1'])}</nav>
 <h1>{esc(TP[key]['h1'])} {TP['today']}</h1><p class="lead">{lead}</p>
 <div class="cols"><div class="maincol"><section class="sec">{ents}</section><p style="margin-top:22px">{TP[key]['outro']}</p></div>
-<aside class="side"><div class="box"><h2>{TP['more']}</h2><ul>{others_l}</ul></div><div class="box"><h2>{TP['areas']}</h2><ul>{areas_l}</ul></div>
+<aside class="side">{share_box}<div class="box"><h2>{TP['more']}</h2><ul>{others_l}</ul></div><div class="box"><h2>{TP['areas']}</h2><ul>{areas_l}</ul></div>
 <div class="box"><a class="btn" href="{t['home']}">{t['show_map']}</a></div></aside></div></main>"""
             os.makedirs(f"{out}{path}", exist_ok=True)
-            open(f"{out}{path}index.html", "w").write(page(lg, TP[key]["title"], TP[key]["desc"].format(d=ds_, n=len(items)), path, alt, body, preview))
+            open(f"{out}{path}index.html", "w").write(page(lg, TP[key]["title"], TP[key]["desc"].format(d=ds_, n=len(items)), path, alt, body + (SHARE_JS if img else ""), preview, "", img))
             urls.append(path)
         # venues
         for v in venues:
@@ -645,7 +682,7 @@ def main(L, out, day, preview):
     open(f"{out}/robots.txt", "w").write("User-agent: *\nDisallow: /\n" if preview else f"User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {DOMAIN}/sitemap.xml\n")
     sm = "".join(f"<url><loc>{DOMAIN}{u}</loc><lastmod>{show_day}</lastmod></url>" for u in urls)
     open(f"{out}/sitemap.xml", "w").write(f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{sm}</urlset>')
-    open(f"{out}/_headers", "w").write("/data/*\n  Cache-Control: public, max-age=600\n/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n")
+    open(f"{out}/_headers", "w").write("/data/*\n  Cache-Control: public, max-age=600\n/jako/*\n  Cache-Control: public, max-age=1800\n/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n")
     print("pages", len(urls), file=sys.stderr)
 
 
