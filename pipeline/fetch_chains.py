@@ -62,6 +62,17 @@ def sodexo(r, day):
 _uni = None
 
 
+def uni_price(pr):
+    """Unicafe gives {"value": {"student": "3.10", ..., "normal": "9.80"}} without a euro sign: the regular price is 'normal'."""
+    v = (pr or {}).get("value") if isinstance(pr, dict) else None
+    if isinstance(v, dict):
+        try:
+            return [float(str(v.get("normal") or v.get("contract") or "").replace(",", "."))]
+        except ValueError:
+            return []
+    return prices(json.dumps(pr, ensure_ascii=False))
+
+
 def unicafe(r, day):
     global _uni
     if _uni is None:
@@ -74,7 +85,7 @@ def unicafe(r, day):
     for m in (x.get("menuData") or {}).get("menus") or []:
         if m.get("date", "").split(" ")[-1] == tag:
             items = [{"title": "", "dishes": [i.get("name")], "diets": (i.get("meta") or {}).get("0", []) if isinstance(i.get("meta"), dict) else [],
-                      "prices": prices(json.dumps(i.get("price"), ensure_ascii=False)), "price_text": None}
+                      "prices": uni_price(i.get("price")), "price_text": None}
                      for i in m.get("data") or [] if i.get("name")]
             return {"status": "ok" if items else "empty", "items": items}
     return {"status": "empty"}

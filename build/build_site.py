@@ -331,7 +331,7 @@ def page(lg, title, desc, path, alt_path, body, preview, extra_head="", og_image
           f'<link rel="alternate" hreflang="x-default" href="{DOMAIN}{path if lg == "fi" else alt_path}">') if alt_path else ""
     return f"""<!doctype html><html lang="{lg}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title><meta name="description" content="{esc(desc)}"><link rel="canonical" href="{DOMAIN}{path}">{hl}{robots}
-<link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#c2410c"><meta name="color-scheme" content="light dark">
+<link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#221a16" media="(prefers-color-scheme: dark)"><meta name="color-scheme" content="light dark">
 <meta property="og:image" content="{DOMAIN}{og_image or '/icon-512.png'}">
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}"><meta property="og:type" content="website">
 <link rel="stylesheet" href="/style.css?v={VER['style.css']}">{extra_head}</head><body>{bar}
@@ -486,6 +486,12 @@ def main(L, out, day, preview):
     lf = os.path.join(here, "..", "node_modules", "leaflet", "dist")
     for f in ("leaflet.js", "leaflet.css"):
         shutil.copy(f"{lf}/{f}", f"{out}/vendor/leaflet/{f}")
+    os.makedirs(f"{out}/vendor/maplibre", exist_ok=True)  # clean vector basemap (OpenFreeMap), loaded after the page
+    nm = os.path.join(here, "..", "node_modules")
+    for src, dst in ((f"{nm}/maplibre-gl/dist/maplibre-gl.js", "maplibre-gl.js"), (f"{nm}/maplibre-gl/dist/maplibre-gl.css", "maplibre-gl.css"),
+                     (f"{nm}/@maplibre/maplibre-gl-leaflet/leaflet-maplibre-gl.js", "leaflet-maplibre-gl.js")):
+        if os.path.exists(src):
+            shutil.copy(src, f"{out}/vendor/maplibre/{dst}")
     for f in os.listdir(f"{lf}/images"):
         shutil.copy(f"{lf}/images/{f}", f"{out}/vendor/leaflet/images/{f}")
     os.makedirs(f"{out}/fonts", exist_ok=True)
@@ -509,10 +515,11 @@ def main(L, out, day, preview):
         cats = "".join(f'<button data-cat="{k}">{esc(lbl)}</button>' for k, lbl in t["cats"])
         dchips = "".join(f'<button data-day="{d}"{" class=on" if d == show_day else ""}>{t["wd_short"][i]} {int(d[8:])}.{int(d[5:7])}.</button>' for i, d in enumerate(days))
         body = f"""<main class="app" data-lang="{lg}">
+<div class="days daybar">{dchips}</div>
 <section class="panel" id="panel">
+<div id="sel" class="selcard" hidden></div>
 <div class="ptop"><div><p class="sub" id="dlabel">{esc(ds_)}</p><h1>{t['h1_home']}</h1></div>
 <div class="views" role="tablist"><button data-view="split" class="on">{t['v_map']}</button><button data-view="list">{t['v_list']}</button></div></div>
-<div class="days">{dchips}</div>
 <div class="cats" id="cats" role="group">{cats}</div>
 <div class="search"><input id="q" type="search" placeholder="{esc(t['search'])}" aria-label="{esc(t['search'])}"><button id="near" type="button">{t['near']}</button></div>
 <section class="top3" id="top3s" aria-labelledby="t3h" hidden><div class="t3head"><h2 id="t3h"></h2></div><div id="top3" class="t3"></div></section>

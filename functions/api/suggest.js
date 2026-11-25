@@ -13,6 +13,9 @@ export async function onRequestPost({ request, env }) {
   try {
     const u = new URL(url);
     if (!/^https?:$/.test(u.protocol) || !u.hostname.includes(".")) throw 0;
+    if (/^[\d.]+$|^\[/.test(u.hostname) || u.username || u.password) throw 0; // raw IPs, credentials in URL
+    // obvious spam / adult / gambling / shorteners never reach the pipeline (it also waits for a name match or manual approval)
+    if (/porn|xxx|sex|escort|adult|onlyfans|casino|kasino|betting|vedonly|poker|slot|viagra|cialis|crypto|bitcoin|loan|laina|bit\.ly|tinyurl|t\.co\b|goo\.gl|is\.gd|cutt\.ly|rebrand\.ly/i.test(u.hostname + u.pathname)) return OK(lang);
     url = u.toString();
   } catch { return new Response("bad url", { status: 400 }); }
   const ip = request.headers.get("cf-connecting-ip") || "";

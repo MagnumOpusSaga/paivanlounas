@@ -5,12 +5,12 @@
   var S = {
     fi: { n: " ravintolaa", menu: " – lista", nomenu: "Ei listaa tälle päivälle.", site: "Ravintolan sivu", src: "Lähde", orig: "alkuperäinen",
           wrong: "Väärä tieto?", wrongOk: "Kiitos ilmoituksesta!", onmap: "Kartalla", more: "Näytä lisää", park: "Parkki lähellä",
-          venue: "/ravintola/", noloc: "Sijaintia ei saatu.", walk: " min kävely", until: "auki ", untilEnd: " asti", closes: "sulkeutuu ", closesEnd: " min päästä", ended: "lounas päättynyt", opens: "lounas ", t3me: "Kolme hyvää lähelläsi",
+          venue: "/ravintola/", noloc: "Sijaintia ei saatu.", close: "Sulje", walk: " min kävely", until: "auki ", untilEnd: " asti", closes: "sulkeutuu ", closesEnd: " min päästä", ended: "lounas päättynyt", opens: "lounas ", t3me: "Kolme hyvää lähelläsi",
           t3map: "Kolme hyvää tällä alueella", route: "Reitti", loc: "Näytä sijaintini", fav: "Lisää suosikiksi", unfav: "Poista suosikeista", near: "lähintä näkyvissä", nofav: "Ei vielä suosikkeja – lisää niitä tähdestä ravintolan nimen vierestä.",
           wd: ["sunnuntai", "maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai"], pp: "https://parkpenny.com/" },
     en: { n: " restaurants", menu: " – with menu", nomenu: "No menu for this day.", site: "Restaurant website", src: "Source", orig: "original",
           wrong: "Wrong info?", wrongOk: "Thanks for letting us know!", onmap: "On map", more: "Show more", park: "Parking nearby",
-          venue: "/en/restaurant/", noloc: "Could not get your location.", walk: " min walk", until: "open until ", untilEnd: "", closes: "closes in ", closesEnd: " min", ended: "lunch over", opens: "lunch ", t3me: "Three good picks near you",
+          venue: "/en/restaurant/", noloc: "Could not get your location.", close: "Close", walk: " min walk", until: "open until ", untilEnd: "", closes: "closes in ", closesEnd: " min", ended: "lunch over", opens: "lunch ", t3me: "Three good picks near you",
           t3map: "Three good picks in this area", route: "Directions", loc: "Show my location", fav: "Add to favourites", unfav: "Remove from favourites", near: "nearest shown", nofav: "No favourites yet – add them with the star next to a restaurant name.",
           wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], pp: "https://parkpenny.com/en/" }
   }[LG];
@@ -23,7 +23,20 @@
   var wide = window.matchMedia("(min-width: 900px)");
   var map = L.map("map", { zoomControl: false }).setView([60.1680, 24.9400], 15);
   L.control.zoom({ position: "topright" }).addTo(map);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+  // basemap: clean OpenFreeMap vector style (free, commercial use ok); OSM raster only if it cannot load
+  var dark = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches;
+  var ATTR = '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>';
+  map.attributionControl.setPrefix(false);
+  function osm() { L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map); }
+  function addScript(src, ok, bad) { var e = document.createElement("script"); e.src = src; e.onload = ok; e.onerror = bad; document.head.appendChild(e); }
+  (function () {
+    var css = document.createElement("link"); css.rel = "stylesheet"; css.href = "/vendor/maplibre/maplibre-gl.css"; document.head.appendChild(css);
+    addScript("/vendor/maplibre/maplibre-gl.js", function () {
+      addScript("/vendor/maplibre/leaflet-maplibre-gl.js", function () {
+        try { L.maplibreGL({ style: "https://tiles.openfreemap.org/styles/" + (dark ? "dark" : "positron"), attribution: ATTR }).addTo(map); } catch (e) { osm(); }
+      }, osm);
+    }, osm);
+  })();
   var layer = L.layerGroup().addTo(map);
   // mobile: one small button on the map itself (full-screen map / back to list) instead of a floating bar over the content
   var mapEl = document.getElementById("map"), bigBtn;
@@ -108,7 +121,7 @@
           (i.p ? ' <span class="price">' + fmt(i.p) + "</span>" : "") + "</li>";
       }).join("") + "</ul>" + '<p class="src">' + S.src + ": " + esc(m.src) + (m.url ? ' – <a href="' + esc(m.url) + '" rel="nofollow noopener" target="_blank">' + S.orig + "</a>" : "") +
         ' · <a href="#" class="wrong" data-wrong="' + esc(v.i) + '" data-day="' + state.day + '" data-ok="' + esc(S.wrongOk) + '" rel="nofollow">' + S.wrong + "</a></p>";
-    return s + '<p class="pp">' + (withLinks ? '<a href="#" class="onmap" data-go="' + esc(v.i) + '">' + S.onmap + "</a>" : "") +
+    return s + '<p class="pp">' + (withLinks ? '<a href="#" class="onmap" data-go="' + esc(v.i) + '">' + S.onmap + "</a> · " : "") +
       '<a href="' + routeLink(v) + '" target="_blank" rel="noopener">' + S.route + '</a> · <a href="' + ppLink(v) + '" target="_blank" rel="noopener">' + S.park + "</a></p>";
   }
   function head(v) {
@@ -193,8 +206,10 @@
     layer.clearLayers(); state.byId = {};
     list.slice(0, 900).forEach(function (v) {
       var mk = pinFor(v);
-      mk.bindPopup(function () { return '<div class="pop">' + head(v) + menuHtml(v, false) + "</div>"; }, { maxWidth: 320 });
-      mk.on("popupopen", function () { select(v.i); });
+      if (wide.matches) {
+        mk.bindPopup(function () { return '<div class="pop">' + head(v) + menuHtml(v, false) + "</div>"; }, { maxWidth: 320, autoPanPadding: [40, 40] });
+        mk.on("popupopen", function () { select(v.i); });
+      } else mk.on("click", function () { showCard(v); });
       mk.addTo(layer); state.byId[v.i] = mk;
     });
   }
@@ -207,12 +222,27 @@
     var mk = state.byId[id], el = mk && mk.getElement && mk.getElement();
     if (el && el.firstChild && el.firstChild.classList) el.firstChild.classList.add("sel");
   }
+  function showCard(v) {
+    var c = $("sel");
+    c.innerHTML = '<button type="button" class="x" aria-label="' + S.close + '">×</button>' + head(v) + menuHtml(v, true);
+    c.hidden = false; select(v.i);
+    if (state.view === "map") setView("split");
+    var r = c.getBoundingClientRect();
+    if (r.top < 0 || r.top > innerHeight * 0.6) c.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function hideCard() { $("sel").hidden = true; state.sel = null; document.querySelectorAll(".pin.sel,.list>li.sel").forEach(function (x) { x.classList.remove("sel"); }); }
+  $("sel").addEventListener("click", function (e) {
+    if (e.target.closest(".x")) { hideCard(); return; }
+    var go = e.target.closest("[data-go]"); if (go) { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  });
   function openOnMap(id) {
     if (state.view === "list") setView(wide.matches ? "split" : "map");
     var m = state.byId[id]; if (!m) return;
-    map.setView(m.getLatLng(), Math.max(map.getZoom(), 16)); m.openPopup();
-    if (!wide.matches && state.view === "split") window.scrollTo({ top: 0, behavior: "smooth" });
+    goTo(m.getLatLng(), Math.max(map.getZoom(), 16));
+    if (wide.matches) m.openPopup();
+    else { var v = state.data.find(function (x) { return x.i === id; }); if (v) showCard(v); }
   }
+  if (wide.addEventListener) wide.addEventListener("change", function () { if (state.data.length) render(); });
   function setView(v, keep) {
     state.view = v;
     main.classList.toggle("listview", v === "list");
@@ -259,7 +289,15 @@
     var go = e.target.closest("[data-go]");
     if (go) { e.preventDefault(); openOnMap(go.getAttribute("data-go")); return; }
     if (state.view === "list" || e.target.closest("a")) return;
-    var li = e.target.closest("li[data-i]"); if (li) openOnMap(li.getAttribute("data-i"));
+    var li = e.target.closest("li[data-i]"); if (!li) return;
+    var id = li.getAttribute("data-i");
+    if (wide.matches) { openOnMap(id); return; }
+    var open = li.classList.contains("open");
+    document.querySelectorAll(".list>li.open").forEach(function (x) { x.classList.remove("open"); var d = x.querySelector(".more-menu"); if (d) d.remove(); });
+    if (open) return;
+    var v = state.data.find(function (x) { return x.i === id; }); if (!v) return;
+    li.classList.add("open"); li.insertAdjacentHTML("beforeend", '<div class="more-menu">' + menuHtml(v, true) + "</div>");
+    select(id); var m = state.byId[id]; if (m) goTo(m.getLatLng(), Math.max(map.getZoom(), 15));
   });
   $("top3").addEventListener("click", function (e) {
     var a = e.target.closest("[data-t3]"); if (!a || !wide.matches) return;
@@ -277,27 +315,32 @@
   });
   var qt, mt;
   $("q").addEventListener("input", function (e) { clearTimeout(qt); qt = setTimeout(function () { state.q = e.target.value.trim(); render(); }, 150); });
-  map.on("moveend", function () { if (state.me || !state.data.length) return; clearTimeout(mt); mt = setTimeout(function () { var l = filtered(); renderTop3(l); if (state.view !== "list") renderList(l); }, 250); });
+  function resort() { if (state.me || !state.data.length) return; clearTimeout(mt); mt = setTimeout(function () { var l = filtered(); renderTop3(l); if (state.view !== "list") renderList(l); }, 250); }
+  map.on("dragend", resort);
+  map.on("zoomend", function () { if (state.quiet) return; resort(); });
+  map.on("moveend", function () { state.quiet = false; });
+  function goTo(ll, z) { state.quiet = true; map.setView(ll, z); }
   var meDot = null, locBtn;
-  function locate() {
+  function locate(fromList) {
     if (!navigator.geolocation) { $("count").textContent = S.noloc; return; }
     if (locBtn) locBtn.classList.add("busy");
     navigator.geolocation.getCurrentPosition(function (p) {
       if (locBtn) locBtn.classList.remove("busy");
-      state.me = [p.coords.latitude, p.coords.longitude]; map.setView(state.me, 16);
+      state.me = [p.coords.latitude, p.coords.longitude]; goTo(state.me, 16);
       if (meDot) meDot.setLatLng(state.me);
       else meDot = L.circleMarker(state.me, { radius: 8, color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }).addTo(map);
-      render();
+      state.quiet = true; render();
+      if (fromList) { var t = $("top3s").hidden ? $("count") : $("top3s"); t.scrollIntoView({ behavior: "smooth", block: "start" }); }
     }, function () { if (locBtn) locBtn.classList.remove("busy"); $("count").textContent = S.noloc; }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
   }
-  $("near").addEventListener("click", locate);
+  $("near").addEventListener("click", function () { locate(true); });
   var Loc = L.Control.extend({ options: { position: "topright" }, onAdd: function () {
     var d = L.DomUtil.create("div", "leaflet-bar leaflet-control");
     locBtn = L.DomUtil.create("a", "locbtn", d); locBtn.href = "#"; locBtn.setAttribute("role", "button");
     locBtn.title = S.loc; locBtn.setAttribute("aria-label", S.loc);
     locBtn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2"/></svg>';
     L.DomEvent.disableClickPropagation(d);
-    L.DomEvent.on(locBtn, "click", function (e) { L.DomEvent.preventDefault(e); locate(); });
+    L.DomEvent.on(locBtn, "click", function (e) { L.DomEvent.preventDefault(e); locate(false); });
     return d; } });
   new Loc().addTo(map);
   fetch("/data/week.json").then(function (r) { return r.json(); }).then(function (d) {
@@ -308,7 +351,7 @@
     var v = params.get("v");
     setView(pv === "list" && !v ? "list" : "split", true);
     if (v && !state.byId[v]) { state.f.menu = false; document.querySelector('[data-f="menu"]').classList.remove("on"); render(); }
-    if (v && state.byId[v]) { map.setView(state.byId[v].getLatLng(), 17); state.byId[v].openPopup(); }
+    if (v && state.byId[v]) openOnMap(v);
     if (params.get("d")) { var pts = filtered().map(function (x) { return [x.y, x.x]; }); if (pts.length) map.fitBounds(pts, { padding: [30, 30] }); }
   });
 })();

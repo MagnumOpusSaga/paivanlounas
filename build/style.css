@@ -73,7 +73,7 @@ h3{margin:0;font-size:16px}h3 a{color:var(--ink);text-decoration:none}h3 a:hover
 .app.mapview .panel{display:none}
 .app.listview #map{display:none}
 .more{display:block;margin:16px auto 0}
-.pp{margin:6px 0 0;font-size:14px}.list .onmap{font-size:14px;margin-right:10px}
+.pp{margin:6px 0 0;font-size:14px}.list .onmap{font-size:14px}
 .wrong{color:var(--mut)}.wrongok{color:var(--g);font-weight:600}
 /* map pins */
 .pin{background:var(--card);color:var(--ink);font:700 13px var(--body);padding:4px 8px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.22);white-space:nowrap;transform:translate(-50%,-50%);display:inline-block;cursor:pointer}
@@ -83,12 +83,16 @@ h3{margin:0;font-size:16px}h3 a{color:var(--ink);text-decoration:none}h3 a:hover
 .leaflet-container{font-family:var(--body)}
 @media(min-width:900px){
   .app{display:grid;grid-template-columns:minmax(380px,470px) 1fr;height:calc(100vh - 58px);height:calc(100dvh - 58px)}
-  #map{order:0;height:auto}
+  #map{order:0;height:auto;grid-column:2;grid-row:1 / span 2}
+  .app{grid-template-rows:auto 1fr}
+  .daybar{grid-column:1;grid-row:1;border-right:1px solid var(--line);padding:12px 20px 0;border-bottom:0}
+  .panel{grid-column:1;grid-row:2}
+  .selcard{display:none}
   .panel{overflow:auto;border-right:1px solid var(--line);padding:18px 20px 24px}
   .views{display:flex}.mapctl{display:none}
   .t3{flex-direction:column;overflow:visible;margin:0;padding:0}.t3 a{flex:none;max-width:none}
   .list>li.sel{margin:0 -20px;padding:12px 20px}
-  .app.listview{grid-template-columns:1fr;height:auto}.app.listview .panel{max-width:900px;width:100%;margin:0 auto;border:0;overflow:visible}
+  .app.listview{grid-template-columns:1fr;height:auto}.app.listview .daybar{max-width:900px;width:100%;margin:0 auto;border:0}.app.listview .panel{max-width:900px;width:100%;margin:0 auto;border:0;overflow:visible}
   .app.listview~footer{display:block}
 }
 /* ---------- content pages ---------- */
@@ -137,14 +141,21 @@ footer{max-width:1120px;margin:0 auto;padding:18px 20px 28px;color:var(--mut);fo
 .cats button{flex:none;border:0;background:var(--tint);color:var(--p-dark);border-radius:10px;padding:8px 12px;font:700 14px var(--body);cursor:pointer;min-height:38px;white-space:nowrap}
 .cats button.on{background:var(--p);color:var(--p-ink)}
 .soon{color:var(--p-dark);font-weight:700}.late{color:var(--mut);text-decoration:line-through}
-/* calmer map: OSM tiles muted so the price pins stand out */
-.leaflet-tile-pane{filter:grayscale(.9) sepia(.12) brightness(1.05) contrast(.9)}
 /* dark mode follows the phone setting */
 @media (prefers-color-scheme: dark){
   :root{--bg:#17110e;--card:#221a16;--ink:#f3ebe5;--mut:#b4a59b;--line:#3a2e28;--p:#f0763a;--p-dark:#ff9b66;--p-ink:#1a110c;--tint:#3b2418;--g:#86c993;--g-tint:#1e2f22;--map:#1b1512}
-  .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) grayscale(.85) brightness(.85) contrast(.9)}
   .leaflet-bar a,.leaflet-control-attribution{background:var(--card)!important;color:var(--ink)!important;border-color:var(--line)!important}
   .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--card);color:var(--ink)}
   .pin.fv{background:#4a3a10}
   .preview{background:#5a4b00;color:#fff3b0}
 }
+
+/* day row above the map */
+.daybar{order:-2;margin:0;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+/* phone: the chosen restaurant opens as a card under the map (no cramped popup) */
+.selcard{position:relative;margin:0 0 14px;padding:14px 48px 6px 14px;border:2px solid var(--p);border-radius:16px;background:var(--card);scroll-margin-top:8px}
+.selcard .x{position:absolute;top:4px;right:4px;width:44px;height:44px;border:0;background:none;color:var(--ink);font-size:30px;line-height:1;cursor:pointer}
+.selcard .menu{margin:8px 0 0}
+.list>li.open{background:var(--card);border-radius:12px;margin:0 -10px;padding:12px 10px}
+.list>li.open .dish{display:none}
+.more-menu{padding:4px 0 8px}
