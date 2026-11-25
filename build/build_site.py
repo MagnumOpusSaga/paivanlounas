@@ -75,6 +75,7 @@ def decap(s):
 
 def clean_dish(d):
     d = re.sub(r"\s*\((?:[A-Za-z]{1,4}[\s,+*/]*)+\)", "", d or "")
+    d = re.sub(r"\s+(?:VL|VE|VEG|L|G|M|K|V|\*)(?:\s*[,/]\s*(?:VL|VE|VEG|L|G|M|K|V|\*))+(?=\s|$)", "", d)
     return re.sub(r"[\s,;·]+$", "", d)
 
 
@@ -185,6 +186,7 @@ T = {
            "wd": ["maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai", "sunnuntai"],
            "wd_short": ["Ma", "Ti", "Ke", "To", "Pe", "La", "Su"],
            "h1_home": "Lounas Helsinki", "v_map": "Kartta", "v_list": "Lista", "d_list": "Lista", "d_map": "Kartta", "d_filter": "Suodata", "d_big": "Koko kartta", "d_back": "Takaisin listaan", "search": "Hae ravintolaa, ruokaa tai aluetta", "near": "Lähellä",
+           "cats": [("soup", "Keitto"), ("fish", "Kala"), ("chicken", "Kana"), ("meat", "Liha"), ("veg", "Kasvis"), ("pasta", "Pasta"), ("pizza", "Pizza"), ("burger", "Burger"), ("asian", "Aasialainen"), ("salad", "Salaatti"), ("buffet", "Buffet")],
            "chips": [("fav", "Suosikit"), ("menu", "Vain listalliset"), ("open", "Auki nyt"), ("u13", "Alle 13 €"), ("cheap", "Halvin ensin"), ("Veg", "Kasvis"), ("G", "G"), ("L", "L"), ("M", "M"), ("oivaA", "Oiva A")],
            "title_home": "Lounas Helsinki tänään – päivän lounaslistat kartalla | Päivän lounas",
            "desc_home": "Helsingin lounaslistat tänään ({d}): {n} ravintolan lista, hinnat, ruokavaliot ja Oiva-hymy kartalla.",
@@ -207,6 +209,7 @@ T = {
            "wd": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
            "wd_short": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
            "h1_home": "Lunch in Helsinki", "v_map": "Map", "v_list": "List", "d_list": "List", "d_map": "Map", "d_filter": "Filter", "d_big": "Full map", "d_back": "Back to list", "search": "Search restaurant, dish or area", "near": "Near me",
+           "cats": [("soup", "Soup"), ("fish", "Fish"), ("chicken", "Chicken"), ("meat", "Meat"), ("veg", "Vegetarian"), ("pasta", "Pasta"), ("pizza", "Pizza"), ("burger", "Burger"), ("asian", "Asian"), ("salad", "Salad"), ("buffet", "Buffet")],
            "chips": [("fav", "Favourites"), ("menu", "With menu"), ("open", "Open now"), ("u13", "Under 13 €"), ("cheap", "Cheapest first"), ("Veg", "Vegetarian"), ("G", "GF"), ("L", "LF"), ("M", "DF"), ("oivaA", "Oiva A")],
            "title_home": "Lunch in Helsinki today – lunch menus on a map | Päivän lounas",
            "desc_home": "Helsinki lunch menus today ({d}): {n} restaurants with menus, prices, diets and food-safety ratings on a map.",
@@ -303,7 +306,7 @@ def page(lg, title, desc, path, alt_path, body, preview, extra_head=""):
           f'<link rel="alternate" hreflang="x-default" href="{DOMAIN}{path if lg == "fi" else alt_path}">') if alt_path else ""
     return f"""<!doctype html><html lang="{lg}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title><meta name="description" content="{esc(desc)}"><link rel="canonical" href="{DOMAIN}{path}">{hl}{robots}
-<link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#c2410c">
+<link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#c2410c"><meta name="color-scheme" content="light dark">
 <meta property="og:image" content="{DOMAIN}/icon-512.png">
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}"><meta property="og:type" content="website">
 <link rel="stylesheet" href="/style.css?v={VER['style.css']}">{extra_head}</head><body>{bar}
@@ -478,12 +481,14 @@ def main(L, out, day, preview):
         ds_ = datestr(show_day, lg)
         # home / app
         chips = "".join(f'<button data-f="{k}"{" class=on" if k == "menu" else ""}>{esc(lbl)}</button>' for k, lbl in t["chips"])
+        cats = "".join(f'<button data-cat="{k}">{esc(lbl)}</button>' for k, lbl in t["cats"])
         dchips = "".join(f'<button data-day="{d}"{" class=on" if d == show_day else ""}>{t["wd_short"][i]} {int(d[8:])}.{int(d[5:7])}.</button>' for i, d in enumerate(days))
         body = f"""<main class="app" data-lang="{lg}">
 <section class="panel" id="panel">
 <div class="ptop"><div><p class="sub" id="dlabel">{esc(ds_)}</p><h1>{t['h1_home']}</h1></div>
 <div class="views" role="tablist"><button data-view="split" class="on">{t['v_map']}</button><button data-view="list">{t['v_list']}</button></div></div>
 <div class="days">{dchips}</div>
+<div class="cats" id="cats" role="group">{cats}</div>
 <div class="search"><input id="q" type="search" placeholder="{esc(t['search'])}" aria-label="{esc(t['search'])}"><button id="near" type="button">{t['near']}</button></div>
 <section class="top3" id="top3s" aria-labelledby="t3h" hidden><div class="t3head"><h2 id="t3h"></h2></div><div id="top3" class="t3"></div></section>
 <div class="chips" id="chips">{chips}</div><p id="count" class="count"></p><ol id="list" class="list"></ol><button id="more" class="btn ghost more" hidden></button>

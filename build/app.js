@@ -5,12 +5,12 @@
   var S = {
     fi: { n: " ravintolaa", menu: " – lista", nomenu: "Ei listaa tälle päivälle.", site: "Ravintolan sivu", src: "Lähde", orig: "alkuperäinen",
           wrong: "Väärä tieto?", wrongOk: "Kiitos ilmoituksesta!", onmap: "Kartalla", more: "Näytä lisää", park: "Parkki lähellä",
-          venue: "/ravintola/", noloc: "Sijaintia ei saatu.", walk: " min kävely", until: "auki ", untilEnd: " asti", t3me: "Kolme hyvää lähelläsi",
+          venue: "/ravintola/", noloc: "Sijaintia ei saatu.", walk: " min kävely", until: "auki ", untilEnd: " asti", closes: "sulkeutuu ", closesEnd: " min päästä", ended: "lounas päättynyt", opens: "lounas ", t3me: "Kolme hyvää lähelläsi",
           t3map: "Kolme hyvää tällä alueella", route: "Reitti", loc: "Näytä sijaintini", fav: "Lisää suosikiksi", unfav: "Poista suosikeista", near: "lähintä näkyvissä", nofav: "Ei vielä suosikkeja – lisää niitä tähdestä ravintolan nimen vierestä.",
           wd: ["sunnuntai", "maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai"], pp: "https://parkpenny.com/" },
     en: { n: " restaurants", menu: " – with menu", nomenu: "No menu for this day.", site: "Restaurant website", src: "Source", orig: "original",
           wrong: "Wrong info?", wrongOk: "Thanks for letting us know!", onmap: "On map", more: "Show more", park: "Parking nearby",
-          venue: "/en/restaurant/", noloc: "Could not get your location.", walk: " min walk", until: "open until ", untilEnd: "", t3me: "Three good picks near you",
+          venue: "/en/restaurant/", noloc: "Could not get your location.", walk: " min walk", until: "open until ", untilEnd: "", closes: "closes in ", closesEnd: " min", ended: "lunch over", opens: "lunch ", t3me: "Three good picks near you",
           t3map: "Three good picks in this area", route: "Directions", loc: "Show my location", fav: "Add to favourites", unfav: "Remove from favourites", near: "nearest shown", nofav: "No favourites yet – add them with the star next to a restaurant name.",
           wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], pp: "https://parkpenny.com/en/" }
   }[LG];
@@ -51,12 +51,51 @@
     var h = hours(v); if (!h || state.day !== today()) return false;
     var d = new Date(), t = d.getHours() * 60 + d.getMinutes(); return t >= h[0] && t < h[1];
   }
+  var CAT = {
+    soup: /keitto|soppa|soup|borssi|borscht|ramen|pho\b|chowder|gulassi|goulash/i,
+    fish: /kala|lohi|lohta|turska|kuha|siika|muikku|silakka|silli|tonnikala|kampela|ahven|hauki|seiti|katkarap|äyriäi|simpuk|fish|salmon|cod|tuna|shrimp|prawn|seafood|sushi|nigiri/i,
+    chicken: /kana|broiler|chicken|pollo|kalkkun|turkey/i,
+    meat: /härkä|härän|nauta|naudan|possu|porsa|sika|sian|liha|jauheli|pihvi|lammas|lampa|riista|poro|hirvi|makkara|kinkku|beef|pork|lamb|steak|meatball|bbq|ribs|brisket/i,
+    pasta: /pasta|spaget|spaghet|lasagn|penne|tagliat|tortell|ravioli|gnocchi|carbonara|bolognese|risotto|makaroni/i,
+    pizza: /pizza|pizz|calzone/i,
+    burger: /burger|hampurilai/i,
+    asian: /wok|curry|curr|sushi|ramen|pho\b|thai|tikka|masala|korma|nuudel|noodle|dumpling|gyoza|poke|bibimbap|teriyaki|bao\b|udon|katsu|tandoori|biryani|pad |kimchi|bulgogi|dal\b|paneer/i,
+    salad: /salaat|salad/i,
+    buffet: /buffet|noutopöy|seisova|lounaspöy/i
+  };
+  function itemText(i) { return (i.t ? i.t + " " : "") + i.d.join(" "); }
+  function catHit(v) {  // index of the first dish in the chosen category, -1 if none
+    var m = M(v), c = state.cat; if (!m || !c) return -1;
+    for (var k = 0; k < m.items.length; k++) {
+      var it = m.items[k];
+      if (c === "veg" ? ((it.diet || []).some(function (d) { return d === "Veg" || d === "K" || d === "VE"; }) || /kasvis|vegaan|vegan|vegetar|härkis|tofu|seitan|halloumi|falafel/i.test(itemText(it))) : CAT[c].test(itemText(it))) return k;
+    }
+    return -1;
+  }
+  function dishLine(v) {  // the dish in the chosen category first, then the rest
+    var m = M(v); if (!m) return "";
+    var h = catHit(v), ds = m.items.map(function (i, k) {
+      var d = i.d[0];
+      if (k === h && state.cat !== "veg") for (var j = 0; j < i.d.length; j++) if (CAT[state.cat].test(i.d[j])) { d = i.d[j]; break; }
+      return clean(d);
+    });
+    if (h > 0) ds = [ds[h]].concat(ds.slice(0, h), ds.slice(h + 1));
+    return ds.slice(0, 3).join(" · ");
+  }
+  function timeTxt(v) {
+    var h = hours(v); if (!h) return "";
+    if (state.day !== today()) return S.until + h[2] + S.untilEnd;
+    var d = new Date(), t = d.getHours() * 60 + d.getMinutes();
+    if (t >= h[1]) return '<span class="late">' + S.ended + "</span>";
+    if (t >= h[0] && h[1] - t <= 45) return '<span class="soon">' + S.closes + (h[1] - t) + S.closesEnd + "</span>";
+    return S.until + h[2] + S.untilEnd;
+  }
   function hasDiet(v, d) { var m = M(v); return m && m.items.some(function (i) { return (i.diet || []).indexOf(d) >= 0 || (d === "Veg" && (i.diet || []).indexOf("K") >= 0); }); }
   function fmt(p) { return p ? p.toFixed(2).replace(".", ",") + " €" : ""; }
   function dist(v) { return state.me ? km(state.me, [v.y, v.x]) : null; }
   function distTxt(d) { return d == null ? "" : d < 1 ? Math.round(d * 1000) + " m" : d.toFixed(1).replace(".", ",") + " km"; }
-  function clean(d) { return String(d || "").replace(/\s*\((?:[A-Za-z]{1,4}[\s,+*\/]*)+\)/g, "").replace(/[\s,;·]+$/, ""); }
-  function firstDish(v) { var m = M(v); var it = m && m.items[0]; return it ? clean(it.d[0]) : ""; }
+  function clean(d) { return String(d || "").replace(/\s*\((?:[A-Za-z]{1,4}[\s,+*\/]*)+\)/g, "").replace(/\s+(?:VL|VE|VEG|L|G|M|K|V|\*)(?:\s*[,\/]\s*(?:VL|VE|VEG|L|G|M|K|V|\*))+(?=\s|$)/g, "").replace(/[\s,;·]+$/, ""); }
+  function firstDish(v) { var m = M(v); if (!m) return ""; var h = state.cat ? catHit(v) : 0; var it = m.items[h > 0 ? h : 0]; return it ? clean(it.d[0]) : ""; }
   function ppLink(v) { return S.pp + "?lat=" + v.y + "&lon=" + v.x + "&q=" + encodeURIComponent(v.n) + "&dur=60"; }
   function routeLink(v) { return "https://www.google.com/maps/dir/?api=1&destination=" + v.y + "," + v.x; }
 
@@ -73,17 +112,18 @@
       '<a href="' + routeLink(v) + '" target="_blank" rel="noopener">' + S.route + '</a> · <a href="' + ppLink(v) + '" target="_blank" rel="noopener">' + S.park + "</a></p>";
   }
   function head(v) {
-    var p = minPrice(v), h = hours(v);
-    var meta = [distTxt(dist(v)), v.d, h ? S.until + h[2] + S.untilEnd : ""].filter(Boolean).join(" · ");
+    var p = minPrice(v), dk = dist(v);
+    var meta = [dk == null ? "" : (dk < 2.5 ? Math.max(1, Math.round(dk * 1000 / 80)) + S.walk : distTxt(dk)), esc(v.d || ""), timeTxt(v)].filter(Boolean).join(" · ");
     var fv = isFav(v.i);
     return '<div class="row"><h3><button type="button" class="fav' + (fv ? " on" : "") + '" data-fav="' + esc(v.i) + '" aria-pressed="' + fv + '" title="' + (fv ? S.unfav : S.fav) + '" aria-label="' + (fv ? S.unfav : S.fav) + '">' + STAR + '</button><a href="' + S.venue + esc(v.i) + '/">' + esc(v.n) + "</a>" + (v.o === "A" ? '<span class="oiva">Oiva A</span>' : "") + "</h3>" +
-      (p ? '<span class="from">' + fmt(p) + "</span>" : "") + "</div>" + '<p class="addr">' + esc(meta || v.a || "") + "</p>";
+      (p ? '<span class="from">' + fmt(p) + "</span>" : "") + "</div>" + '<p class="addr">' + (meta || esc(v.a || "")) + "</p>";
   }
   function filtered() {
     var q = state.q.toLowerCase(), f = state.f, dq = params.get("d");
     var out = state.data.filter(function (v) {
       var m = M(v);
       if (f.fav && !isFav(v.i)) return false;
+      if (state.cat && catHit(v) < 0) return false;
       if (f.menu && !m) return false;
       if (f.open && !openNow(v)) return false;
       if (f.oivaA && v.o !== "A") return false;
@@ -139,7 +179,7 @@
     $("list").innerHTML = list.slice(0, n).map(function (v) {
       var m = M(v);
       return '<li data-i="' + esc(v.i) + '"' + (state.sel === v.i ? ' class="sel"' : "") + ">" + head(v) +
-        (lv ? menuHtml(v, true) : (m ? '<p class="dish">' + esc(m.items.slice(0, 3).map(function (i) { return clean(i.d[0]); }).join(" · ")) + "</p>" : "")) + "</li>";
+        (lv ? menuHtml(v, true) : (m ? '<p class="dish">' + esc(dishLine(v)) + "</p>" : "")) + "</li>";
     }).join("");
     var more = $("more");
     more.hidden = !(list.length > n); more.textContent = S.more + " (" + (list.length - n) + ")";
@@ -207,6 +247,13 @@
     if (el && el.firstChild && el.firstChild.classList) el.firstChild.classList.toggle("fv", !!favs[id]);
     if (state.f.fav) render();
   }, true);
+  document.querySelectorAll("[data-cat]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var k = b.getAttribute("data-cat"); state.cat = state.cat === k ? null : k;
+      document.querySelectorAll("[data-cat]").forEach(function (x) { x.classList.toggle("on", x.getAttribute("data-cat") === state.cat); x.setAttribute("aria-pressed", x.getAttribute("data-cat") === state.cat); });
+      state.limit = state.view === "list" ? 40 : 30; render();
+    });
+  });
   $("more").addEventListener("click", function () { state.limit += 40; renderList(filtered()); });
   $("list").addEventListener("click", function (e) {
     var go = e.target.closest("[data-go]");
