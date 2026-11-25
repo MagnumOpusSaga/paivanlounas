@@ -562,8 +562,16 @@ def main(L, out, day, preview):
 <div class="box"><h2>{A['near_h']}</h2><ul>{near_li}</ul></div>
 <div class="box tint"><h2>{A['rest_h']}</h2><p style="margin:0;font-size:14px">{A['rest_p']}</p></div></aside></div></main>"""
             desc = (A["desc"].format(a=dn, d=ds_, n=nm, c=cheapest) if nm else A["lead0"].format(d=ds_, t=len(vs)))
+            ld = [{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+                      {"@type": "ListItem", "position": 1, "name": t["crumb_home"], "item": DOMAIN + t["home"]},
+                      {"@type": "ListItem", "position": 2, "name": t["nav_areas"], "item": DOMAIN + t["areas"]},
+                      {"@type": "ListItem", "position": 3, "name": dn, "item": DOMAIN + path}]}]
+            if allm:
+                ld.append({"@context": "https://schema.org", "@type": "ItemList", "name": t["area_h1"].format(a=dn), "numberOfItems": len(allm),
+                           "itemListElement": [{"@type": "ListItem", "position": k + 1, "name": v["name"], "url": DOMAIN + t["venue"].format(s=v["slug"])} for k, v in enumerate(allm)]})
+            ldh = "".join(f'<script type="application/ld+json">{json.dumps(x, ensure_ascii=False)}</script>' for x in ld)
             os.makedirs(f"{out}{path}", exist_ok=True)
-            open(f"{out}{path}index.html", "w").write(page(lg, t["area_title"].format(a=dn, n=nm), desc, path, alt, body, preview))
+            open(f"{out}{path}index.html", "w").write(page(lg, t["area_title"].format(a=dn, n=nm), desc, path, alt, body, preview, ldh))
             urls.append(path)
             idx.append((dn, dslug, nm, len(vs)))
         lis = "".join(f'<li><a href="{t["area"].format(s=s)}">{esc(n)}</a> <small>{m} {t["lists"]} · {tt} {t["places"]}</small></li>' for n, s, m, tt in idx)
@@ -625,7 +633,10 @@ def main(L, out, day, preview):
     write_info_pages(out, preview, urls)
     if ADSENSE:
         open(f"{out}/ads.txt", "w").write(f"google.com, {ADSENSE.replace('ca-', '')}, DIRECT, f08c47fec0942fa0\n")
-    open(f"{out}/404.html", "w").write(page("fi", "Sivua ei löytynyt | Päivän lounas", "", "/404", None, '<main class="content"><h1>Sivua ei löytynyt</h1><p><a href="/">Etusivulle</a></p></main>', True))
+    nf = ('<main class="content"><h1>Sivua ei löytynyt</h1><p>Osoitetta ei ole tai se on vaihtunut. Päivän lounaslistat löydät näistä:</p>'
+          '<ul><li><a href="/">Lounas Helsinki – kartta ja lista</a></li><li><a href="/lounas/">Lounas alueittain</a></li>'
+          '<li><a href="/halvin-lounas-helsinki/">Halvin lounas Helsingissä</a></li><li><a href="/kasvislounas-helsinki/">Kasvislounas Helsingissä</a></li></ul></main>')
+    open(f"{out}/404.html", "w").write(page("fi", "Sivua ei löytynyt | Päivän lounas", "", "/404", None, nf, preview, '<meta name="robots" content="noindex">'))
     open(f"{out}/robots.txt", "w").write("User-agent: *\nDisallow: /\n" if preview else f"User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {DOMAIN}/sitemap.xml\n")
     sm = "".join(f"<url><loc>{DOMAIN}{u}</loc><lastmod>{show_day}</lastmod></url>" for u in urls)
     open(f"{out}/sitemap.xml", "w").write(f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{sm}</urlset>')
