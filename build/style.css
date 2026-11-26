@@ -159,3 +159,6 @@ footer{max-width:1120px;margin:0 auto;padding:18px 20px 28px;color:var(--mut);fo
 .list>li.open{background:var(--card);border-radius:12px;margin:0 -10px;padding:12px 10px}
 .list>li.open .dish{display:none}
 .more-menu{padding:4px 0 8px}
+.nearby{margin:16px 0 22px;padding:14px 16px 4px;border:2px solid var(--p);border-radius:16px;background:var(--card)}
+.nearby h2{margin:0 0 4px}.nearby p{margin:0 0 8px;color:var(--mut);font-size:14px}
+.nearby .picks li small{color:var(--mut);white-space:nowrap}

@@ -16,6 +16,16 @@ def run(*args, ok_fail=False):
     return r.returncode
 
 
+# other lunch-listing services: their data is never copied (Branu's rule), so their addresses are never fetched
+COMPETITORS = ("lounaat.info", "lounasaika.net", "lounasaika.fi", "lounaspaikka.fi", "lounasinfo.fi", "lounas.info", "ruokalistat.fi",
+               "lounastaulu.fi", "mobiililounas.fi", "lounasravintolat.fi", "lounaslistat.fi")
+
+
+def is_competitor(u):
+    h = host(u)
+    return any(h == c or h.endswith("." + c) for c in COMPETITORS)
+
+
 def host(u):
     h = urllib.parse.urlsplit(u or "").hostname or ""
     return h[4:] if h.startswith("www.") else h
@@ -50,6 +60,17 @@ def main():
     reg = json.load(open(f"{ROOT}/data/registry_helsinki.json"))
     todo = [{"id": "osm:" + v["osm"] if v.get("osm") else v["id"], "name": v["name"], "website": v["website"]}
             for v in reg if v.get("website") and not any(s.split(":")[0] in ("compass", "sodexo", "unicafe") for s in v["sources"])]
+    # hand-checked menu addresses (data/hints.json: {venue-slug: url}) – first for the pages Google sends visitors to (N34)
+    hp = f"{ROOT}/data/hints.json"
+    hinted = set()
+    if os.path.exists(hp):
+        for slug_, url in json.load(open(hp)).items():
+            if slug_.startswith("_") or not url or is_competitor(url):
+                continue
+            hinted.add(slug_)
+            todo.append({"id": "sug:" + slug_, "name": slug_.replace("-", " "), "website": url})
+        print("hints", len(hinted), flush=True)
+    todo = [x for x in todo if not is_competitor(x["website"])]
     # suggestions sent through the site form (data/suggestions.json, filled by the workflow from D1)
     sp = f"{ROOT}/data/suggestions_raw.json"
     if os.path.exists(sp):
@@ -68,10 +89,13 @@ def main():
         GENERIC = {"ravintola", "restaurant", "cafe", "kahvila", "lounas", "helsinki", "bistro", "kitchen", "bar"}
         seen, used, held = set(), 0, 0
         for s in rows[::-1]:  # newest first, one per venue
-            if s["venue"] in seen:
+            if s["venue"] in seen or s["venue"] in hinted:
                 continue
             seen.add(s["venue"])
             h = host(s["url"])
+            if is_competitor(s["url"]):
+                held += 1
+                continue
             words = [w for w in s["venue"].split("-") if len(w) >= 4 and w not in GENERIC]
             ok = s["url"] in approved or h in sites.get(s["venue"], set()) or any(w in h.replace("-", "") for w in words)
             if not ok:

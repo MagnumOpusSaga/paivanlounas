@@ -136,6 +136,7 @@
     var out = state.data.filter(function (v) {
       var m = M(v);
       if (f.fav && !isFav(v.i)) return false;
+      if (f.stu && !Object.keys(v.ms || {}).some(function (d) { return v.ms[d] && v.ms[d].stu; })) return false;
       if (state.cat && catHit(v) < 0) return false;
       if (f.menu && !m) return false;
       if (f.open && !openNow(v)) return false;

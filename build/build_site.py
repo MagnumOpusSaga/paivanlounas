@@ -1,6 +1,6 @@
 """Build paivanlounas.fi (static, Cloudflare Pages) from the venue registry + today's menus.
 Usage: build_site.py <lounas_dir> <out_dir> <YYYY-MM-DD> [--preview]"""
-import json, re, sys, os, html, shutil, datetime, unicodedata, urllib.parse
+import json, math, re, sys, os, html, shutil, datetime, unicodedata, urllib.parse
 
 SITE = "Päivän lounas"
 DOMAIN = "https://paivanlounas.fi"
@@ -108,6 +108,21 @@ def public_price(prices):
     return max(ps) if ps else None
 
 
+def student_price(r):
+    """Student discount on offer: every UniCafe; Compass/Sodexo when the price text names students / Kela or has a
+    Kela-level price (<= 4 €) next to the regular one."""
+    if r.get("source") == "unicafe":
+        return True
+    for it in r.get("items", []):
+        pt = (it.get("price_text") or "").lower()
+        if re.search(r"opiskelij|student|kela", pt):
+            return True
+        ps = [float(x.replace(",", ".")) for x in re.findall(r"(\d{1,2}[,.]\d{2})", pt)]
+        if len(ps) >= 2 and min(ps) <= 4.0 and max(ps) >= 6.0:
+            return True
+    return False
+
+
 def menus_today(L, day):
     """Return {source_id: {items, source, url, kind}} from chain APIs, Raflaamo page and heuristic reader."""
     res = {}
@@ -131,6 +146,8 @@ def menus_today(L, day):
         if items:
             res[r["id"]] = {"items": items, "src": names[r["source"]], "url": meta.get("url"), "conf": "api",
                             "hours": meta.get("lunch_today")}
+            if student_price(r):
+                res[r["id"]]["stu"] = 1
     # independent sites read by the rule reader (precision ~93 % in manual check)
     ind = json.load(open(pi))["results"] if os.path.exists(pi) else []
     for r in ind:
@@ -176,7 +193,7 @@ FASTFOOD = re.compile(r"(?i)burger king|mcdonald|hesburger|subway|kotipizza|taco
 CSS = open(os.path.join(os.path.dirname(__file__), "style.css")).read()
 import hashlib
 # cache-busting: each deploy points pages at /app.js?v=<content hash>, so phones never mix new HTML with an old cached script
-VER = {f: hashlib.md5(open(os.path.join(os.path.dirname(__file__), f), "rb").read()).hexdigest()[:8] for f in ("style.css", "app.js", "suggest.js")}
+VER = {f: hashlib.md5(open(os.path.join(os.path.dirname(__file__), f), "rb").read()).hexdigest()[:8] for f in ("style.css", "app.js", "suggest.js", "m.js")}
 
 
 
@@ -187,7 +204,7 @@ T = {
            "wd_short": ["Ma", "Ti", "Ke", "To", "Pe", "La", "Su"],
            "h1_home": "Lounas Helsinki", "v_map": "Kartta", "v_list": "Lista", "d_list": "Lista", "d_map": "Kartta", "d_filter": "Suodata", "d_big": "Koko kartta", "d_back": "Takaisin listaan", "search": "Hae ravintolaa, ruokaa tai aluetta", "near": "Lähellä",
            "cats": [("soup", "Keitto"), ("fish", "Kala"), ("chicken", "Kana"), ("meat", "Liha"), ("veg", "Kasvis"), ("pasta", "Pasta"), ("pizza", "Pizza"), ("burger", "Burger"), ("asian", "Aasialainen"), ("salad", "Salaatti"), ("buffet", "Buffet")],
-           "chips": [("fav", "Suosikit"), ("menu", "Vain listalliset"), ("open", "Auki nyt"), ("u13", "Alle 13 €"), ("cheap", "Halvin ensin"), ("Veg", "Kasvis"), ("G", "G"), ("L", "L"), ("M", "M"), ("oivaA", "Oiva A")],
+           "chips": [("fav", "Suosikit"), ("menu", "Vain listalliset"), ("stu", "Opiskelijahinta"), ("open", "Auki nyt"), ("u13", "Alle 13 €"), ("cheap", "Halvin ensin"), ("Veg", "Kasvis"), ("G", "G"), ("L", "L"), ("M", "M"), ("oivaA", "Oiva A")],
            "title_home": "Lounas Helsinki tänään – päivän lounaslistat kartalla | Päivän lounas",
            "desc_home": "Helsingin lounaslistat tänään ({d}): {n} ravintolan lista, hinnat, ruokavaliot ja Oiva-hymy kartalla.",
            "area_h1": "Lounas {a} tänään", "area_title": "Lounas {a} tänään – {n} lounaslistaa | Päivän lounas",
@@ -196,7 +213,7 @@ T = {
            "areas_title": "Lounas Helsingissä alueittain | Päivän lounas", "lists": "listaa", "places": "paikkaa",
            "venue_h1": "{n} – lounas tänään", "venue_title": "{n} lounas tänään – lounaslista | Päivän lounas",
            "venue_desc": "{n} ({a}): päivän lounaslista, hinnat, ruokavaliot ja Oiva-arvosana.",
-           "list_for": "Lounaslista {d}", "week": "Tämän viikon listat", "nomenu": "Tämän päivän listaa ei ole saatavilla. Katso ravintolan omat sivut.",
+           "list_for": "Lounaslista {d}", "week": "Tämän viikon listat", "nearby_h": "Lähellä tänään", "nearby_p": "Näillä lähimmillä ravintoloilla on tämän päivän lounaslista:", "nomenu": "Tämän päivän listaa ei ole saatavilla. Katso ravintolan omat sivut.",
            "src": "Lähde", "orig": "alkuperäinen lista", "oiva": "Oiva-arvosana", "oiva_rep": "Oiva-raportti", "website": "Ravintolan verkkosivu",
            "route": "Reittiohjeet", "park": "Halvin parkki lähellä (Parkpenny)", "oiva_txt": {"A": "Oivallinen", "B": "Hyvä", "C": "Korjattavaa", "D": "Huono"},
            "wrong": "Väärä tieto?", "wrong_ok": "Kiitos ilmoituksesta!", "report_h": "Onko tämä sinun ravintolasi?", "report_p": "Kerro, missä lounaslistasi julkaistaan (oma sivu, Facebook-sivu tai pdf). Haemme sen jatkossa automaattisesti joka aamu – sinun ei tarvitse tehdä muuta.",
@@ -210,7 +227,7 @@ T = {
            "wd_short": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
            "h1_home": "Lunch in Helsinki", "v_map": "Map", "v_list": "List", "d_list": "List", "d_map": "Map", "d_filter": "Filter", "d_big": "Full map", "d_back": "Back to list", "search": "Search restaurant, dish or area", "near": "Near me",
            "cats": [("soup", "Soup"), ("fish", "Fish"), ("chicken", "Chicken"), ("meat", "Meat"), ("veg", "Vegetarian"), ("pasta", "Pasta"), ("pizza", "Pizza"), ("burger", "Burger"), ("asian", "Asian"), ("salad", "Salad"), ("buffet", "Buffet")],
-           "chips": [("fav", "Favourites"), ("menu", "With menu"), ("open", "Open now"), ("u13", "Under 13 €"), ("cheap", "Cheapest first"), ("Veg", "Vegetarian"), ("G", "GF"), ("L", "LF"), ("M", "DF"), ("oivaA", "Oiva A")],
+           "chips": [("fav", "Favourites"), ("menu", "With menu"), ("stu", "Student price"), ("open", "Open now"), ("u13", "Under 13 €"), ("cheap", "Cheapest first"), ("Veg", "Vegetarian"), ("G", "GF"), ("L", "LF"), ("M", "DF"), ("oivaA", "Oiva A")],
            "title_home": "Lunch in Helsinki today – lunch menus on a map | Päivän lounas",
            "desc_home": "Helsinki lunch menus today ({d}): {n} restaurants with menus, prices, diets and food-safety ratings on a map.",
            "area_h1": "Lunch in {a} today", "area_title": "Lunch in {a} today – {n} lunch menus | Päivän lounas",
@@ -219,7 +236,7 @@ T = {
            "areas_title": "Lunch in Helsinki by area | Päivän lounas", "lists": "menus", "places": "places",
            "venue_h1": "{n} – lunch today", "venue_title": "{n} lunch today – lunch menu | Päivän lounas",
            "venue_desc": "{n} ({a}): today's lunch menu, prices, diets and Oiva food-safety rating.",
-           "list_for": "Lunch menu {d}", "week": "This week's menus", "nomenu": "Today's menu is not available. See the restaurant's own website.",
+           "list_for": "Lunch menu {d}", "week": "This week's menus", "nearby_h": "Nearby today", "nearby_p": "The closest restaurants with today's lunch menu:", "nomenu": "Today's menu is not available. See the restaurant's own website.",
            "src": "Source", "orig": "original menu", "oiva": "Oiva food-safety rating", "oiva_rep": "Oiva report", "website": "Restaurant website",
            "route": "Directions", "park": "Cheapest parking nearby (Parkpenny)", "oiva_txt": {"A": "Excellent", "B": "Good", "C": "To be corrected", "D": "Poor"},
            "wrong": "Wrong info?", "wrong_ok": "Thanks for letting us know!", "report_h": "Is this your restaurant?", "report_p": "Tell us where your lunch menu is published (website, Facebook page or pdf). We will fetch it automatically every morning – nothing else is needed.",
@@ -247,11 +264,14 @@ GATE = {
     "en": {"/en/"},     # English: only the front page until Search Console shows demand (language gate)
 }
 SITEMAP = {}            # path -> data signature, filled by add_url()
+GATE_ON = os.environ.get("LOUNAS_GATE") == "1"  # off until Branu approves publishing the gate (N25); then set in the workflow
 
 
 def add_url(path, ok, sig):
     """Gate decision for one page. Returns True if it may be indexed (then it also goes to the sitemap)."""
-    if path.startswith("/en/") and path not in GATE["en"]:
+    if not GATE_ON:
+        ok = True
+    elif path.startswith("/en/") and path not in GATE["en"]:
         ok = False
     if ok:
         SITEMAP[path] = hashlib.md5(json.dumps(sig, ensure_ascii=False, sort_keys=True, default=str).encode()).hexdigest()[:12]
@@ -357,11 +377,23 @@ def share_image(out, key, title, ds_, items, mp, url_path):
         return None
 
 
-def page(lg, title, desc, path, alt_path, body, preview, extra_head="", og_image=None, index=True):
+def page_type(path):
+    p = path[3:] if path.startswith("/en/") else path
+    if p in ("/", ""):
+        return "home"
+    for k, pre in (("venue", ("/ravintola/", "/restaurant/")), ("area", ("/lounas/", "/lunch/"))):
+        if p.startswith(pre):
+            return k
+    if any(p == TOPIC_T[l][k]["path"].replace("/en", "", 1) for l in TOPIC_T for k in ("cheap", "veg", "buffet")):
+        return "topic"
+    return "info"
+
+
+def page(lg, title, desc, path, alt_path, body, preview, extra_head="", og_image=None, index=True, has_list=True):
     t = T[lg]
     extra_head += ads_tag(path) if index else ""  # ads only on pages with own data
     robots = '<meta name="robots" content="noindex,nofollow">' if preview else ("" if index else '<meta name="robots" content="noindex,follow">')
-    if not (alt_path and alt_path in SITEMAP and path in SITEMAP) and path not in ("/", "/en/"):
+    if GATE_ON and not (alt_path and alt_path in SITEMAP and path in SITEMAP) and path not in ("/", "/en/"):
         alt_path_hl = None  # hreflang only between two indexable versions
     else:
         alt_path_hl = alt_path
@@ -369,12 +401,12 @@ def page(lg, title, desc, path, alt_path, body, preview, extra_head="", og_image
     other = "en" if lg == "fi" else "fi"
     hl = (f'<link rel="alternate" hreflang="{lg}" href="{DOMAIN}{path}"><link rel="alternate" hreflang="{other}" href="{DOMAIN}{alt_path}">'
           f'<link rel="alternate" hreflang="x-default" href="{DOMAIN}{path if lg == "fi" else alt_path}">') if alt_path_hl else ""
-    return f"""<!doctype html><html lang="{lg}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    return f"""<!doctype html><html lang="{lg}" data-pt="{page_type(path)}" data-hl="{1 if has_list else 0}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title><meta name="description" content="{esc(desc)}"><link rel="canonical" href="{DOMAIN}{path}">{hl}{robots}
 <link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#221a16" media="(prefers-color-scheme: dark)"><meta name="color-scheme" content="light dark">
 <meta property="og:image" content="{DOMAIN}{og_image or '/icon-512.png'}">
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}"><meta property="og:type" content="website">
-<link rel="stylesheet" href="/style.css?v={VER['style.css']}">{extra_head}</head><body>{bar}
+<link rel="stylesheet" href="/style.css?v={VER['style.css']}">{extra_head}<script src="/m.js?v={VER['m.js']}" defer></script></head><body>{bar}
 <header class="top"><a class="logo" href="{t['home']}"><img src="/favicon.svg" width="28" height="28" alt="">Päivän lounas</a><nav><a href="{t['areas']}">{t['nav_areas']}</a><a href="{alt_path or t['other_home']}" hreflang="{other}">{t['other']}</a></nav></header>
 {body}
 <footer><p class="flinks">{' · '.join(f'<a href="{TOPIC_T[lg][k]["path"]}">{TOPIC_T[lg][k]["h1"]}</a>' for k in ("cheap", "veg", "buffet"))}</p><p>{t['footer1']}</p><p>{t['footer2']}</p><p>© 2026 Päivän lounas · <a href="{t['about']}">{t['about_l']}</a> · <a href="{t['privacy']}">{t['privacy_l']}</a> · {CONTACT}</p></footer></body></html>"""
@@ -520,7 +552,7 @@ def main(L, out, day, preview):
     json.dump({"date": show_day, "days": days, "venues": app}, open(f"{out}/data/week.json", "w"), ensure_ascii=False, separators=(",", ":"))
 
     here = os.path.dirname(__file__)
-    for f in ("style.css", "app.js", "suggest.js", "favicon.svg", "favicon.ico", "apple-touch-icon.png", "icon-48.png", "icon-192.png", "icon-512.png", "logo.png", "brand.html"):
+    for f in ("style.css", "app.js", "suggest.js", "m.js", "favicon.svg", "favicon.ico", "apple-touch-icon.png", "icon-48.png", "icon-192.png", "icon-512.png", "logo.png", "brand.html"):
         shutil.copy(os.path.join(here, f), f"{out}/{f}")
     os.makedirs(f"{out}/vendor/leaflet/images", exist_ok=True)
     lf = os.path.join(here, "..", "node_modules", "leaflet", "dist")
@@ -665,7 +697,7 @@ def main(L, out, day, preview):
             os.makedirs(f"{out}{path}", exist_ok=True)
             weekly = [v for v in vs if any(m and m.get("items") for m in v["ms"].values())]
             ix = add_url(path, len(weekly) >= GATE["area"], [(v["slug"], v["ms"]) for v in weekly])
-            open(f"{out}{path}index.html", "w").write(page(lg, t["area_title"].format(a=dn, n=nm), desc, path, alt, body + (SHARE_JS if img else ""), preview, ldh if ix else "", img, index=ix))
+            open(f"{out}{path}index.html", "w").write(page(lg, t["area_title"].format(a=dn, n=nm), desc, path, alt, body + (SHARE_JS if img else ""), preview, ldh if ix else "", img, index=ix, has_list=nm > 0))
             idx.append((dn, dslug, nm, len(vs)))
             if ix:
                 n_area_ix += 1
@@ -707,6 +739,20 @@ def main(L, out, day, preview):
             ix = add_url(path, len(items) >= GATE["topic"], [(v["slug"], v["menu"]) for v in items])
             open(f"{out}{path}index.html", "w").write(page(lg, TP[key]["title"], TP[key]["desc"].format(d=ds_, n=len(items)), path, alt, body + (SHARE_JS if img else ""), preview, "", img, index=ix))
         # venues
+        today_m = [w for w in venues if w["menu"]]
+        def near_box(v, k=5):
+            if v["menu"] or not today_m:
+                return ""
+            cl = math.cos(math.radians(v["lat"]))
+            dd = sorted(today_m, key=lambda w: (w["lat"] - v["lat"]) ** 2 + ((w["lon"] - v["lon"]) * cl) ** 2)[:k]
+            li = []
+            for w in dd:
+                m = int(round(math.hypot(w["lat"] - v["lat"], (w["lon"] - v["lon"]) * cl) * 111_320))
+                dist_ = f"{m} m" if m < 1000 else f"{m / 1000:.1f} km".replace(".", ",") if lg == "fi" else f"{m / 1000:.1f} km"
+                pr = lunch_price(w["menu"])
+                li.append(f'<li><a href="{t["venue"].format(s=w["slug"])}">{esc(w["name"])}</a> <span class="mdish">{esc(clean_dish(w["menu"]["items"][0]["d"][0]))}</span>'
+                          f'<span class="price">{fmt_price(pr) if pr else ""}</span><small>{dist_}</small></li>')
+            return f'<section class="nearby"><h2>{t["nearby_h"]}</h2><p>{t["nearby_p"]}</p><ul class="picks">{"".join(li)}</ul></section>'
         for v in venues:
             if not (v["ms"] or v["sources"]):
                 continue
@@ -724,14 +770,14 @@ def main(L, out, day, preview):
             if v.get("website"):
                 jl["url"] = v["website"]
             body = f"""<main class="content"><nav class="crumbs"><a href="{t['home']}">{t['crumb_home']}</a>{dlink}</nav>
-<h1>{esc(t['venue_h1'].format(n=v['name']))}</h1><p class="addr">{esc(v['street'])}, Helsinki</p>
+<h1>{esc(t['venue_h1'].format(n=v['name']))}</h1><p class="addr">{esc(v['street'])}, Helsinki</p>{near_box(v)}
 <h2>{esc(t['list_for'].format(d=ds_))}</h2>{menu_html(v['menu'], lg, v['slug'], show_day)}{week}{oiva}{web}
 <p class="actions"><a class="btn" href="{t['home']}?v={v['slug']}">{t['show_map']}</a> <a class="btn ghost" href="https://www.google.com/maps/dir/?api=1&destination={v['lat']},{v['lon']}" rel="nofollow noopener">{t['route']}</a> {parkpenny(v, lg)}</p>
 {report_form(v, lg)}</main><script src="/suggest.js?v={VER['suggest.js']}" defer></script>"""
             os.makedirs(f"{out}{path}", exist_ok=True)
             ix = add_url(path, (SEEN.get(v["slug"]) or "") >= since, v["ms"])
             open(f"{out}{path}index.html", "w").write(page(lg, t["venue_title"].format(n=v["name"]), t["venue_desc"].format(n=v["name"], a=v["street"]), path, alt, body, preview,
-                                                           f'<script type="application/ld+json">{json.dumps(jl, ensure_ascii=False)}</script>', index=ix))
+                                                           f'<script type="application/ld+json">{json.dumps(jl, ensure_ascii=False)}</script>', index=ix, has_list=bool(v["menu"])))
     write_info_pages(out, preview, urls)
     if ADSENSE:
         open(f"{out}/ads.txt", "w").write(f"google.com, {ADSENSE.replace('ca-', '')}, DIRECT, f08c47fec0942fa0\n")
@@ -773,7 +819,8 @@ INFO = {
 <li><b>”Väärä tieto?” -ilmoitukset ja ravintoloiden listaosoitteet:</b> tallennamme ravintolan, päivän ja ilmoitetun osoitteen. IP-osoitetta ei tallenneta; siitä lasketaan päiväkohtainen tiiviste, jolla rajoitetaan toistuvia ilmoituksia.</li>
 <li><b>Palvelin:</b> sivusto toimii Cloudflaren palveluissa, jotka käsittelevät teknisiä yhteystietoja (esim. IP-osoite) sivun toimittamiseksi ja tietoturvan vuoksi.</li>
 <li><b>Karttatiilet</b> ladataan OpenStreetMapin palvelimilta, jotka näkevät IP-osoitteesi.</li>
-<li><b>Kävijätilastot:</b> Cloudflare Web Analytics laskee sivujen katselut ilman evästeitä eikä tunnista yksittäisiä kävijöitä.</li></ul>
+<li><b>Kävijätilastot:</b> Cloudflare Web Analytics laskee sivujen katselut ilman evästeitä eikä tunnista yksittäisiä kävijöitä.</li>
+<li><b>Oma käyttölaskuri:</b> sivusto laskee päiväkohtaisia summia siitä, millaisia sivuja avataan ja mitä painikkeita käytetään (esim. "reitti", "toinen päivä") sekä kuinka moni poistuu alle 15 sekunnissa. Tallennamme vain päivän, sivutyypin ja lukumäärän – emme IP-osoitetta, evästeitä emmekä mitään, mistä kävijän voisi tunnistaa.</li></ul>
 {ads}
 <h2>Säilytys ja oikeutesi</h2><p>Ilmoitukset poistetaan, kun niitä ei enää tarvita, viimeistään 24 kuukauden kuluttua. Voit pyytää tietoja tai niiden poistamista osoitteesta {contact}. Sinulla on oikeus tehdä valitus tietosuojavaltuutetulle (tietosuoja.fi).</p>"""),
         "ads": """<h2>Mainonta</h2><p>Sivustolla näytetään Google AdSense -mainoksia. Google ja sen kumppanit voivat käyttää evästeitä ja muita tunnisteita mainosten näyttämiseen ja mittaamiseen. Euroopan talousalueella kysymme suostumuksesi Googlen sertifioimalla suostumusikkunalla, ja voit muuttaa valintaasi milloin tahansa. Lisätietoja: <a href="https://policies.google.com/technologies/ads" rel="nofollow noopener">policies.google.com/technologies/ads</a>.</p>""",
@@ -803,7 +850,8 @@ INFO = {
 <li><b>“Wrong info?” reports and menu addresses sent by restaurants:</b> we store the restaurant, the day and the submitted address. IP addresses are not stored; a daily hash of it is used to limit repeated reports.</li>
 <li><b>Hosting:</b> the site runs on Cloudflare, which processes technical connection data (e.g. IP address) to deliver pages and for security.</li>
 <li><b>Map tiles</b> are loaded from OpenStreetMap's servers, which see your IP address.</li>
-<li><b>Visitor statistics:</b> Cloudflare Web Analytics counts page views without cookies and does not identify individual visitors.</li></ul>
+<li><b>Visitor statistics:</b> Cloudflare Web Analytics counts page views without cookies and does not identify individual visitors.</li>
+<li><b>Own usage counter:</b> the site keeps daily totals of which kinds of pages are opened, which buttons are used (e.g. "directions", "another day") and how many visitors leave within 15 seconds. We store only the day, the page type and the count – no IP address, no cookies, nothing that could identify a visitor.</li></ul>
 {ads}
 <h2>Retention and your rights</h2><p>Reports are deleted when no longer needed, at the latest after 24 months. You can request access or deletion at {contact}. You have the right to lodge a complaint with the Finnish Data Protection Ombudsman (tietosuoja.fi).</p>"""),
         "ads": """<h2>Advertising</h2><p>The site shows Google AdSense ads. Google and its partners may use cookies and other identifiers to show and measure ads. In the European Economic Area we ask for your consent with a Google-certified consent message, and you can change your choice at any time. More: <a href="https://policies.google.com/technologies/ads" rel="nofollow noopener">policies.google.com/technologies/ads</a>.</p>""",
@@ -811,7 +859,7 @@ INFO = {
 }
 
 
-INFO_DATE = "24.11.2026"  # when the about/privacy text last changed – update by hand when the text changes
+INFO_DATE = "26.11.2026"  # when the about/privacy text last changed – update by hand when the text changes
 
 
 def write_info_pages(out, preview, urls):
