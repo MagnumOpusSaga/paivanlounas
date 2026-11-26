@@ -110,6 +110,19 @@ jobs:
             data/ai_stats.json
             raw/raf_hki_parsed.json
           key: lists-${{ github.run_id }}
+      - name: Smoke test before deploy (fails = the old site stays live)
+        run: |
+          pip install --quiet playwright
+          python -m playwright install --with-deps chromium > /dev/null
+          python tests/smoke.py dist
+      - name: Smoke test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-screens
+          path: smoke-*.png
+          if-no-files-found: ignore
+          retention-days: 7
       - name: D1 schema (idempotent)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
