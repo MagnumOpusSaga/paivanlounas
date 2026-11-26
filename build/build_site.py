@@ -202,7 +202,7 @@ T = {
     "fi": {"home": "/", "areas": "/lounas/", "area": "/lounas/{s}/", "venue": "/ravintola/{s}/", "nav_areas": "Alueet", "other": "In English", "other_home": "/en/",
            "wd": ["maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai", "sunnuntai"],
            "wd_short": ["Ma", "Ti", "Ke", "To", "Pe", "La", "Su"],
-           "h1_home": "Lounas Helsinki", "v_map": "Kartta", "v_list": "Lista", "d_list": "Lista", "d_map": "Kartta", "d_filter": "Suodata", "d_big": "Koko kartta", "d_back": "Takaisin listaan", "sheet_label": "Lounaat lähellä", "sheet_more": "Näytä lisää", "as_list": "Näytä listana", "done": "Valmis", "search_ph": "Hae ruokaa tai paikkaa",
+           "h1_home": "Lounas Helsinki", "v_map": "Kartta", "v_list": "Lista", "d_list": "Lista", "d_map": "Kartta", "d_filter": "Suodata", "d_big": "Koko kartta", "d_back": "Takaisin listaan", "sheet_label": "Lounaat lähellä", "locate": "Hae sijaintini", "sheet_more": "Näytä lisää", "as_list": "Näytä listana", "done": "Valmis", "search_ph": "Hae ruokaa tai paikkaa",
            "pills": [("near", "Lähellä"), ("pop", "Suosituimmat"), ("cheap", "Halvimmat"), ("veg", "Kasvis"), ("stu", "Opiskelija")], "search": "Hae ravintolaa, ruokaa tai aluetta", "near": "Lähellä",
            "cats": [("soup", "Keitto"), ("fish", "Kala"), ("chicken", "Kana"), ("meat", "Liha"), ("veg", "Kasvis"), ("pasta", "Pasta"), ("pizza", "Pizza"), ("burger", "Burger"), ("asian", "Aasialainen"), ("salad", "Salaatti"), ("buffet", "Buffet")],
            "chips": [("fav", "Suosikit"), ("menu", "Vain listalliset"), ("stu", "Opiskelijahinta"), ("open", "Auki nyt"), ("u13", "Alle 13 €"), ("cheap", "Halvin ensin"), ("Veg", "Kasvis"), ("G", "G"), ("L", "L"), ("M", "M"), ("oivaA", "Oiva A")],
@@ -226,7 +226,7 @@ T = {
     "en": {"home": "/en/", "areas": "/en/lunch/", "area": "/en/lunch/{s}/", "venue": "/en/restaurant/{s}/", "nav_areas": "Areas", "other": "Suomeksi", "other_home": "/",
            "wd": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
            "wd_short": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-           "h1_home": "Lunch in Helsinki", "v_map": "Map", "v_list": "List", "d_list": "List", "d_map": "Map", "d_filter": "Filter", "d_big": "Full map", "d_back": "Back to list", "sheet_label": "Lunches nearby", "sheet_more": "Show more", "as_list": "Show as list", "done": "Done", "search_ph": "Search food or place",
+           "h1_home": "Lunch in Helsinki", "v_map": "Map", "v_list": "List", "d_list": "List", "d_map": "Map", "d_filter": "Filter", "d_big": "Full map", "d_back": "Back to list", "sheet_label": "Lunches nearby", "locate": "Find my location", "sheet_more": "Show more", "as_list": "Show as list", "done": "Done", "search_ph": "Search food or place",
            "pills": [("near", "Nearby"), ("pop", "Most liked"), ("cheap", "Cheapest"), ("veg", "Vegetarian"), ("stu", "Student")], "search": "Search restaurant, dish or area", "near": "Near me",
            "cats": [("soup", "Soup"), ("fish", "Fish"), ("chicken", "Chicken"), ("meat", "Meat"), ("veg", "Vegetarian"), ("pasta", "Pasta"), ("pizza", "Pizza"), ("burger", "Burger"), ("asian", "Asian"), ("salad", "Salad"), ("buffet", "Buffet")],
            "chips": [("fav", "Favourites"), ("menu", "With menu"), ("stu", "Student price"), ("open", "Open now"), ("u13", "Under 13 €"), ("cheap", "Cheapest first"), ("Veg", "Vegetarian"), ("G", "GF"), ("L", "LF"), ("M", "DF"), ("oivaA", "Oiva A")],
@@ -695,6 +695,7 @@ def main(L, out, day, preview):
 </section>
 <div id="map" role="region" aria-label="{t['v_map']}" data-big="{t['d_big']}" data-back="{t['d_back']}"></div>
 <div class="mtop" id="mtop"><label class="msearch"><span class="sr">{t['search_ph']}</span><input id="q2" type="search" autocomplete="off" placeholder="{t['search_ph']}"></label><button id="mfilt" type="button" class="mfbtn">{t['d_filter']}</button></div>
+<button type="button" class="locfab" id="locfab" aria-label="{t['locate']}" title="{t['locate']}"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="currentColor" d="M21 3 3 10.5l7.2 2.3L12.5 20z"/></svg></button>
 <section class="sheet" id="sheet" aria-label="{t['sheet_label']}">
 <button type="button" class="grab" id="grab" aria-label="{t['sheet_more']}"><span></span></button>
 <h2 id="shTitle"></h2>

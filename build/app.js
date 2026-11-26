@@ -274,12 +274,25 @@
   function setHdr() { document.documentElement.style.setProperty("--hdr", (hdr ? hdr.offsetHeight : 56) + "px"); }
   setHdr(); addEventListener("resize", setHdr);
   function sheetOn() { return !wide.matches && state.view === "split"; }
+  function sheetH(px) { document.documentElement.style.setProperty("--sheet-h", px + "px"); }
+  function peekH() { return Math.min(256, Math.round(innerHeight * 0.34)); }
+  function fullH() { return Math.round(innerHeight - (hdr ? hdr.offsetHeight : 56) - 130); }
   function syncMode() {
-    main.classList.toggle("sheetmode", sheetOn());
-    if (!sheetOn()) { main.classList.remove("sheetfull", "filters"); }
+    var on = sheetOn();
+    main.classList.toggle("sheetmode", on);
+    document.documentElement.classList.toggle("sheet-on", on);
+    if (on) { sheetH(state.sheet === "full" ? fullH() : peekH()); window.scrollTo(0, 0); }
+    else { main.classList.remove("sheetfull", "filters"); }
+    setTimeout(fixMapSize, 30);
   }
+  function fixMapSize() {
+    map.invalidateSize();
+    map.eachLayer(function (l) { if (l.getMaplibreMap) { try { l.getMaplibreMap().resize(); } catch (e) {} } });
+  }
+  addEventListener("resize", function () { if (sheetOn()) sheetH(state.sheet === "full" ? fullH() : peekH()); setTimeout(fixMapSize, 50); });
   function setSheet(st) {
     state.sheet = st; main.classList.toggle("sheetfull", st === "full");
+    sheetH(st === "full" ? fullH() : peekH());
     if (st === "full") renderCards(state.lastList || []);
   }
   function walkTxt(v) { var d = dist(v); return d == null ? (v.d || "") : (d < 2.5 ? Math.max(1, Math.round(d * 1000 / 80)) + S.walk : distTxt(d)); }
@@ -317,7 +330,7 @@
     select(v.i);
     var m = state.byId[v.i];
     if (m && state.sheet === "full") {
-      var hh = map.getSize().y, strip = Math.max(60, innerHeight - sheet.offsetHeight - (hdr ? hdr.offsetHeight : 56));
+      var strip = Math.max(60, innerHeight - sheet.offsetHeight - (hdr ? hdr.offsetHeight : 56));
       var pt = map.latLngToContainerPoint(m.getLatLng()), want = L.point(map.getSize().x / 2, strip / 2);
       state.quiet = true; map.panBy(pt.subtract(want), { animate: true });
     }
@@ -342,11 +355,25 @@
     var b = e.target.closest("[data-k]"); if (!b) return;
     var v = (state.lastList || [])[+b.getAttribute("data-k")]; setSheet("full"); if (v) setTimeout(function () { toCard(v.i); }, 50);
   });
-  var y0 = null;
-  sheet.addEventListener("touchstart", function (e) { if (!e.target.closest(".cards")) y0 = e.touches[0].clientY; }, { passive: true });
+  var y0 = null, h0 = 0, moved = false;
+  sheet.addEventListener("touchstart", function (e) {
+    if (e.target.closest(".cards,.pills,a,.likebtn")) { y0 = null; return; }
+    var inRows = e.target.closest(".shrows"); if (inRows && inRows.scrollTop > 0) { y0 = null; return; }
+    y0 = e.touches[0].clientY; h0 = sheet.offsetHeight; moved = false;
+  }, { passive: true });
+  sheet.addEventListener("touchmove", function (e) {
+    if (y0 == null) return;
+    var dy = e.touches[0].clientY - y0; if (Math.abs(dy) < 6 && !moved) return;
+    moved = true; sheet.classList.add("dragging");
+    sheetH(Math.max(120, Math.min(fullH(), h0 - dy)));
+    e.preventDefault();
+  }, { passive: false });
   sheet.addEventListener("touchend", function (e) {
-    if (y0 == null) return; var dy = e.changedTouches[0].clientY - y0; y0 = null;
-    if (dy < -30 && state.sheet !== "full") setSheet("full"); else if (dy > 30 && state.sheet === "full") setSheet("peek");
+    if (y0 == null) return; y0 = null; sheet.classList.remove("dragging");
+    if (!moved) return;
+    var h = sheet.offsetHeight;
+    if (state.sheet === "full") setSheet(h < fullH() - 60 ? "peek" : "full");
+    else setSheet(h > peekH() + 50 ? "full" : "peek");
   }, { passive: true });
   document.querySelectorAll("[data-pill]").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -444,17 +471,20 @@
   var meDot = null, locBtn;
   function locate(fromList) {
     if (!navigator.geolocation) { $("count").textContent = S.noloc; return; }
-    if (locBtn) locBtn.classList.add("busy");
+    if (locBtn) locBtn.classList.add("busy"); $("locfab").classList.add("busy");
     navigator.geolocation.getCurrentPosition(function (p) {
-      if (locBtn) locBtn.classList.remove("busy");
+      if (locBtn) locBtn.classList.remove("busy"); $("locfab").classList.remove("busy"); $("locfab").classList.add("on");
       state.me = [p.coords.latitude, p.coords.longitude]; goTo(state.me, 16);
       if (meDot) meDot.setLatLng(state.me);
       else meDot = L.circleMarker(state.me, { radius: 8, color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }).addTo(map);
       state.quiet = true; render();
       if (fromList && !sheetOn()) { var t = $("top3s").hidden ? $("count") : $("top3s"); t.scrollIntoView({ behavior: "smooth", block: "start" }); }
-    }, function () { if (locBtn) locBtn.classList.remove("busy"); $("count").textContent = S.noloc; }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+    }, function () { if (locBtn) locBtn.classList.remove("busy"); $("locfab").classList.remove("busy"); $("count").textContent = S.noloc; }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
   }
   $("near").addEventListener("click", function () { locate(true); });
+  $("locfab").addEventListener("click", function () { locate(false); });
+  // phones: find the user right away (the browser asks once); the list then starts from where you are
+  if (touch && navigator.geolocation) setTimeout(function () { locate(false); }, 300);
   var Loc = L.Control.extend({ options: { position: "topright" }, onAdd: function () {
     var d = L.DomUtil.create("div", "leaflet-bar leaflet-control");
     locBtn = L.DomUtil.create("a", "locbtn", d); locBtn.href = "#"; locBtn.setAttribute("role", "button");
