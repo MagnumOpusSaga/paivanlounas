@@ -15,3 +15,5 @@ data/lastmod.json
 data/likes_raw.json
 data/landed_raw.json
 smoke-*.png
+data/price_history.json
+data/lists_history.json

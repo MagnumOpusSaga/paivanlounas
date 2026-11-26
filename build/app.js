@@ -157,6 +157,7 @@
       if (f.open && !openNow(v)) return false;
       if (f.oivaA && v.o !== "A") return false;
       if (f.u13) { var p = minPrice(v); if (!p || p >= 13) return false; }
+      if (f.etu) { var p2 = minPrice(v); if (!p2 || p2 > 14) return false; }
       for (var d of ["Veg", "G", "L", "M"]) if (f[d] && !hasDiet(v, d)) return false;
       if (dq && slug(v.d) !== dq) return false;
       if (q) {
@@ -505,6 +506,13 @@
     setView(pv === "list" && !v ? "list" : "split", true);
     if (v && !state.byId[v]) { state.f.menu = false; document.querySelector('[data-f="menu"]').classList.remove("on"); render(); }
     if (v && state.byId[v]) openOnMap(v);
+    // links from articles: ?q=hernekeitto (search), ?f=stu or ?f=etu (filter chips)
+    var pq = params.get("q");
+    if (pq) { ["q", "q2"].forEach(function (id) { var e = $(id); if (e) e.value = pq; }); var qe = $("q"); if (qe) qe.dispatchEvent(new Event("input", { bubbles: true })); }
+    (params.get("f") || "").split(",").forEach(function (k) {
+      var b = k && document.querySelector('[data-f="' + k + '"]');
+      if (b && !b.classList.contains("on")) b.click();
+    });
     if (params.get("d")) { var pts = filtered().map(function (x) { return [x.y, x.x]; }); if (pts.length) map.fitBounds(pts, { padding: [30, 30] }); }
   });
 })();

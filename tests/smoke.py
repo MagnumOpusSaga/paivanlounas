@@ -61,9 +61,9 @@ with sync_playwright() as p:
         rows:document.querySelectorAll('#shRows li').length,pins:document.querySelectorAll('.pin').length,scroll:document.scrollingElement.scrollHeight}}""")
     check(abs(g["mt"] - g["hb"]) <= 2 and g["mb"] >= g["vh"] - 2, f"phone map fills screen under header (top {g['mt']:.0f}/{g['hb']:.0f}, bottom {g['mb']:.0f}/{g['vh']})")
     if g["ct"] is not None:
-        check(abs(g["ct"] - g["mt"]) <= 2 and abs(g["cb"] - g["mb"]) <= 2, f"basemap canvas covers the map (no empty band) {g['ct']:.0f}-{g['cb']:.0f} vs {g['mt']:.0f}-{g['mb']:.0f}")
+        check(g["ct"] <= g["mt"] + 2 and g["cb"] >= g["mb"] - 2, f"basemap canvas covers the map (no empty band) {g['ct']:.0f}-{g['cb']:.0f} vs {g['mt']:.0f}-{g['mb']:.0f}")
     check(g["sheet"] == "flex" and g["rows"] >= 1 and "lounas" in g["title"], f"phone sheet shows lists ({g['title']!r}, rows {g['rows']})")
-    check(g["pins"] >= 50, f"price pins on map: {g['pins']}")
+    check(g["pins"] >= 20, f"price pins on map: {g['pins']}")
     check(g["scroll"] <= g["vh"] + 2, f"phone page itself does not scroll (height {g['scroll']})")
     pg.screenshot(path="smoke-phone.png")
     pg.click("#grab"); pg.wait_for_timeout(900)

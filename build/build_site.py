@@ -74,7 +74,7 @@ def decap(s):
 
 
 def clean_dish(d):
-    d = re.sub(r"\s*\((?:[A-Za-z]{1,4}[\s,+*/]*)+\)", "", d or "")
+    d = re.sub(r"\s*\(\s*[A-Za-z]{1,4}(?:[\s,+*/]+[A-Za-z]{1,4})*[\s,+*/]*\)", "", d or "")  # no nested quantifier: long names used to hang
     d = re.sub(r"\s+(?:VL|VE|VEG|L|G|M|K|V|\*)(?:\s*[,/]\s*(?:VL|VE|VEG|L|G|M|K|V|\*))+(?=\s|$)", "", d)
     return re.sub(r"[\s,;·]+$", "", d)
 
@@ -205,7 +205,7 @@ T = {
            "h1_home": "Lounas Helsinki", "v_map": "Kartta", "v_list": "Lista", "d_list": "Lista", "d_map": "Kartta", "d_filter": "Suodata", "d_big": "Koko kartta", "d_back": "Takaisin listaan", "sheet_label": "Lounaat lähellä", "locate": "Hae sijaintini", "sheet_more": "Näytä lisää", "as_list": "Näytä listana", "done": "Valmis", "search_ph": "Hae ruokaa tai paikkaa",
            "pills": [("near", "Lähellä"), ("pop", "Suosituimmat"), ("cheap", "Halvimmat"), ("veg", "Kasvis"), ("stu", "Opiskelija")], "search": "Hae ravintolaa, ruokaa tai aluetta", "near": "Lähellä",
            "cats": [("soup", "Keitto"), ("fish", "Kala"), ("chicken", "Kana"), ("meat", "Liha"), ("veg", "Kasvis"), ("pasta", "Pasta"), ("pizza", "Pizza"), ("burger", "Burger"), ("asian", "Aasialainen"), ("salad", "Salaatti"), ("buffet", "Buffet")],
-           "chips": [("fav", "Suosikit"), ("menu", "Vain listalliset"), ("stu", "Opiskelijahinta"), ("open", "Auki nyt"), ("u13", "Alle 13 €"), ("cheap", "Halvin ensin"), ("Veg", "Kasvis"), ("G", "G"), ("L", "L"), ("M", "M"), ("oivaA", "Oiva A")],
+           "chips": [("fav", "Suosikit"), ("menu", "Vain listalliset"), ("stu", "Opiskelijahinta"), ("open", "Auki nyt"), ("u13", "Alle 13 €"), ("etu", "Lounasetu ≤ 14 €"), ("cheap", "Halvin ensin"), ("Veg", "Kasvis"), ("G", "G"), ("L", "L"), ("M", "M"), ("oivaA", "Oiva A")],
            "title_home": "Lounas Helsinki tänään – päivän lounaslistat kartalla | Päivän lounas",
            "desc_home": "Helsingin lounaslistat tänään ({d}): {n} ravintolan lista, hinnat, ruokavaliot ja Oiva-hymy kartalla.",
            "area_h1": "Lounas {a} tänään", "area_title": "Lounas {a} tänään – {n} lounaslistaa | Päivän lounas",
@@ -229,7 +229,7 @@ T = {
            "h1_home": "Lunch in Helsinki", "v_map": "Map", "v_list": "List", "d_list": "List", "d_map": "Map", "d_filter": "Filter", "d_big": "Full map", "d_back": "Back to list", "sheet_label": "Lunches nearby", "locate": "Find my location", "sheet_more": "Show more", "as_list": "Show as list", "done": "Done", "search_ph": "Search food or place",
            "pills": [("near", "Nearby"), ("pop", "Most liked"), ("cheap", "Cheapest"), ("veg", "Vegetarian"), ("stu", "Student")], "search": "Search restaurant, dish or area", "near": "Near me",
            "cats": [("soup", "Soup"), ("fish", "Fish"), ("chicken", "Chicken"), ("meat", "Meat"), ("veg", "Vegetarian"), ("pasta", "Pasta"), ("pizza", "Pizza"), ("burger", "Burger"), ("asian", "Asian"), ("salad", "Salad"), ("buffet", "Buffet")],
-           "chips": [("fav", "Favourites"), ("menu", "With menu"), ("stu", "Student price"), ("open", "Open now"), ("u13", "Under 13 €"), ("cheap", "Cheapest first"), ("Veg", "Vegetarian"), ("G", "GF"), ("L", "LF"), ("M", "DF"), ("oivaA", "Oiva A")],
+           "chips": [("fav", "Favourites"), ("menu", "With menu"), ("stu", "Student price"), ("open", "Open now"), ("u13", "Under 13 €"), ("etu", "Meal benefit ≤ 14 €"), ("cheap", "Cheapest first"), ("Veg", "Vegetarian"), ("G", "GF"), ("L", "LF"), ("M", "DF"), ("oivaA", "Oiva A")],
            "title_home": "Lunch in Helsinki today – lunch menus on a map | Päivän lounas",
            "desc_home": "Helsinki lunch menus today ({d}): {n} restaurants with menus, prices, diets and food-safety ratings on a map.",
            "area_h1": "Lunch in {a} today", "area_title": "Lunch in {a} today – {n} lunch menus | Päivän lounas",
@@ -326,7 +326,7 @@ TOPIC_T = {
            "cheap": {"path": "/halvin-lounas-helsinki/", "h1": "Halvin lounas Helsingissä", "title": "Halvin lounas Helsingissä tänään – alle 13 € | Päivän lounas",
                      "desc": "Helsingin halvimmat lounaat tänään ({d}): {n} lounasta alle 13 eurolla hintoineen ja ruokalistoineen.",
                      "lead": "{d}: <b>{n} lounasta alle 13 eurolla</b>, halvin {p}. Lista päivittyy joka arkiaamu.",
-                     "outro": "Hinta on ravintolan ilmoittama tavallinen lounashinta. Opiskelija- ja henkilökuntahinnat voivat olla edullisempia."},
+                     "outro": "Hinta on ravintolan ilmoittama tavallinen lounashinta. Opiskelija- ja henkilökuntahinnat voivat olla edullisempia. Mitä lounas maksaa keskimäärin ja millä alueilla: <a href=\"/lounaan-hinta-helsinki/\">Lounaan hinta Helsingissä</a>."},
            "veg": {"path": "/kasvislounas-helsinki/", "h1": "Kasvislounas Helsingissä", "title": "Kasvislounas Helsingissä tänään – kasvis- ja vegaanilounaat | Päivän lounas",
                    "desc": "Kasvislounas Helsingissä tänään ({d}): {n} ravintolaa, joiden listalla on kasvis- tai vegaaniannos.",
                    "lead": "{d}: <b>{n} ravintolaa</b>, joiden lounaslistalla on kasvis- tai vegaaniannos, alueittain. Halvin {p}.",
@@ -882,6 +882,11 @@ def main(L, out, day, preview):
             ix = add_url(path, ok_v, [v["ms"], v["slug"] in LANDED])
             open(f"{out}{path}index.html", "w").write(page(lg, t["venue_title"].format(n=v["name"]), t["venue_desc"].format(n=v["name"], a=v["street"]), path, alt, body, preview,
                                                            f'<script type="application/ld+json">{json.dumps(jl, ensure_ascii=False)}</script>', index=ix, has_list=bool(v["menu"])))
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import articles
+    articles.write_articles({"out": out, "preview": preview, "venues": venues, "show_day": show_day, "days": days, "likes": LIKES,
+                             "page": page, "add_url": add_url, "esc": esc, "fmt_price": fmt_price, "lunch_price": lunch_price,
+                             "clean_dish": clean_dish, "datestr": datestr, "ad_block": ad_block, "history_path": f"{L}/data/price_history.json"})
     write_info_pages(out, preview, urls)
     if ADSENSE:
         open(f"{out}/ads.txt", "w").write(f"google.com, {ADSENSE.replace('ca-', '')}, DIRECT, f08c47fec0942fa0\n")

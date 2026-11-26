@@ -85,7 +85,9 @@ def main(data, raw, out):
         for v in venues:
             if v["lat"] and dist((v["lat"], v["lon"]), (c["lat"], c["lon"])) < 120:
                 nv, nc = norm(v["name"]), norm(c["name"])
-                if nv and nc and (nv in nc or nc in nv or (v.get("operator") or "").lower().startswith(("compass", "sodexo", "unicafe", "ylioppilasravintolat", "food & co"))):
+                # a short chain name inside another restaurant's name ("Kaivopiha" in "Caverna Kaivopiha") is not a match
+                other_brand = nc in nv and nv != nc and not any(b in nv for b in ("unicafe", "sodexo", "amica", "food co", "compass", "ravintola"))
+                if nv and nc and not other_brand and (nv in nc or nc in nv or (v.get("operator") or "").lower().startswith(("compass", "sodexo", "unicafe", "ylioppilasravintolat", "food & co"))):
                     best = v
                     break
         if best:
