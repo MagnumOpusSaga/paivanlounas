@@ -122,7 +122,7 @@
   function fmt(p) { return p ? p.toFixed(2).replace(".", ",") + " €" : ""; }
   function dist(v) { return state.me ? km(state.me, [v.y, v.x]) : null; }
   function distTxt(d) { return d == null ? "" : d < 1 ? Math.round(d * 1000) + " m" : d.toFixed(1).replace(".", ",") + " km"; }
-  function clean(d) { return String(d || "").replace(/\s*\((?:[A-Za-z]{1,4}[\s,+*\/]*)+\)/g, "").replace(/\s+(?:VL|VE|VEG|L|G|M|K|V|\*)(?:\s*[,\/]\s*(?:VL|VE|VEG|L|G|M|K|V|\*))+(?=\s|$)/g, "").replace(/[\s,;·]+$/, ""); }
+  function clean(d) { return String(d || "").replace(/^\s*(?:henkilökunta|henkilöstö|opiskelijat?|staff|students?)(?:\s*(?:&|ja|and|\/)\s*(?:henkilökunta|henkilöstö|opiskelijat?|staff|students?))*\s*:\s*/i, "").replace(/\s*\((?:[A-Za-z]{1,4}(?:[\s,+*\/]+|(?=\))))+\)/g, "").replace(/\s+(?:VL|VE|VEG|L|G|M|K|V|\*)(?:\s*[,\/]\s*(?:VL|VE|VEG|L|G|M|K|V|\*))+(?=\s|$)/g, "").replace(/[\s,;·]+$/, ""); }
   function firstDish(v) { var m = M(v); if (!m) return ""; var h = state.cat ? catHit(v) : 0; var it = m.items[h > 0 ? h : 0]; return it ? clean(it.d[0]) : ""; }
   function ppLink(v) { return S.pp + "?lat=" + v.y + "&lon=" + v.x + "&q=" + encodeURIComponent(v.n) + "&dur=60"; }
   function routeLink(v) { return "https://www.google.com/maps/dir/?api=1&destination=" + v.y + "," + v.x; }

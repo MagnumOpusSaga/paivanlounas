@@ -73,7 +73,11 @@ def decap(s):
     return out[:1].upper() + out[1:]
 
 
+AUDIENCE = re.compile(r"^\s*(?:henkilökunta|henkilöstö|opiskelijat?|staff|students?)(?:\s*(?:&|ja|and|/)\s*(?:henkilökunta|henkilöstö|opiskelijat?|staff|students?))*\s*:\s*", re.I)
+
+
 def clean_dish(d):
+    d = AUDIENCE.sub("", d or "")
     d = re.sub(r"\s*\(\s*[A-Za-z]{1,4}(?:[\s,+*/]+[A-Za-z]{1,4})*[\s,+*/]*\)", "", d or "")  # no nested quantifier: long names used to hang
     d = re.sub(r"\s+(?:VL|VE|VEG|L|G|M|K|V|\*)(?:\s*[,/]\s*(?:VL|VE|VEG|L|G|M|K|V|\*))+(?=\s|$)", "", d)
     return re.sub(r"[\s,;·]+$", "", d)
@@ -728,8 +732,7 @@ def main(L, out, day, preview):
             prices = [x for x in mp.values() if x]
             cheapest = t["cheapest"].format(p=fmt_price(min(prices))) if prices else ""
             def clean(d):
-                d = re.sub(r"\s*\((?:[A-Za-z]{1,4}[\s,+*/]*)+\)", "", d)
-                return re.sub(r"[\s,;·]+$", "", d)
+                return clean_dish(d)
             def txt(v):
                 return " ".join(" ".join(i["d"]) + " " + (i.get("t") or "") for i in v["menu"]["items"]).lower()
             cheap = sorted([v for v in withm if mp[v["slug"]] and mp[v["slug"]] < 13], key=lambda v: mp[v["slug"]])[:6]

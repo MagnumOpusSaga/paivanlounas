@@ -241,3 +241,6 @@ footer{max-width:1120px;margin:0 auto;padding:18px 20px 28px;color:var(--mut);fo
 /* contrast (N22): links on the green Oiva box and map credits in dark mode */
 .oivabox a{color:var(--p-dark)}
 @media (prefers-color-scheme: dark){.leaflet-control-attribution a{color:var(--p-dark)!important}}
+/* the round locate arrow is a phone control: never on wide screens (it showed as a grey bar under the map) */
+.locfab{display:none}
+@media (min-width:900px){.locfab,.app.sheetmode .locfab{display:none!important}}
