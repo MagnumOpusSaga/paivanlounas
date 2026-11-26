@@ -16,7 +16,10 @@ except Exception:
     hist = {}
 prev = (datetime.date.fromisoformat(day) - datetime.timedelta(days=7)).isoformat()
 older = [hist[d] for d in sorted(hist) if d < day][-5:]
-usual = hist.get(prev) or (statistics.median(older) if older else None)
+# no history yet: the other weekdays of this week's lists (fetched ahead) stand in for "usual"
+wkd = [sum(1 for v in wk["venues"] if (v.get("ms") or {}).get(d)) for d in wk.get("days", []) if d != day]
+wkd = [x for x in wkd if x]
+usual = hist.get(prev) or (statistics.median(older) if older else (statistics.median(wkd) if wkd else None))
 live_day = None
 try:
     live_day = json.load(urllib.request.urlopen(urllib.request.Request("https://paivanlounas.fi/data/status.json", headers={"User-Agent": "Mozilla/5.0 (paivanlounas quality gate)"}), timeout=15)).get("date")
