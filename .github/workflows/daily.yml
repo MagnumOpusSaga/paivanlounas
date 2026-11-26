@@ -47,6 +47,14 @@ jobs:
           path: data/ai_cache.json
           key: ai-cache-${{ github.run_id }}
           restore-keys: ai-cache-
+      - name: Restore index-gate state (last menu day per restaurant, sitemap lastmod)
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            data/menu_seen.json
+            data/lastmod.json
+          key: gate-${{ github.run_id }}
+          restore-keys: gate-
       - name: Restore last fetched lists (code pushes only)
         if: github.event_name == 'push'
         uses: actions/cache/restore@v4
@@ -72,6 +80,14 @@ jobs:
         with:
           path: data/ai_cache.json
           key: ai-cache-${{ github.run_id }}
+      - name: Save index-gate state
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/menu_seen.json
+            data/lastmod.json
+          key: gate-${{ github.run_id }}
       - name: Save fetched lists
         uses: actions/cache/save@v4
         with:

@@ -10,3 +10,5 @@ data/ai_stats.json
 .wrangler/
 data/ai_cache.json
 data/reports_raw.json
+data/menu_seen.json
+data/lastmod.json

@@ -236,6 +236,42 @@ CONTACT = "info@paivanlounas.fi"
 OWNER = "BR Entertainment (toiminimi), Y-tunnus 3183394-5"
 
 
+# ---- indexing gate (spam rule, Branu 25.11.2026: claude/kirjasto/10-spamsuoja.md) ----
+# A page goes to the index and the sitemap only if it has its own data that answers its question.
+# Everything else is still built for visitors but gets noindex, no sitemap entry and no ads.
+GATE = {
+    "venue": 14,        # restaurant page: a lunch menu on at least one day in the last 14 days
+    "area": 3,          # district page: at least 3 restaurants with a menu this week
+    "topic": 5,         # cheapest / vegetarian / buffet page: at least 5 restaurants today
+    "areas_index": 1,   # list of districts: at least one indexable district
+    "en": {"/en/"},     # English: only the front page until Search Console shows demand (language gate)
+}
+SITEMAP = {}            # path -> data signature, filled by add_url()
+
+
+def add_url(path, ok, sig):
+    """Gate decision for one page. Returns True if it may be indexed (then it also goes to the sitemap)."""
+    if path.startswith("/en/") and path not in GATE["en"]:
+        ok = False
+    if ok:
+        SITEMAP[path] = hashlib.md5(json.dumps(sig, ensure_ascii=False, sort_keys=True, default=str).encode()).hexdigest()[:12]
+    return ok
+
+
+def write_sitemap(out, root, today):
+    """lastmod = the day the page's data last changed (stored in data/lastmod.json between runs), not the build day."""
+    lp = os.path.join(root, "data", "lastmod.json")
+    old = json.load(open(lp)) if os.path.exists(lp) else {}
+    new = {}
+    for path, h in SITEMAP.items():
+        prev = old.get(path)
+        new[path] = prev if prev and prev[0] == h else [h, today]
+    json.dump(new, open(lp, "w"), ensure_ascii=False)
+    sm = "".join(f"<url><loc>{DOMAIN}{u}</loc><lastmod>{new[u][1]}</lastmod></url>" for u in sorted(new))
+    open(f"{out}/sitemap.xml", "w").write(f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{sm}</urlset>')
+    return len(new)
+
+
 def ads_tag(path):
     """AdSense script on every page (site verification needs the front page too).
     Keep auto ads off the map app with AdSense's page exclusions (/ and /en/)."""
@@ -257,7 +293,7 @@ TOPIC_T = {
            "buffet": {"path": "/buffet-lounas-helsinki/", "h1": "Buffet-lounas Helsingissä", "title": "Buffet-lounas Helsingissä tänään – noutopöydät | Päivän lounas",
                       "desc": "Buffet-lounaat Helsingissä tänään ({d}): {n} noutopöytälounasta alueittain hintoineen.",
                       "lead": "{d}: <b>{n} buffet- ja noutopöytälounasta</b> alueittain. Halvin {p}.",
-                      "outro": "Buffet tarkoittaa, että ruokaa saa ottaa vapaasti. Hinnat ja sisältö ravintolan omalta listalta."}},
+                      "outro": "Hinnat ja sisältö ravintolan omalta listalta."}},
     "en": {"today": "today", "more": "More lunch lists", "areas": "Popular areas", "empty": "No menus found today.",
            "cheap": {"path": "/en/cheap-lunch-helsinki/", "h1": "Cheapest lunch in Helsinki", "title": "Cheapest lunch in Helsinki today – under 13 € | Päivän lounas",
                      "desc": "The cheapest lunches in Helsinki today ({d}): {n} lunches under 13 euros with prices and menus.",
@@ -321,14 +357,18 @@ def share_image(out, key, title, ds_, items, mp, url_path):
         return None
 
 
-def page(lg, title, desc, path, alt_path, body, preview, extra_head="", og_image=None):
+def page(lg, title, desc, path, alt_path, body, preview, extra_head="", og_image=None, index=True):
     t = T[lg]
-    extra_head += ads_tag(path)
-    robots = '<meta name="robots" content="noindex,nofollow">' if preview else ""
+    extra_head += ads_tag(path) if index else ""  # ads only on pages with own data
+    robots = '<meta name="robots" content="noindex,nofollow">' if preview else ("" if index else '<meta name="robots" content="noindex,follow">')
+    if not (alt_path and alt_path in SITEMAP and path in SITEMAP) and path not in ("/", "/en/"):
+        alt_path_hl = None  # hreflang only between two indexable versions
+    else:
+        alt_path_hl = alt_path
     bar = f'<div class="preview">{t["preview"]}</div>' if preview else ""
     other = "en" if lg == "fi" else "fi"
     hl = (f'<link rel="alternate" hreflang="{lg}" href="{DOMAIN}{path}"><link rel="alternate" hreflang="{other}" href="{DOMAIN}{alt_path}">'
-          f'<link rel="alternate" hreflang="x-default" href="{DOMAIN}{path if lg == "fi" else alt_path}">') if alt_path else ""
+          f'<link rel="alternate" hreflang="x-default" href="{DOMAIN}{path if lg == "fi" else alt_path}">') if alt_path_hl else ""
     return f"""<!doctype html><html lang="{lg}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title><meta name="description" content="{esc(desc)}"><link rel="canonical" href="{DOMAIN}{path}">{hl}{robots}
 <link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#221a16" media="(prefers-color-scheme: dark)"><meta name="color-scheme" content="light dark">
@@ -502,6 +542,15 @@ def main(L, out, day, preview):
         shutil.copy(os.path.join(fs, src), f"{out}/fonts/{dst}")
 
     urls = []
+    # last day each restaurant had a menu (kept between runs) – the restaurant-page gate looks back GATE["venue"] days
+    sp = f"{L}/data/menu_seen.json"
+    SEEN = json.load(open(sp)) if os.path.exists(sp) else {}
+    for v in venues:
+        got = [d for d, m in v["ms"].items() if m and m.get("items")]
+        if got:
+            SEEN[v["slug"]] = max([SEEN.get(v["slug"], "")] + got)
+    json.dump(SEEN, open(sp, "w"))
+    since = (datetime.date.today() - datetime.timedelta(days=GATE["venue"])).isoformat()
     by_d = {}
     for v in venues:
         if v["dslug"]:
@@ -533,14 +582,15 @@ def main(L, out, day, preview):
               {"@context": "https://schema.org", "@type": "Organization", "name": SITE, "url": DOMAIN + "/", "logo": DOMAIN + "/icon-512.png"}]
         hp = t["home"]
         os.makedirs(f"{out}{hp}", exist_ok=True)
+        ix = add_url(hp, len(with_menu) > 0, [(v["slug"], v["menu"]) for v in with_menu])
         open(f"{out}{hp}index.html", "w").write(page(lg, t["title_home"], t["desc_home"].format(d=ds_, n=len(with_menu)), hp, T[other]["home"], body, preview,
-                                                       f'<script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>'))
-        urls.append(hp)
+                                                       f'<script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>', index=ix))
         # districts (digest layout: sections people scan, then the full list)
         A = AREA_T[lg]
         cent = {k: (sum(v["lat"] for v in vs) / len(vs), sum(v["lon"] for v in vs) / len(vs)) for k, vs in by_d.items()}
         nmenu = {k: sum(1 for v in vs if v["menu"]) for k, vs in by_d.items()}
         idx = []
+        n_area_ix = 0
         for (dslug, dn), vs in sorted(by_d.items(), key=lambda x: x[0][1]):
             withm = [v for v in vs if v["menu"]]
             nm = len(withm)
@@ -575,11 +625,11 @@ def main(L, out, day, preview):
             for sid, title, lead, items in (("halvat", A["cheap_h"], A["cheap_p"].format(a=dn), cheap), ("kasvis", A["veg_h"], A["veg_p"], veg),
                                             ("buffet", A["buf_h"], A["buf_p"], buf)):
                 if len(items) >= 2:
-                    secs.append(f'<section class="sec" id="{sid}"><h2>{title}</h2><p>{lead}</p><ul class="picks">{"".join(mini(v) for v in items)}</ul></section>')
+                    secs.append(f'<section class="sec" id="{sid}"><h2>{title}</h2><ul class="picks">{"".join(mini(v) for v in items)}</ul></section>')
                     jumps.append(f'<a href="#{sid}">{title}</a>')
             allm = sorted(withm, key=lambda v: v["name"].lower())
             if allm:
-                secs.append(f'<section class="sec" id="kaikki"><h2>{A["all_h"].format(n=nm)}</h2><p>{A["all_p"]}</p>{"".join(ent(v) for v in allm)}</section>')
+                secs.append(f'<section class="sec" id="kaikki"><h2>{A["all_h"].format(n=nm)}</h2>{"".join(ent(v) for v in allm)}</section>')
                 jumps.append(f'<a href="#kaikki">{A["all_j"].format(n=nm)}</a>')
             others = sorted([v for v in vs if not v["menu"]], key=lambda v: v["name"].lower())
             if others:
@@ -613,14 +663,17 @@ def main(L, out, day, preview):
                            "itemListElement": [{"@type": "ListItem", "position": k + 1, "name": v["name"], "url": DOMAIN + t["venue"].format(s=v["slug"])} for k, v in enumerate(allm)]})
             ldh = "".join(f'<script type="application/ld+json">{json.dumps(x, ensure_ascii=False)}</script>' for x in ld)
             os.makedirs(f"{out}{path}", exist_ok=True)
-            open(f"{out}{path}index.html", "w").write(page(lg, t["area_title"].format(a=dn, n=nm), desc, path, alt, body + (SHARE_JS if img else ""), preview, ldh, img))
-            urls.append(path)
+            weekly = [v for v in vs if any(m and m.get("items") for m in v["ms"].values())]
+            ix = add_url(path, len(weekly) >= GATE["area"], [(v["slug"], v["ms"]) for v in weekly])
+            open(f"{out}{path}index.html", "w").write(page(lg, t["area_title"].format(a=dn, n=nm), desc, path, alt, body + (SHARE_JS if img else ""), preview, ldh if ix else "", img, index=ix))
             idx.append((dn, dslug, nm, len(vs)))
+            if ix:
+                n_area_ix += 1
         lis = "".join(f'<li><a href="{t["area"].format(s=s)}">{esc(n)}</a> <small>{m} {t["lists"]} · {tt} {t["places"]}</small></li>' for n, s, m, tt in idx)
         os.makedirs(f"{out}{t['areas']}", exist_ok=True)
+        ix = add_url(t["areas"], n_area_ix >= GATE["areas_index"], idx)
         open(f"{out}{t['areas']}index.html", "w").write(page(lg, t["areas_title"], t["areas_h1"], t["areas"], T[other]["areas"],
-                                                              f'<main class="content"><h1>{t["areas_h1"]}</h1><ul class="areas">{lis}</ul></main>', preview))
-        urls.append(t["areas"])
+                                                              f'<main class="content"><h1>{t["areas_h1"]}</h1><ul class="areas">{lis}</ul></main>', preview, index=ix))
         # topic pages (cheapest / vegetarian / buffet in all of Helsinki), refreshed daily
         TP = TOPIC_T[lg]
         allm_g = [v for v in venues if v["menu"]]
@@ -651,8 +704,8 @@ def main(L, out, day, preview):
 <aside class="side">{share_box}<div class="box"><h2>{TP['more']}</h2><ul>{others_l}</ul></div><div class="box"><h2>{TP['areas']}</h2><ul>{areas_l}</ul></div>
 <div class="box"><a class="btn" href="{t['home']}">{t['show_map']}</a></div></aside></div></main>"""
             os.makedirs(f"{out}{path}", exist_ok=True)
-            open(f"{out}{path}index.html", "w").write(page(lg, TP[key]["title"], TP[key]["desc"].format(d=ds_, n=len(items)), path, alt, body + (SHARE_JS if img else ""), preview, "", img))
-            urls.append(path)
+            ix = add_url(path, len(items) >= GATE["topic"], [(v["slug"], v["menu"]) for v in items])
+            open(f"{out}{path}index.html", "w").write(page(lg, TP[key]["title"], TP[key]["desc"].format(d=ds_, n=len(items)), path, alt, body + (SHARE_JS if img else ""), preview, "", img, index=ix))
         # venues
         for v in venues:
             if not (v["ms"] or v["sources"]):
@@ -676,9 +729,9 @@ def main(L, out, day, preview):
 <p class="actions"><a class="btn" href="{t['home']}?v={v['slug']}">{t['show_map']}</a> <a class="btn ghost" href="https://www.google.com/maps/dir/?api=1&destination={v['lat']},{v['lon']}" rel="nofollow noopener">{t['route']}</a> {parkpenny(v, lg)}</p>
 {report_form(v, lg)}</main><script src="/suggest.js?v={VER['suggest.js']}" defer></script>"""
             os.makedirs(f"{out}{path}", exist_ok=True)
+            ix = add_url(path, (SEEN.get(v["slug"]) or "") >= since, v["ms"])
             open(f"{out}{path}index.html", "w").write(page(lg, t["venue_title"].format(n=v["name"]), t["venue_desc"].format(n=v["name"], a=v["street"]), path, alt, body, preview,
-                                                           f'<script type="application/ld+json">{json.dumps(jl, ensure_ascii=False)}</script>'))
-            urls.append(path)
+                                                           f'<script type="application/ld+json">{json.dumps(jl, ensure_ascii=False)}</script>', index=ix))
     write_info_pages(out, preview, urls)
     if ADSENSE:
         open(f"{out}/ads.txt", "w").write(f"google.com, {ADSENSE.replace('ca-', '')}, DIRECT, f08c47fec0942fa0\n")
@@ -687,8 +740,9 @@ def main(L, out, day, preview):
           '<li><a href="/halvin-lounas-helsinki/">Halvin lounas Helsingissä</a></li><li><a href="/kasvislounas-helsinki/">Kasvislounas Helsingissä</a></li></ul></main>')
     open(f"{out}/404.html", "w").write(page("fi", "Sivua ei löytynyt | Päivän lounas", "", "/404", None, nf, preview, '<meta name="robots" content="noindex">'))
     open(f"{out}/robots.txt", "w").write("User-agent: *\nDisallow: /\n" if preview else f"User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {DOMAIN}/sitemap.xml\n")
-    sm = "".join(f"<url><loc>{DOMAIN}{u}</loc><lastmod>{show_day}</lastmod></url>" for u in urls)
-    open(f"{out}/sitemap.xml", "w").write(f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{sm}</urlset>')
+    n_sm = write_sitemap(out, L, datetime.date.today().isoformat())
+    built = sum(1 for _, _, fs in os.walk(out) for f in fs if f == "index.html")
+    print(f"index gate: {n_sm} of {built} pages indexable (sitemap), {built - n_sm} noindex", file=sys.stderr)
     open(f"{out}/_headers", "w").write("/data/*\n  Cache-Control: public, max-age=600\n/jako/*\n  Cache-Control: public, max-age=1800\n/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n")
     print("pages", len(urls), file=sys.stderr)
 
@@ -757,16 +811,19 @@ INFO = {
 }
 
 
+INFO_DATE = "24.11.2026"  # when the about/privacy text last changed – update by hand when the text changes
+
+
 def write_info_pages(out, preview, urls):
     today = datetime.date.today()
     for lg in ("fi", "en"):
         for key in ("about", "privacy"):
             path, alt, title, desc, body = INFO[lg][key]
             body = body.format(owner=OWNER if lg == "fi" else OWNER.replace("toiminimi", "sole trader").replace("Y-tunnus", "Business ID"),
-                               contact=CONTACT, date=f"{today.day}.{today.month}.{today.year}", ads=INFO[lg]["ads"] if ADSENSE else "")
+                               contact=CONTACT, date=INFO_DATE, ads=INFO[lg]["ads"] if ADSENSE else "")
             os.makedirs(f"{out}{path}", exist_ok=True)
-            open(f"{out}{path}index.html", "w").write(page(lg, title, desc, path, alt, f'<main class="content">{body}</main>', preview))
-            urls.append(path)
+            ix = add_url(path, True, body)
+            open(f"{out}{path}index.html", "w").write(page(lg, title, desc, path, alt, f'<main class="content">{body}</main>', preview, index=ix))
 
 
 if __name__ == "__main__":
