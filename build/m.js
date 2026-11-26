@@ -1,6 +1,7 @@
 // Anonymous counters (no cookies, no ids): page view, what gets clicked, and quick exits (<15 s, no click). See /tietosuoja/.
 (function () {
   var d = document.documentElement, P = d.getAttribute("data-pt") || "other", H = d.getAttribute("data-hl") === "1" ? 1 : 0;
+  var K = (d.getAttribute("data-k") || "").slice(0, 40);
   var q = [["view", ""]], t0 = Date.now(), clicked = false, exitSent = false, searched = false;
   function send() {
     if (!q.length) return;
@@ -10,6 +11,8 @@
   }
   function ev(k) { clicked = true; q.push(["click", k]); if (q.length >= 10) send(); }
   window.plEvent = ev;
+  // landed here from a search engine: which restaurant / district pages people really look for (index gate)
+  if (K && /(^|\.)(google|bing|duckduckgo|ecosia|yahoo|yandex|startpage|qwant)\./.test((document.referrer.split("/")[2] || ""))) q.push(["land", K]);
   function kind(a) {
     var k = a.getAttribute("data-ev"); if (k) return k;
     if (a.closest(".nearby")) return "nearby";

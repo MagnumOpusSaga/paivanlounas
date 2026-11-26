@@ -202,7 +202,8 @@ T = {
     "fi": {"home": "/", "areas": "/lounas/", "area": "/lounas/{s}/", "venue": "/ravintola/{s}/", "nav_areas": "Alueet", "other": "In English", "other_home": "/en/",
            "wd": ["maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai", "sunnuntai"],
            "wd_short": ["Ma", "Ti", "Ke", "To", "Pe", "La", "Su"],
-           "h1_home": "Lounas Helsinki", "v_map": "Kartta", "v_list": "Lista", "d_list": "Lista", "d_map": "Kartta", "d_filter": "Suodata", "d_big": "Koko kartta", "d_back": "Takaisin listaan", "search": "Hae ravintolaa, ruokaa tai aluetta", "near": "Lähellä",
+           "h1_home": "Lounas Helsinki", "v_map": "Kartta", "v_list": "Lista", "d_list": "Lista", "d_map": "Kartta", "d_filter": "Suodata", "d_big": "Koko kartta", "d_back": "Takaisin listaan", "sheet_label": "Lounaat lähellä", "sheet_more": "Näytä lisää", "as_list": "Näytä listana", "done": "Valmis", "search_ph": "Hae ruokaa tai paikkaa",
+           "pills": [("near", "Lähellä"), ("cheap", "Halvimmat"), ("veg", "Kasvis"), ("stu", "Opiskelija")], "search": "Hae ravintolaa, ruokaa tai aluetta", "near": "Lähellä",
            "cats": [("soup", "Keitto"), ("fish", "Kala"), ("chicken", "Kana"), ("meat", "Liha"), ("veg", "Kasvis"), ("pasta", "Pasta"), ("pizza", "Pizza"), ("burger", "Burger"), ("asian", "Aasialainen"), ("salad", "Salaatti"), ("buffet", "Buffet")],
            "chips": [("fav", "Suosikit"), ("menu", "Vain listalliset"), ("stu", "Opiskelijahinta"), ("open", "Auki nyt"), ("u13", "Alle 13 €"), ("cheap", "Halvin ensin"), ("Veg", "Kasvis"), ("G", "G"), ("L", "L"), ("M", "M"), ("oivaA", "Oiva A")],
            "title_home": "Lounas Helsinki tänään – päivän lounaslistat kartalla | Päivän lounas",
@@ -225,7 +226,8 @@ T = {
     "en": {"home": "/en/", "areas": "/en/lunch/", "area": "/en/lunch/{s}/", "venue": "/en/restaurant/{s}/", "nav_areas": "Areas", "other": "Suomeksi", "other_home": "/",
            "wd": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
            "wd_short": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-           "h1_home": "Lunch in Helsinki", "v_map": "Map", "v_list": "List", "d_list": "List", "d_map": "Map", "d_filter": "Filter", "d_big": "Full map", "d_back": "Back to list", "search": "Search restaurant, dish or area", "near": "Near me",
+           "h1_home": "Lunch in Helsinki", "v_map": "Map", "v_list": "List", "d_list": "List", "d_map": "Map", "d_filter": "Filter", "d_big": "Full map", "d_back": "Back to list", "sheet_label": "Lunches nearby", "sheet_more": "Show more", "as_list": "Show as list", "done": "Done", "search_ph": "Search food or place",
+           "pills": [("near", "Nearby"), ("cheap", "Cheapest"), ("veg", "Vegetarian"), ("stu", "Student")], "search": "Search restaurant, dish or area", "near": "Near me",
            "cats": [("soup", "Soup"), ("fish", "Fish"), ("chicken", "Chicken"), ("meat", "Meat"), ("veg", "Vegetarian"), ("pasta", "Pasta"), ("pizza", "Pizza"), ("burger", "Burger"), ("asian", "Asian"), ("salad", "Salad"), ("buffet", "Buffet")],
            "chips": [("fav", "Favourites"), ("menu", "With menu"), ("stu", "Student price"), ("open", "Open now"), ("u13", "Under 13 €"), ("cheap", "Cheapest first"), ("Veg", "Vegetarian"), ("G", "GF"), ("L", "LF"), ("M", "DF"), ("oivaA", "Oiva A")],
            "title_home": "Lunch in Helsinki today – lunch menus on a map | Päivän lounas",
@@ -249,6 +251,22 @@ T = {
 
 
 ADSENSE = os.environ.get("ADSENSE_CLIENT", "").strip()  # ca-pub-…; empty = no ads anywhere
+# reserved ad places (Branu 26.11.: ad-funded, ads must not be in the way). Empty until AdSense approves the site and
+# ad units exist: ADSENSE_SLOTS='{"card": "<slot id>", "list": "<slot id>", "content": "<slot id>"}'
+try:
+    AD_SLOTS = json.loads(os.environ.get("ADSENSE_SLOTS") or "{}") if ADSENSE else {}
+except ValueError:
+    AD_SLOTS = {}
+
+
+def ad_block(kind, lg):
+    """One ad after the page's own answer (restaurant menu, district picks) – never above it, never on the map."""
+    sl = AD_SLOTS.get(kind)
+    if not sl:
+        return ""
+    return (f'<div class="adslot"><span class="adlbl">{"Mainos" if lg == "fi" else "Advertisement"}</span>'
+            f'<ins class="adsbygoogle" style="display:block" data-ad-client="{esc(ADSENSE)}" data-ad-slot="{esc(sl)}" data-ad-format="auto" data-full-width-responsive="true"></ins>'
+            f'<script>(adsbygoogle=window.adsbygoogle||[]).push({{}});</script></div>')
 CONTACT = "info@paivanlounas.fi"
 OWNER = "BR Entertainment (toiminimi), Y-tunnus 3183394-5"
 
@@ -257,8 +275,11 @@ OWNER = "BR Entertainment (toiminimi), Y-tunnus 3183394-5"
 # A page goes to the index and the sitemap only if it has its own data that answers its question.
 # Everything else is still built for visitors but gets noindex, no sitemap entry and no ads.
 GATE = {
-    "venue": 14,        # restaurant page: a lunch menu on at least one day in the last 14 days
-    "area": 3,          # district page: at least 3 restaurants with a menu this week
+    "venue": 30,        # restaurant page: a lunch menu on some day in the last 30 days, OR search visitors land on it
+                        # (counters 'land', 60 days), OR its own site talks about lunch, OR >= 3 lunch menus within 1 km
+                        # (the page then answers "lunch near X" with its own data) – Branu 26.11.: never drop what people look for
+    "venue_near": 3,
+    "area": 1,          # district page: at least 1 restaurant with a menu this week
     "topic": 5,         # cheapest / vegetarian / buffet page: at least 5 restaurants today
     "areas_index": 1,   # list of districts: at least one indexable district
     "en": {"/en/"},     # English: only the front page until Search Console shows demand (language gate)
@@ -360,6 +381,23 @@ if(navigator.share){try{await navigator.share({title:t,url:u})}catch(e){}return}
 try{await navigator.clipboard.writeText(u);b.textContent='\u2713'}catch(e){location.href=b.getAttribute('data-share')}})});</script>"""
 
 
+def area_near(vs, lg):
+    """District without menus today: never an empty answer – the 5 nearest lunches (own data)."""
+    pts = [v for v in vs if v.get("lat")]
+    if not pts or not TODAY_M:
+        return ""
+    la, lo = sum(v["lat"] for v in pts) / len(pts), sum(v["lon"] for v in pts) / len(pts)
+    cl = math.cos(math.radians(la))
+    dd = sorted(TODAY_M, key=lambda w: (w["lat"] - la) ** 2 + ((w["lon"] - lo) * cl) ** 2)[:5]
+    t = T[lg]
+    li = "".join(f'<li><a href="{t["venue"].format(s=w["slug"])}">{esc(w["name"])}</a> <span class="mdish">{esc(clean_dish(w["menu"]["items"][0]["d"][0]))}</span>'
+                 f'<span class="price">{fmt_price(lunch_price(w["menu"])) if lunch_price(w["menu"]) else ""}</span><small>{esc(w.get("district") or "")}</small></li>' for w in dd)
+    return f'<section class="nearby"><h2>{t["nearby_h"]}</h2><p>{t["nearby_p"]}</p><ul class="picks">{li}</ul></section>'
+
+
+TODAY_M = []
+
+
 def share_image(out, key, title, ds_, items, mp, url_path):
     """/jako/<key>.png – cheapest lunches of the day as a picture for WhatsApp / Instagram; None if not enough priced menus."""
     rows = sorted([v for v in items if mp.get(v["slug"])], key=lambda v: mp[v["slug"]])[:6]
@@ -401,7 +439,9 @@ def page(lg, title, desc, path, alt_path, body, preview, extra_head="", og_image
     other = "en" if lg == "fi" else "fi"
     hl = (f'<link rel="alternate" hreflang="{lg}" href="{DOMAIN}{path}"><link rel="alternate" hreflang="{other}" href="{DOMAIN}{alt_path}">'
           f'<link rel="alternate" hreflang="x-default" href="{DOMAIN}{path if lg == "fi" else alt_path}">') if alt_path_hl else ""
-    return f"""<!doctype html><html lang="{lg}" data-pt="{page_type(path)}" data-hl="{1 if has_list else 0}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    pk = path.rstrip("/").rsplit("/", 1)[-1][:40] if page_type(path) in ("venue", "area") else ""
+    ads_attr = f' data-ads="{esc(json.dumps({"c": ADSENSE, **AD_SLOTS}))}"' if AD_SLOTS and index else ""
+    return f"""<!doctype html><html lang="{lg}" data-pt="{page_type(path)}" data-hl="{1 if has_list else 0}" data-k="{pk}"{ads_attr}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title><meta name="description" content="{esc(desc)}"><link rel="canonical" href="{DOMAIN}{path}">{hl}{robots}
 <link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#221a16" media="(prefers-color-scheme: dark)"><meta name="color-scheme" content="light dark">
 <meta property="og:image" content="{DOMAIN}{og_image or '/icon-512.png'}">
@@ -484,6 +524,19 @@ def main(L, out, day, preview):
             ms[show_day] = R.pop(norm(v["name"]))["menu"]
         dd = district_of(v["lat"], v["lon"], ds)
         venues.append({**v, "ms": ms, "menu": ms.get(show_day), "district": dd["name"] if dd else None, "dslug": dd["slug"] if dd else None})
+    def assign_slugs(vs):
+        seen_, out_ = {}, []
+        for v in vs:
+            s_ = slug(v["name"])
+            if s_ in seen_:
+                s_ = f"{s_}-{slug(v['street'] or '')[:30]}".strip("-")
+            if s_ in seen_:
+                s_ = f"{s_}-{len(seen_)}"
+            seen_[s_] = 1
+            out_.append(s_)
+        return out_
+    legacy = list(zip(assign_slugs(venues), venues))  # addresses before merging duplicates – they get 301s below
+    merged = {}  # id(dropped venue) -> kept venue
     GENERIC = {"ravintola", "restaurant", "cafe", "café", "kahvila", "helsinki", "lounas", "bar", "bistro", "kitchen", "and", "the"}
     def words(n):
         return {w for w in re.findall(r"[a-zåäö0-9]+", n.lower()) if len(w) > 3 and w not in GENERIC}
@@ -501,9 +554,22 @@ def main(L, out, day, preview):
         for j in sig.get(key, []):
             w = venues[j]
             if abs(w["lat"] - v["lat"]) < 0.0023 and abs(w["lon"] - v["lon"]) < 0.0045 and words(w["name"]) & words(v["name"]):
-                drop.add(i if (w.get("oiva") or w.get("website") or len(w["ms"]) >= len(v["ms"])) else j)
+                lose, keep = (i, j) if (w.get("oiva") or w.get("website") or len(w["ms"]) >= len(v["ms"])) else (j, i)
+                drop.add(lose); merged[id(venues[lose])] = venues[keep]
                 break
         sig.setdefault(key, []).append(i)
+    byns = {}
+    for i, v in enumerate(venues):  # same name at the same street address = one restaurant (rule: one page per question)
+        k = (norm(v["name"]), norm(v.get("street") or ""))
+        if k in byns and i not in drop:
+            j = byns[k]
+            keep_j = bool(venues[j]["ms"]) >= bool(v["ms"])
+            lose, keep = (i, j) if keep_j else (j, i)
+            drop.add(lose); merged[id(venues[lose])] = venues[keep]
+            if not keep_j:
+                byns[k] = i
+        else:
+            byns.setdefault(k, i)
     if drop:
         print("duplicates merged", len(drop), sorted(venues[i]["name"] for i in drop)[:30], file=sys.stderr)
     venues = [v for i, v in enumerate(venues) if i not in drop]
@@ -541,6 +607,7 @@ def main(L, out, day, preview):
         json.dump(sorted(({"venue": k[0], "day": k[1], "n": n} for k, n in reps.items()), key=lambda x: -x["n"])[:100],
                   open(f"{out}/data/reports.json", "w"), ensure_ascii=False)
     with_menu = [v for v in venues if v["menu"]]
+    TODAY_M[:] = with_menu
     print("venues", len(venues), "with menu", show_day, len(with_menu), "| week", {d: sum(1 for v in venues if d in v["ms"]) for d in days}, file=sys.stderr)
 
     os.makedirs(f"{out}/data", exist_ok=True)
@@ -583,6 +650,15 @@ def main(L, out, day, preview):
             SEEN[v["slug"]] = max([SEEN.get(v["slug"], "")] + got)
     json.dump(SEEN, open(sp, "w"))
     since = (datetime.date.today() - datetime.timedelta(days=GATE["venue"])).isoformat()
+    LANDED = set()
+    lp_ = f"{L}/data/landed_raw.json"
+    if os.path.exists(lp_):
+        try:
+            LANDED = {r["key"] for r in json.load(open(lp_))[0]["results"]}
+        except Exception as e:
+            print("landed unreadable", e, file=sys.stderr)
+    wp_ = f"{L}/data/web_pages.json"
+    LUNCHY = set(json.load(open(wp_))) if os.path.exists(wp_) else set()
     by_d = {}
     for v in venues:
         if v["dslug"]:
@@ -594,10 +670,12 @@ def main(L, out, day, preview):
         # home / app
         chips = "".join(f'<button data-f="{k}"{" class=on" if k == "menu" else ""}>{esc(lbl)}</button>' for k, lbl in t["chips"])
         cats = "".join(f'<button data-cat="{k}">{esc(lbl)}</button>' for k, lbl in t["cats"])
+        pills_html = "".join(f'<button type="button" data-pill="{k}"' + (' class="on"' if k == "near" else "") + f'>{esc(l)}</button>' for k, l in t["pills"])
         dchips = "".join(f'<button data-day="{d}"{" class=on" if d == show_day else ""}>{t["wd_short"][i]} {int(d[8:])}.{int(d[5:7])}.</button>' for i, d in enumerate(days))
         body = f"""<main class="app" data-lang="{lg}">
 <div class="days daybar">{dchips}</div>
 <section class="panel" id="panel">
+<button type="button" id="pdone" class="pdone">{t['done']}</button>
 <div id="sel" class="selcard" hidden></div>
 <div class="ptop"><div><p class="sub" id="dlabel">{esc(ds_)}</p><h1>{t['h1_home']}</h1></div>
 <div class="views" role="tablist"><button data-view="split" class="on">{t['v_map']}</button><button data-view="list">{t['v_list']}</button></div></div>
@@ -608,6 +686,14 @@ def main(L, out, day, preview):
 <p class="hl">{' · '.join(f'<a href="{TOPIC_T[lg][k]["path"]}">{TOPIC_T[lg][k]["h1"]}</a>' for k in ("cheap", "veg", "buffet"))} · <a href="{t['areas']}">{t['nav_areas']}</a></p>
 </section>
 <div id="map" role="region" aria-label="{t['v_map']}" data-big="{t['d_big']}" data-back="{t['d_back']}"></div>
+<div class="mtop" id="mtop"><label class="msearch"><span class="sr">{t['search_ph']}</span><input id="q2" type="search" autocomplete="off" placeholder="{t['search_ph']}"></label><button id="mfilt" type="button" class="mfbtn">{t['d_filter']}</button></div>
+<section class="sheet" id="sheet" aria-label="{t['sheet_label']}">
+<button type="button" class="grab" id="grab" aria-label="{t['sheet_more']}"><span></span></button>
+<h2 id="shTitle"></h2>
+<ul id="shRows" class="shrows"></ul>
+<div class="shfull"><div class="pills" role="group">{pills_html}</div>
+<div class="cards" id="cards"></div><p class="cardnav"><span id="cardPos"></span><button type="button" id="asList" class="linkbtn">{t['as_list']}</button></p></div>
+</section>
 </main>
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css"><script src="/vendor/leaflet/leaflet.js"></script><script src="/app.js?v={VER['app.js']}"></script><script src="/suggest.js?v={VER['suggest.js']}" defer></script>"""
         ld = [{"@context": "https://schema.org", "@type": "WebSite", "name": SITE, "url": DOMAIN + t["home"], "inLanguage": lg},
@@ -661,6 +747,8 @@ def main(L, out, day, preview):
                     jumps.append(f'<a href="#{sid}">{title}</a>')
             allm = sorted(withm, key=lambda v: v["name"].lower())
             if allm:
+                if secs:
+                    secs.append(ad_block("content", lg))
                 secs.append(f'<section class="sec" id="kaikki"><h2>{A["all_h"].format(n=nm)}</h2>{"".join(ent(v) for v in allm)}</section>')
                 jumps.append(f'<a href="#kaikki">{A["all_j"].format(n=nm)}</a>')
             others = sorted([v for v in vs if not v["menu"]], key=lambda v: v["name"].lower())
@@ -679,7 +767,7 @@ def main(L, out, day, preview):
             lead = A["lead"].format(d=esc(ds_), n=nm, c=esc(cheapest), v=nveg) if nm else A["lead0"].format(d=esc(ds_), t=len(vs))
             path, alt = t["area"].format(s=dslug), T[other]["area"].format(s=dslug)
             body = f"""<main class="content"><nav class="crumbs"><a href="{t['home']}">{t['crumb_home']}</a> › <a href="{t['areas']}">{t['nav_areas']}</a> › {esc(dn)}</nav>
-<h1>{t['area_h1'].format(a=esc(dn))}</h1><p class="lead">{lead}</p>
+<h1>{t['area_h1'].format(a=esc(dn))}</h1><p class="lead">{lead}</p>{area_near(vs, lg) if not nm else ""}
 <nav class="jump" aria-label="{A['jump']}">{''.join(jumps)}</nav>
 <div class="cols"><div class="maincol">{''.join(secs)}</div>
 <aside class="side"><div class="box"><h2>{A['map_h']}</h2><p style="margin:0 0 12px;color:var(--mut);font-size:14px">{A['map_p'].format(n=nm, a=esc(dn))}</p><a class="btn" href="{t['home']}?d={dslug}">{t['show_map']}</a></div>
@@ -740,6 +828,9 @@ def main(L, out, day, preview):
             open(f"{out}{path}index.html", "w").write(page(lg, TP[key]["title"], TP[key]["desc"].format(d=ds_, n=len(items)), path, alt, body + (SHARE_JS if img else ""), preview, "", img, index=ix))
         # venues
         today_m = [w for w in venues if w["menu"]]
+        def near_count(v, km_=1.0):
+            cl = math.cos(math.radians(v["lat"]))
+            return sum(1 for w in today_m if math.hypot(w["lat"] - v["lat"], (w["lon"] - v["lon"]) * cl) * 111.32 <= km_)
         def near_box(v, k=5):
             if v["menu"] or not today_m:
                 return ""
@@ -771,11 +862,14 @@ def main(L, out, day, preview):
                 jl["url"] = v["website"]
             body = f"""<main class="content"><nav class="crumbs"><a href="{t['home']}">{t['crumb_home']}</a>{dlink}</nav>
 <h1>{esc(t['venue_h1'].format(n=v['name']))}</h1><p class="addr">{esc(v['street'])}, Helsinki</p>{near_box(v)}
-<h2>{esc(t['list_for'].format(d=ds_))}</h2>{menu_html(v['menu'], lg, v['slug'], show_day)}{week}{oiva}{web}
+<h2>{esc(t['list_for'].format(d=ds_))}</h2>{menu_html(v['menu'], lg, v['slug'], show_day)}{week}{oiva}{web}{ad_block("content", lg) if v["menu"] else ""}
 <p class="actions"><a class="btn" href="{t['home']}?v={v['slug']}">{t['show_map']}</a> <a class="btn ghost" href="https://www.google.com/maps/dir/?api=1&destination={v['lat']},{v['lon']}" rel="nofollow noopener">{t['route']}</a> {parkpenny(v, lg)}</p>
 {report_form(v, lg)}</main><script src="/suggest.js?v={VER['suggest.js']}" defer></script>"""
             os.makedirs(f"{out}{path}", exist_ok=True)
-            ix = add_url(path, (SEEN.get(v["slug"]) or "") >= since, v["ms"])
+            rid = ("osm:" + v["osm"]) if v.get("osm") else v.get("id")
+            ok_v = ((SEEN.get(v["slug"]) or "") >= since or v["slug"][:40] in LANDED or rid in LUNCHY
+                    or near_count(v) >= GATE["venue_near"])
+            ix = add_url(path, ok_v, [v["ms"], v["slug"] in LANDED])
             open(f"{out}{path}index.html", "w").write(page(lg, t["venue_title"].format(n=v["name"]), t["venue_desc"].format(n=v["name"], a=v["street"]), path, alt, body, preview,
                                                            f'<script type="application/ld+json">{json.dumps(jl, ensure_ascii=False)}</script>', index=ix, has_list=bool(v["menu"])))
     write_info_pages(out, preview, urls)
@@ -789,6 +883,19 @@ def main(L, out, day, preview):
     n_sm = write_sitemap(out, L, datetime.date.today().isoformat())
     built = sum(1 for _, _, fs in os.walk(out) for f in fs if f == "index.html")
     print(f"index gate: {n_sm} of {built} pages indexable (sitemap), {built - n_sm} noindex", file=sys.stderr)
+    # old restaurant addresses (before duplicate merging) keep working: 301 to the restaurant's page now
+    reds = []
+    live_slugs = {v["slug"] for v in venues}
+    for old_s, v in legacy:
+        k = v
+        while id(k) in merged:
+            k = merged[id(k)]
+        new_s = k.get("slug")
+        if new_s and old_s != new_s and old_s not in live_slugs:
+            for lg_ in ("fi", "en"):
+                reds.append(f'{T[lg_]["venue"].format(s=old_s)} {T[lg_]["venue"].format(s=new_s)} 301')
+    open(f"{out}/_redirects", "w").write("\n".join(reds) + "\n")
+    print("redirects", len(reds), file=sys.stderr)
     open(f"{out}/_headers", "w").write("/data/*\n  Cache-Control: public, max-age=600\n/jako/*\n  Cache-Control: public, max-age=1800\n/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n")
     print("pages", len(urls), file=sys.stderr)
 

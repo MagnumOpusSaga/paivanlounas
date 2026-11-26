@@ -5,12 +5,12 @@
   var S = {
     fi: { n: " ravintolaa", menu: " – lista", nomenu: "Ei listaa tälle päivälle.", site: "Ravintolan sivu", src: "Lähde", orig: "alkuperäinen",
           wrong: "Väärä tieto?", wrongOk: "Kiitos ilmoituksesta!", onmap: "Kartalla", more: "Näytä lisää", park: "Parkki lähellä",
-          venue: "/ravintola/", noloc: "Sijaintia ei saatu.", close: "Sulje", walk: " min kävely", until: "auki ", untilEnd: " asti", closes: "sulkeutuu ", closesEnd: " min päästä", ended: "lounas päättynyt", opens: "lounas ", t3me: "Kolme hyvää lähelläsi",
+          none: "Ei osumia tällä valinnalla. Kokeile toista suodatinta tai siirrä karttaa.", ad: "Mainos", shN: " lounasta lähellä", shNme: " lounasta lähelläsi", route2: "Reitti", open2: "Lista ja tiedot", venue: "/ravintola/", noloc: "Sijaintia ei saatu.", close: "Sulje", walk: " min kävely", until: "auki ", untilEnd: " asti", closes: "sulkeutuu ", closesEnd: " min päästä", ended: "lounas päättynyt", opens: "lounas ", t3me: "Kolme hyvää lähelläsi",
           t3map: "Kolme hyvää tällä alueella", route: "Reitti", loc: "Näytä sijaintini", fav: "Lisää suosikiksi", unfav: "Poista suosikeista", near: "lähintä näkyvissä", nofav: "Ei vielä suosikkeja – lisää niitä tähdestä ravintolan nimen vierestä.",
           wd: ["sunnuntai", "maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai"], pp: "https://parkpenny.com/" },
     en: { n: " restaurants", menu: " – with menu", nomenu: "No menu for this day.", site: "Restaurant website", src: "Source", orig: "original",
           wrong: "Wrong info?", wrongOk: "Thanks for letting us know!", onmap: "On map", more: "Show more", park: "Parking nearby",
-          venue: "/en/restaurant/", noloc: "Could not get your location.", close: "Close", walk: " min walk", until: "open until ", untilEnd: "", closes: "closes in ", closesEnd: " min", ended: "lunch over", opens: "lunch ", t3me: "Three good picks near you",
+          none: "Nothing with this choice. Try another filter or move the map.", ad: "Advertisement", shN: " lunches nearby", shNme: " lunches near you", route2: "Directions", open2: "Menu and details", venue: "/en/restaurant/", noloc: "Could not get your location.", close: "Close", walk: " min walk", until: "open until ", untilEnd: "", closes: "closes in ", closesEnd: " min", ended: "lunch over", opens: "lunch ", t3me: "Three good picks near you",
           t3map: "Three good picks in this area", route: "Directions", loc: "Show my location", fav: "Add to favourites", unfav: "Remove from favourites", near: "nearest shown", nofav: "No favourites yet – add them with the star next to a restaurant name.",
           wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], pp: "https://parkpenny.com/en/" }
   }[LG];
@@ -185,16 +185,24 @@
     if (m && p) return L.marker([v.y, v.x], { icon: L.divIcon({ className: "", html: '<span class="pin' + (isFav(v.i) ? " fv" : "") + '">' + fmt(p).replace(" €", "") + "</span>", iconSize: [0, 0] }), riseOnHover: true });
     return L.circleMarker([v.y, v.x], { radius: m ? 6 : 4, weight: 1.5, color: "#fff", fillColor: m ? "#c2410c" : "#9b8e86", fillOpacity: 0.95 });
   }
+  // reserved ad places, filled only when the page carries data-ads (AdSense approved + ad units): every 6th card, one list row
+  var ADS = null; try { ADS = JSON.parse(document.documentElement.getAttribute("data-ads") || "null"); } catch (e) {}
+  function adHtml(kind, tag) {
+    if (!ADS || !ADS[kind]) return "";
+    return "<" + tag + ' class="adslot ad-' + kind + '"><span class="adlbl">' + (S.ad || "Mainos") + '</span><ins class="adsbygoogle" style="display:block" data-ad-client="' + esc(ADS.c) + '" data-ad-slot="' + esc(ADS[kind]) + '" data-ad-format="' + (kind === "card" ? "fluid" : "auto") + '" data-full-width-responsive="true"></ins></' + tag + ">";
+  }
+  function fillAds(root) { if (!ADS) return; root.querySelectorAll("ins.adsbygoogle:not([data-adsbygoogle-status])").forEach(function () { try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {} }); }
   function renderList(list) {
     var lv = state.view === "list", n = state.limit, t3 = state.t3 || {}, total = list.length;
     list = list.filter(function (v) { return !t3[v.i]; });  // the three picks are already shown above
     $("count").textContent = total + S.n + (state.f.menu ? S.menu : "") + (list.length > n && !state.f.cheap ? " · " + n + " " + S.near : "");
     if (state.f.fav && !list.length) $("count").textContent = S.nofav;
-    $("list").innerHTML = list.slice(0, n).map(function (v) {
+    $("list").innerHTML = list.slice(0, n).map(function (v, k) {
       var m = M(v);
       return '<li data-i="' + esc(v.i) + '"' + (state.sel === v.i ? ' class="sel"' : "") + ">" + head(v) +
-        (lv ? menuHtml(v, true) : (m ? '<p class="dish">' + esc(dishLine(v)) + "</p>" : "")) + "</li>";
+        (lv ? menuHtml(v, true) : (m ? '<p class="dish">' + esc(dishLine(v)) + "</p>" : "")) + "</li>" + (k === 4 ? adHtml("list", "li") : "");
     }).join("");
+    fillAds($("list"));
     var more = $("more");
     more.hidden = !(list.length > n); more.textContent = S.more + " (" + (list.length - n) + ")";
   }
@@ -204,13 +212,14 @@
     $("dlabel").textContent = S.wd[dt.getDay()] + " " + dt.getDate() + "." + (dt.getMonth() + 1) + "." + dt.getFullYear();
     renderTop3(list);
     renderList(list);
+    renderSheet(list);
     layer.clearLayers(); state.byId = {};
     list.slice(0, 900).forEach(function (v) {
       var mk = pinFor(v);
       if (wide.matches) {
         mk.bindPopup(function () { return '<div class="pop">' + head(v) + menuHtml(v, false) + "</div>"; }, { maxWidth: 320, autoPanPadding: [40, 40] });
         mk.on("popupopen", function () { select(v.i); });
-      } else mk.on("click", function () { showCard(v); });
+      } else mk.on("click", function () { if (sheetOn()) { setSheet("full"); setTimeout(function () { toCard(v.i); }, 60); } else showCard(v); });
       mk.addTo(layer); state.byId[v.i] = mk;
     });
   }
@@ -241,9 +250,102 @@
     var m = state.byId[id]; if (!m) return;
     goTo(m.getLatLng(), Math.max(map.getZoom(), 16));
     if (wide.matches) m.openPopup();
+    else if (sheetOn()) { setSheet("full"); setTimeout(function () { toCard(id); }, 60); }
     else { var v = state.data.find(function (x) { return x.i === id; }); if (v) showCard(v); }
   }
-  if (wide.addEventListener) wide.addEventListener("change", function () { if (state.data.length) render(); });
+  // ---- phone: map with a bottom sheet; pulled up it becomes a card carousel (design 3 + 2, Branu 26.11.) ----
+  var sheet = $("sheet"), cardsEl = $("cards"), hdr = document.querySelector(".top");
+  function setHdr() { document.documentElement.style.setProperty("--hdr", (hdr ? hdr.offsetHeight : 56) + "px"); }
+  setHdr(); addEventListener("resize", setHdr);
+  function sheetOn() { return !wide.matches && state.view === "split"; }
+  function syncMode() {
+    main.classList.toggle("sheetmode", sheetOn());
+    if (!sheetOn()) { main.classList.remove("sheetfull", "filters"); }
+  }
+  function setSheet(st) {
+    state.sheet = st; main.classList.toggle("sheetfull", st === "full");
+    if (st === "full") renderCards(state.lastList || []);
+  }
+  function walkTxt(v) { var d = dist(v); return d == null ? (v.d || "") : (d < 2.5 ? Math.max(1, Math.round(d * 1000 / 80)) + S.walk : distTxt(d)); }
+  function priceTxt(v) { return fmt(minPrice(v)); }
+  function renderSheet(list) {
+    state.lastList = list;
+    if (!sheetOn()) return;
+    $("shTitle").textContent = list.length + (state.me ? S.shNme : S.shN);
+    $("shRows").innerHTML = list.slice(0, 2).map(function (v, k) {
+      return '<li><button type="button" data-k="' + k + '"><span class="r1"><b>' + esc(v.n) + "</b><b>" + priceTxt(v) + '</b></span><span class="r2">' +
+        esc(firstDish(v)) + '</span><span class="r3">' + walkTxt(v) + "</span></button></li>";
+    }).join("");
+    if (state.sheet === "full") renderCards(list);
+  }
+  function renderCards(list) {
+    var LL = list.slice(0, 30); state.cards = LL;
+    if (!LL.length) { cardsEl.innerHTML = '<p class="cempty">' + S.none + "</p>"; $("cardPos").textContent = ""; return; }
+    cardsEl.innerHTML = LL.map(function (v, k) {
+      var m = M(v), more = m && m.items.length > 1 ? m.items.slice(1, 3).map(function (i) { return clean(i.d[0]); }).join(" · ") : "";
+      return '<article class="card" data-i="' + esc(v.i) + '"><p class="c1">' + walkTxt(v) + (timeTxt(v) ? " · " + timeTxt(v) : "") + "</p>" +
+        '<h3 class="c2">' + esc(firstDish(v) || v.n) + "</h3>" +
+        '<p class="c3"><button type="button" class="fav' + (isFav(v.i) ? " on" : "") + '" data-fav="' + esc(v.i) + '" aria-label="' + (isFav(v.i) ? S.unfav : S.fav) + '">' + STAR + "</button>" + esc(v.n) + "</p>" +
+        (more ? '<p class="c4">' + esc(more) + "</p>" : "") +
+        '<div class="c5"><span class="cp">' + priceTxt(v) + '</span><span class="cb"><a class="btn ghost" href="' + S.venue + esc(v.i) + '/">' + S.open2 + '</a><a class="btn" href="' + routeLink(v) + '" rel="nofollow noopener">' + S.route2 + "</a></span></div></article>" +
+        (k % 6 === 5 ? adHtml("card", "article") : "");
+    }).join("");
+    fillAds(cardsEl);
+    cardsEl.scrollLeft = 0; cardPos(0);
+  }
+  function cardPos(k) {
+    var LL = state.cards || [];
+    $("cardPos").textContent = LL.length ? (k + 1) + " / " + LL.length : "";
+    var v = LL[k]; if (!v) return;
+    select(v.i);
+    var m = state.byId[v.i];
+    if (m && state.sheet === "full") {
+      var hh = map.getSize().y, strip = Math.max(60, innerHeight - sheet.offsetHeight - (hdr ? hdr.offsetHeight : 56));
+      var pt = map.latLngToContainerPoint(m.getLatLng()), want = L.point(map.getSize().x / 2, strip / 2);
+      state.quiet = true; map.panBy(pt.subtract(want), { animate: true });
+    }
+  }
+  function toCard(id) {
+    var LL = state.cards || [], k = LL.findIndex(function (v) { return v.i === id; });
+    if (k < 0) { var v = state.data.find(function (x) { return x.i === id; }); if (!v) return; renderCardsFrom([v].concat(LL.slice(0, 29))); k = 0; }
+    var el = cardsEl.querySelector('[data-i="' + CSS.escape(id) + '"]'); if (el) cardsEl.scrollTo({ left: el.offsetLeft - 16, behavior: "smooth" });
+    cardPos(k);
+  }
+  function renderCardsFrom(L) { var keep = state.lastList; renderCards(L); state.lastList = keep; }
+  var ct;
+  cardsEl.addEventListener("scroll", function () {
+    clearTimeout(ct); ct = setTimeout(function () {
+      var w = cardsEl.firstElementChild ? cardsEl.firstElementChild.offsetWidth + 12 : 1, el = cardsEl.children[Math.round(cardsEl.scrollLeft / w)];
+      if (el && el.getAttribute("data-i")) cardPos((state.cards || []).findIndex(function (v) { return v.i === el.getAttribute("data-i"); }));
+    }, 120);
+  });
+  $("grab").addEventListener("click", function () { setSheet(state.sheet === "full" ? "peek" : "full"); });
+  $("shTitle").addEventListener("click", function () { setSheet(state.sheet === "full" ? "peek" : "full"); });
+  $("shRows").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-k]"); if (!b) return;
+    var v = (state.lastList || [])[+b.getAttribute("data-k")]; setSheet("full"); if (v) setTimeout(function () { toCard(v.i); }, 50);
+  });
+  var y0 = null;
+  sheet.addEventListener("touchstart", function (e) { if (!e.target.closest(".cards")) y0 = e.touches[0].clientY; }, { passive: true });
+  sheet.addEventListener("touchend", function (e) {
+    if (y0 == null) return; var dy = e.changedTouches[0].clientY - y0; y0 = null;
+    if (dy < -30 && state.sheet !== "full") setSheet("full"); else if (dy > 30 && state.sheet === "full") setSheet("peek");
+  }, { passive: true });
+  document.querySelectorAll("[data-pill]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var k = b.getAttribute("data-pill");
+      document.querySelectorAll("[data-pill]").forEach(function (x) { x.classList.toggle("on", x === b); });
+      state.f.cheap = k === "cheap"; state.f.stu = k === "stu"; state.cat = k === "veg" ? "veg" : null;
+      document.querySelectorAll("[data-f]").forEach(function (x) { var f = x.getAttribute("data-f"); if (f === "cheap" || f === "stu") x.classList.toggle("on", !!state.f[f]); });
+      document.querySelectorAll("[data-cat]").forEach(function (x) { x.classList.toggle("on", x.getAttribute("data-cat") === state.cat); });
+      render(); if (state.sheet === "full") renderCards(state.lastList || []);
+    });
+  });
+  $("asList").addEventListener("click", function () { setSheet("peek"); setView("list"); window.scrollTo(0, 0); });
+  $("mfilt").addEventListener("click", function () { main.classList.add("filters"); window.scrollTo(0, 0); });
+  $("pdone").addEventListener("click", function () { main.classList.remove("filters"); setTimeout(function () { map.invalidateSize(); }, 50); });
+  $("q2").addEventListener("input", function () { var q = $("q"); q.value = this.value; q.dispatchEvent(new Event("input", { bubbles: true })); });
+  if (wide.addEventListener) wide.addEventListener("change", function () { syncMode(); if (state.data.length) render(); setTimeout(function () { map.invalidateSize(); }, 50); });
   function setView(v, keep) {
     state.view = v;
     main.classList.toggle("listview", v === "list");
@@ -253,6 +355,7 @@
       b.classList.toggle("on", bv === v || (bv === "split" && v === "map"));
     });
     if (bigBtn) bigBtn.textContent = mapEl.getAttribute(v === "map" ? "data-back" : "data-big");
+    syncMode();
     if (!keep) { try { localStorage.setItem("pl_view", v === "list" ? "list" : "split"); } catch (e) {} }
     setTimeout(function () { map.invalidateSize(); }, 0);
     state.limit = v === "list" ? 40 : 30; render();
@@ -316,7 +419,7 @@
   });
   var qt, mt;
   $("q").addEventListener("input", function (e) { clearTimeout(qt); qt = setTimeout(function () { state.q = e.target.value.trim(); render(); }, 150); });
-  function resort() { if (state.me || !state.data.length) return; clearTimeout(mt); mt = setTimeout(function () { var l = filtered(); renderTop3(l); if (state.view !== "list") renderList(l); }, 250); }
+  function resort() { if (state.me || !state.data.length) return; clearTimeout(mt); mt = setTimeout(function () { var l = filtered(); renderTop3(l); if (state.view !== "list") renderList(l); if (state.sheet !== "full") renderSheet(l); }, 250); }
   map.on("dragend", resort);
   map.on("zoomend", function () { if (state.quiet) return; resort(); });
   map.on("moveend", function () { state.quiet = false; });
@@ -331,7 +434,7 @@
       if (meDot) meDot.setLatLng(state.me);
       else meDot = L.circleMarker(state.me, { radius: 8, color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }).addTo(map);
       state.quiet = true; render();
-      if (fromList) { var t = $("top3s").hidden ? $("count") : $("top3s"); t.scrollIntoView({ behavior: "smooth", block: "start" }); }
+      if (fromList && !sheetOn()) { var t = $("top3s").hidden ? $("count") : $("top3s"); t.scrollIntoView({ behavior: "smooth", block: "start" }); }
     }, function () { if (locBtn) locBtn.classList.remove("busy"); $("count").textContent = S.noloc; }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
   }
   $("near").addEventListener("click", function () { locate(true); });
