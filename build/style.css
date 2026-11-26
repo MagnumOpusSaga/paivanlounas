@@ -218,3 +218,11 @@ footer{max-width:1120px;margin:0 auto;padding:18px 20px 28px;color:var(--mut);fo
 .list>li.adslot{list-style:none;padding:22px 0 10px}
 .cards .adslot{flex:0 0 calc(100% - 44px);scroll-snap-align:center;margin:0;border:1px solid var(--line);border-radius:22px;padding:26px 14px 14px;min-height:0;background:var(--card)}
 .cards .adslot .adlbl{left:16px;top:10px}
+
+/* recommendations ("Söin täällä – hyvä lounas") */
+.likebtn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 14px;font:600 14px var(--body);min-height:40px;cursor:pointer}
+.likebtn:hover{border-color:var(--g)}
+.likebtn.done{background:var(--g-tint);color:var(--g);border-color:var(--g-tint);cursor:default}
+.popn{font-size:13px;font-weight:700;color:var(--g);margin-right:8px}
+.card .c6{margin:0;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.likerow{margin:14px 0}

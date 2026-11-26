@@ -38,6 +38,28 @@
     var a = e.target.closest && e.target.closest("a,button"); if (!a) return;
     var k = kind(a); if (k) ev(k);
   }, true);
+  // "Söin täällä – hyvä lounas": one per restaurant per day on this device; counted for "Suosituimmat"
+  var today = new Date(Date.now() + 2 * 3600e3).toISOString().slice(0, 10);
+  function liked(v) { try { return localStorage.getItem("pl_like_" + v) === today; } catch (e) { return false; } }
+  function markLiked(root) {
+    (root || document).querySelectorAll("[data-like]").forEach(function (b) {
+      if (liked(b.getAttribute("data-like"))) { b.classList.add("done"); b.textContent = b.getAttribute("data-done") || b.textContent; b.disabled = true; }
+    });
+  }
+  window.plMarkLiked = markLiked;
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-like]"); if (!b || b.disabled) return;
+    e.preventDefault(); e.stopPropagation();
+    var v = b.getAttribute("data-like");
+    try { localStorage.setItem("pl_like_" + v, today); } catch (x) {}
+    try { fetch("/api/like", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ v: v, k: "like" }), keepalive: true }); } catch (x) {}
+    markLiked();
+  }, true);
+  window.plFavSent = function (v) {
+    try { if (localStorage.getItem("pl_favsent_" + v)) return; localStorage.setItem("pl_favsent_" + v, "1"); } catch (x) {}
+    try { fetch("/api/like", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ v: v, k: "fav" }), keepalive: true }); } catch (x) {}
+  };
+  document.addEventListener("DOMContentLoaded", function () { markLiked(); });
   document.addEventListener("input", function (e) {
     if (!searched && e.target && e.target.id === "q") { searched = true; ev("search"); }
   }, true);

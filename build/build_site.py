@@ -203,7 +203,7 @@ T = {
            "wd": ["maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai", "sunnuntai"],
            "wd_short": ["Ma", "Ti", "Ke", "To", "Pe", "La", "Su"],
            "h1_home": "Lounas Helsinki", "v_map": "Kartta", "v_list": "Lista", "d_list": "Lista", "d_map": "Kartta", "d_filter": "Suodata", "d_big": "Koko kartta", "d_back": "Takaisin listaan", "sheet_label": "Lounaat lähellä", "sheet_more": "Näytä lisää", "as_list": "Näytä listana", "done": "Valmis", "search_ph": "Hae ruokaa tai paikkaa",
-           "pills": [("near", "Lähellä"), ("cheap", "Halvimmat"), ("veg", "Kasvis"), ("stu", "Opiskelija")], "search": "Hae ravintolaa, ruokaa tai aluetta", "near": "Lähellä",
+           "pills": [("near", "Lähellä"), ("pop", "Suosituimmat"), ("cheap", "Halvimmat"), ("veg", "Kasvis"), ("stu", "Opiskelija")], "search": "Hae ravintolaa, ruokaa tai aluetta", "near": "Lähellä",
            "cats": [("soup", "Keitto"), ("fish", "Kala"), ("chicken", "Kana"), ("meat", "Liha"), ("veg", "Kasvis"), ("pasta", "Pasta"), ("pizza", "Pizza"), ("burger", "Burger"), ("asian", "Aasialainen"), ("salad", "Salaatti"), ("buffet", "Buffet")],
            "chips": [("fav", "Suosikit"), ("menu", "Vain listalliset"), ("stu", "Opiskelijahinta"), ("open", "Auki nyt"), ("u13", "Alle 13 €"), ("cheap", "Halvin ensin"), ("Veg", "Kasvis"), ("G", "G"), ("L", "L"), ("M", "M"), ("oivaA", "Oiva A")],
            "title_home": "Lounas Helsinki tänään – päivän lounaslistat kartalla | Päivän lounas",
@@ -214,7 +214,7 @@ T = {
            "areas_title": "Lounas Helsingissä alueittain | Päivän lounas", "lists": "listaa", "places": "paikkaa",
            "venue_h1": "{n} – lounas tänään", "venue_title": "{n} lounas tänään – lounaslista | Päivän lounas",
            "venue_desc": "{n} ({a}): päivän lounaslista, hinnat, ruokavaliot ja Oiva-arvosana.",
-           "list_for": "Lounaslista {d}", "week": "Tämän viikon listat", "nearby_h": "Lähellä tänään", "nearby_p": "Näillä lähimmillä ravintoloilla on tämän päivän lounaslista:", "nomenu": "Tämän päivän listaa ei ole saatavilla. Katso ravintolan omat sivut.",
+           "list_for": "Lounaslista {d}", "week": "Tämän viikon listat", "nearby_h": "Lähellä tänään", "g_reviews": "Arviot Google Mapsissa", "like": "Söin täällä – hyvä lounas", "liked": "Kiitos! Merkitty suositukseksi", "pop_n": "kävijää suosittelee (30 pv)", "nearby_p": "Näillä lähimmillä ravintoloilla on tämän päivän lounaslista:", "nomenu": "Tämän päivän listaa ei ole saatavilla. Katso ravintolan omat sivut.",
            "src": "Lähde", "orig": "alkuperäinen lista", "oiva": "Oiva-arvosana", "oiva_rep": "Oiva-raportti", "website": "Ravintolan verkkosivu",
            "route": "Reittiohjeet", "park": "Halvin parkki lähellä (Parkpenny)", "oiva_txt": {"A": "Oivallinen", "B": "Hyvä", "C": "Korjattavaa", "D": "Huono"},
            "wrong": "Väärä tieto?", "wrong_ok": "Kiitos ilmoituksesta!", "report_h": "Onko tämä sinun ravintolasi?", "report_p": "Kerro, missä lounaslistasi julkaistaan (oma sivu, Facebook-sivu tai pdf). Haemme sen jatkossa automaattisesti joka aamu – sinun ei tarvitse tehdä muuta.",
@@ -227,7 +227,7 @@ T = {
            "wd": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
            "wd_short": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
            "h1_home": "Lunch in Helsinki", "v_map": "Map", "v_list": "List", "d_list": "List", "d_map": "Map", "d_filter": "Filter", "d_big": "Full map", "d_back": "Back to list", "sheet_label": "Lunches nearby", "sheet_more": "Show more", "as_list": "Show as list", "done": "Done", "search_ph": "Search food or place",
-           "pills": [("near", "Nearby"), ("cheap", "Cheapest"), ("veg", "Vegetarian"), ("stu", "Student")], "search": "Search restaurant, dish or area", "near": "Near me",
+           "pills": [("near", "Nearby"), ("pop", "Most liked"), ("cheap", "Cheapest"), ("veg", "Vegetarian"), ("stu", "Student")], "search": "Search restaurant, dish or area", "near": "Near me",
            "cats": [("soup", "Soup"), ("fish", "Fish"), ("chicken", "Chicken"), ("meat", "Meat"), ("veg", "Vegetarian"), ("pasta", "Pasta"), ("pizza", "Pizza"), ("burger", "Burger"), ("asian", "Asian"), ("salad", "Salad"), ("buffet", "Buffet")],
            "chips": [("fav", "Favourites"), ("menu", "With menu"), ("stu", "Student price"), ("open", "Open now"), ("u13", "Under 13 €"), ("cheap", "Cheapest first"), ("Veg", "Vegetarian"), ("G", "GF"), ("L", "LF"), ("M", "DF"), ("oivaA", "Oiva A")],
            "title_home": "Lunch in Helsinki today – lunch menus on a map | Päivän lounas",
@@ -238,7 +238,7 @@ T = {
            "areas_title": "Lunch in Helsinki by area | Päivän lounas", "lists": "menus", "places": "places",
            "venue_h1": "{n} – lunch today", "venue_title": "{n} lunch today – lunch menu | Päivän lounas",
            "venue_desc": "{n} ({a}): today's lunch menu, prices, diets and Oiva food-safety rating.",
-           "list_for": "Lunch menu {d}", "week": "This week's menus", "nearby_h": "Nearby today", "nearby_p": "The closest restaurants with today's lunch menu:", "nomenu": "Today's menu is not available. See the restaurant's own website.",
+           "list_for": "Lunch menu {d}", "week": "This week's menus", "nearby_h": "Nearby today", "g_reviews": "Reviews on Google Maps", "like": "I ate here – good lunch", "liked": "Thanks! Counted as a recommendation", "pop_n": "visitors recommend (30 days)", "nearby_p": "The closest restaurants with today's lunch menu:", "nomenu": "Today's menu is not available. See the restaurant's own website.",
            "src": "Source", "orig": "original menu", "oiva": "Oiva food-safety rating", "oiva_rep": "Oiva report", "website": "Restaurant website",
            "route": "Directions", "park": "Cheapest parking nearby (Parkpenny)", "oiva_txt": {"A": "Excellent", "B": "Good", "C": "To be corrected", "D": "Poor"},
            "wrong": "Wrong info?", "wrong_ok": "Thanks for letting us know!", "report_h": "Is this your restaurant?", "report_p": "Tell us where your lunch menu is published (website, Facebook page or pdf). We will fetch it automatically every morning – nothing else is needed.",
@@ -610,12 +610,20 @@ def main(L, out, day, preview):
     TODAY_M[:] = with_menu
     print("venues", len(venues), "with menu", show_day, len(with_menu), "| week", {d: sum(1 for v in venues if d in v["ms"]) for d in days}, file=sys.stderr)
 
+    LIKES = {}
+    lk_ = f"{L}/data/likes_raw.json"
+    if os.path.exists(lk_):
+        try:
+            LIKES = {r["venue"]: int(r["n"]) for r in json.load(open(lk_))[0]["results"]}
+        except Exception as e:
+            print("likes unreadable", e, file=sys.stderr)
     os.makedirs(f"{out}/data", exist_ok=True)
     st = f"{L}/data/ai_stats.json"
     if os.path.exists(st):
         shutil.copy(st, f"{out}/data/status.json")
     app = [{"i": v["slug"], "n": v["name"], "a": v["street"], "y": round(v["lat"], 5), "x": round(v["lon"], 5),
-            "o": (v["oiva"] or {}).get("grade"), "d": v["district"], "w": v.get("website"), "ms": v["ms"]} for v in venues]
+            "o": (v["oiva"] or {}).get("grade"), "d": v["district"], "w": v.get("website"), "ms": v["ms"],
+            **({"lk": LIKES[v["slug"]]} if LIKES.get(v["slug"]) else {})} for v in venues]
     json.dump({"date": show_day, "days": days, "venues": app}, open(f"{out}/data/week.json", "w"), ensure_ascii=False, separators=(",", ":"))
 
     here = os.path.dirname(__file__)
@@ -863,7 +871,8 @@ def main(L, out, day, preview):
             body = f"""<main class="content"><nav class="crumbs"><a href="{t['home']}">{t['crumb_home']}</a>{dlink}</nav>
 <h1>{esc(t['venue_h1'].format(n=v['name']))}</h1><p class="addr">{esc(v['street'])}, Helsinki</p>{near_box(v)}
 <h2>{esc(t['list_for'].format(d=ds_))}</h2>{menu_html(v['menu'], lg, v['slug'], show_day)}{week}{oiva}{web}{ad_block("content", lg) if v["menu"] else ""}
-<p class="actions"><a class="btn" href="{t['home']}?v={v['slug']}">{t['show_map']}</a> <a class="btn ghost" href="https://www.google.com/maps/dir/?api=1&destination={v['lat']},{v['lon']}" rel="nofollow noopener">{t['route']}</a> {parkpenny(v, lg)}</p>
+<p class="actions"><a class="btn" href="{t['home']}?v={v['slug']}">{t['show_map']}</a> <a class="btn ghost" href="https://www.google.com/maps/dir/?api=1&destination={v['lat']},{v['lon']}" rel="nofollow noopener">{t['route']}</a> {parkpenny(v, lg)} <a class="btn ghost" href="https://www.google.com/maps/search/?api=1&amp;query={urllib.parse.quote(v['name'] + ', ' + (v['street'] or '') + ', Helsinki')}" rel="nofollow noopener">{t['g_reviews']}</a></p>
+<p class="likerow">{f'<span class="popn">{LIKES[v["slug"]]} {t["pop_n"]}</span> ' if LIKES.get(v["slug"]) else ""}<button type="button" class="likebtn" data-like="{v['slug']}" data-done="{t['liked']}">{t['like']}</button></p>
 {report_form(v, lg)}</main><script src="/suggest.js?v={VER['suggest.js']}" defer></script>"""
             os.makedirs(f"{out}{path}", exist_ok=True)
             rid = ("osm:" + v["osm"]) if v.get("osm") else v.get("id")

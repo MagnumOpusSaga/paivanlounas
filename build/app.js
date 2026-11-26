@@ -5,12 +5,12 @@
   var S = {
     fi: { n: " ravintolaa", menu: " – lista", nomenu: "Ei listaa tälle päivälle.", site: "Ravintolan sivu", src: "Lähde", orig: "alkuperäinen",
           wrong: "Väärä tieto?", wrongOk: "Kiitos ilmoituksesta!", onmap: "Kartalla", more: "Näytä lisää", park: "Parkki lähellä",
-          none: "Ei osumia tällä valinnalla. Kokeile toista suodatinta tai siirrä karttaa.", ad: "Mainos", shN: " lounasta lähellä", shNme: " lounasta lähelläsi", route2: "Reitti", open2: "Lista ja tiedot", venue: "/ravintola/", noloc: "Sijaintia ei saatu.", close: "Sulje", walk: " min kävely", until: "auki ", untilEnd: " asti", closes: "sulkeutuu ", closesEnd: " min päästä", ended: "lounas päättynyt", opens: "lounas ", t3me: "Kolme hyvää lähelläsi",
+          like: "Söin täällä – hyvä lounas", liked: "Kiitos! Merkitty suositukseksi", pop: " suosittelee", none: "Ei osumia tällä valinnalla. Kokeile toista suodatinta tai siirrä karttaa.", ad: "Mainos", shN: " lounasta lähellä", shNme: " lounasta lähelläsi", route2: "Reitti", open2: "Lista ja tiedot", venue: "/ravintola/", noloc: "Sijaintia ei saatu.", close: "Sulje", walk: " min kävely", until: "auki ", untilEnd: " asti", closes: "sulkeutuu ", closesEnd: " min päästä", ended: "lounas päättynyt", opens: "lounas ", t3me: "Kolme hyvää lähelläsi",
           t3map: "Kolme hyvää tällä alueella", route: "Reitti", loc: "Näytä sijaintini", fav: "Lisää suosikiksi", unfav: "Poista suosikeista", near: "lähintä näkyvissä", nofav: "Ei vielä suosikkeja – lisää niitä tähdestä ravintolan nimen vierestä.",
           wd: ["sunnuntai", "maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai"], pp: "https://parkpenny.com/" },
     en: { n: " restaurants", menu: " – with menu", nomenu: "No menu for this day.", site: "Restaurant website", src: "Source", orig: "original",
           wrong: "Wrong info?", wrongOk: "Thanks for letting us know!", onmap: "On map", more: "Show more", park: "Parking nearby",
-          none: "Nothing with this choice. Try another filter or move the map.", ad: "Advertisement", shN: " lunches nearby", shNme: " lunches near you", route2: "Directions", open2: "Menu and details", venue: "/en/restaurant/", noloc: "Could not get your location.", close: "Close", walk: " min walk", until: "open until ", untilEnd: "", closes: "closes in ", closesEnd: " min", ended: "lunch over", opens: "lunch ", t3me: "Three good picks near you",
+          like: "I ate here – good lunch", liked: "Thanks! Counted as a recommendation", pop: " recommend", none: "Nothing with this choice. Try another filter or move the map.", ad: "Advertisement", shN: " lunches nearby", shNme: " lunches near you", route2: "Directions", open2: "Menu and details", venue: "/en/restaurant/", noloc: "Could not get your location.", close: "Close", walk: " min walk", until: "open until ", untilEnd: "", closes: "closes in ", closesEnd: " min", ended: "lunch over", opens: "lunch ", t3me: "Three good picks near you",
           t3map: "Three good picks in this area", route: "Directions", loc: "Show my location", fav: "Add to favourites", unfav: "Remove from favourites", near: "nearest shown", nofav: "No favourites yet – add them with the star next to a restaurant name.",
           wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], pp: "https://parkpenny.com/en/" }
   }[LG];
@@ -171,6 +171,7 @@
       var fa = isFav(a.i) ? 0 : 1, fb = isFav(b.i) ? 0 : 1;
       if (fa !== fb) return fa - fb;
       if (f.cheap) return (minPrice(a) || 99) - (minPrice(b) || 99);
+      if (f.pop) return (b.lk || 0) - (a.lk || 0) || a._k - b._k;
       return a._k - b._k;
     });
     return out;
@@ -302,10 +303,11 @@
         '<h3 class="c2">' + esc(firstDish(v) || v.n) + "</h3>" +
         '<p class="c3"><button type="button" class="fav' + (isFav(v.i) ? " on" : "") + '" data-fav="' + esc(v.i) + '" aria-label="' + (isFav(v.i) ? S.unfav : S.fav) + '">' + STAR + "</button>" + esc(v.n) + "</p>" +
         (more ? '<p class="c4">' + esc(more) + "</p>" : "") +
+        '<p class="c6">' + (v.lk ? '<span class="popn">' + v.lk + S.pop + "</span>" : "") + '<button type="button" class="likebtn" data-like="' + esc(v.i) + '" data-done="' + S.liked + '">' + S.like + "</button></p>" +
         '<div class="c5"><span class="cp">' + priceTxt(v) + '</span><span class="cb"><a class="btn ghost" href="' + S.venue + esc(v.i) + '/">' + S.open2 + '</a><a class="btn" href="' + routeLink(v) + '" rel="nofollow noopener">' + S.route2 + "</a></span></div></article>" +
         (k % 6 === 5 ? adHtml("card", "article") : "");
     }).join("");
-    fillAds(cardsEl);
+    fillAds(cardsEl); if (window.plMarkLiked) window.plMarkLiked(cardsEl);
     cardsEl.scrollLeft = 0; cardPos(0);
   }
   function cardPos(k) {
@@ -350,7 +352,7 @@
     b.addEventListener("click", function () {
       var k = b.getAttribute("data-pill");
       document.querySelectorAll("[data-pill]").forEach(function (x) { x.classList.toggle("on", x === b); });
-      state.f.cheap = k === "cheap"; state.f.stu = k === "stu"; state.cat = k === "veg" ? "veg" : null;
+      state.f.cheap = k === "cheap"; state.f.stu = k === "stu"; state.f.pop = k === "pop"; state.cat = k === "veg" ? "veg" : null;
       document.querySelectorAll("[data-f]").forEach(function (x) { var f = x.getAttribute("data-f"); if (f === "cheap" || f === "stu") x.classList.toggle("on", !!state.f[f]); });
       document.querySelectorAll("[data-cat]").forEach(function (x) { x.classList.toggle("on", x.getAttribute("data-cat") === state.cat); });
       render(); if (state.sheet === "full") renderCards(state.lastList || []);
@@ -386,7 +388,7 @@
     var b = e.target.closest("[data-fav]"); if (!b) return;
     e.preventDefault(); e.stopPropagation();
     var id = b.getAttribute("data-fav");
-    if (favs[id]) delete favs[id]; else favs[id] = 1;
+    if (favs[id]) delete favs[id]; else { favs[id] = 1; if (window.plFavSent) window.plFavSent(id); }
     saveFavs();
     document.querySelectorAll('[data-fav="' + CSS.escape(id) + '"]').forEach(function (x) {
       var on = !!favs[id]; x.classList.toggle("on", on); x.setAttribute("aria-pressed", on);
@@ -464,6 +466,8 @@
   new Loc().addTo(map);
   fetch("/data/week.json").then(function (r) { return r.json(); }).then(function (d) {
     state.data = d.venues; state.days = d.days;
+    var nPop = d.venues.filter(function (v) { return v.lk; }).length;
+    document.querySelectorAll('[data-pill="pop"]').forEach(function (b) { b.hidden = nPop < 5; });
     var t = today(); state.day = d.days.indexOf(t) >= 0 ? t : d.date;
     document.querySelectorAll(".days button").forEach(function (x) { x.classList.toggle("on", x.getAttribute("data-day") === state.day); });
     var pv = params.get("view"); if (!pv) { try { pv = localStorage.getItem("pl_view"); } catch (e) {} }
