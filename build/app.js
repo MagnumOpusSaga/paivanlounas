@@ -468,7 +468,22 @@
   map.on("dragend", resort);
   map.on("zoomend", function () { if (state.quiet) return; resort(); });
   map.on("moveend", function () { state.quiet = false; });
-  function goTo(ll, z) { state.quiet = true; map.setView(ll, z); }
+  // on phones the sheet covers the bottom of the map and the search bar the top: centre the point in the part you can see
+  function visibleOffset() {
+    if (!sheetOn()) return 0;
+    var mr = $("map").getBoundingClientRect(), sh = $("sheet").getBoundingClientRect(), q = $("q2");
+    var top = q ? Math.max(0, q.getBoundingClientRect().bottom - mr.top + 8) : 0;
+    var bottom = Math.min(mr.height, sh.top - mr.top);
+    if (bottom - top < 80) return 0;
+    return Math.round(mr.height / 2 - (top + bottom) / 2);
+  }
+  function goTo(ll, z) {
+    state.quiet = true;
+    var dy = visibleOffset();
+    if (!dy) { map.setView(ll, z); return; }
+    var pt = map.project(L.latLng(ll), z).add([0, dy]);
+    map.setView(map.unproject(pt, z), z);
+  }
   var meDot = null, locBtn;
   function locate(fromList) {
     if (!navigator.geolocation) { $("count").textContent = S.noloc; return; }

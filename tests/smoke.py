@@ -91,6 +91,13 @@ with sync_playwright() as p:
     check(g["sheet"] == "flex" and g["rows"] >= 1 and "lounas" in g["title"], f"phone sheet shows lists ({g['title']!r}, rows {g['rows']})")
     check(g["pins"] >= 20, f"price pins on map: {g['pins']}")
     check(g["scroll"] <= g["vh"] + 2, f"phone page itself does not scroll (height {g['scroll']})")
+    me = pg.evaluate("""()=>{const d=[...document.querySelectorAll('path.leaflet-interactive')].find(p=>p.getAttribute('fill')==='#2563eb');
+      if(!d)return null;const r=d.getBoundingClientRect(),q=document.getElementById('q2').getBoundingClientRect(),s=document.getElementById('sheet').getBoundingClientRect();
+      return {y:Math.round(r.top+r.height/2),mid:Math.round((q.bottom+8+s.top)/2)}}""")
+    if me:
+        check(abs(me["y"] - me["mid"]) <= 30, f"phone: own location centred in the visible map (dot y {me['y']}, visible middle {me['mid']})")
+    else:
+        check(False, "phone: own location dot not shown")
     pg.screenshot(path="smoke-phone.png")
     pg.click("#grab"); pg.wait_for_timeout(900)
     pg.screenshot(path="smoke-phone-full.png")
