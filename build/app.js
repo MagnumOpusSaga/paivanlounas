@@ -21,7 +21,22 @@
   var state = { f: { menu: true }, q: "", me: null, data: [], day: null, days: [], byId: {}, view: "split", limit: 30, sel: null };
   var params = new URLSearchParams(location.search);
   var wide = window.matchMedia("(min-width: 900px)");
-  var map = L.map("map", { zoomControl: false }).setView([60.1680, 24.9400], 15);
+  var touch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  var map = L.map("map", { zoomControl: false, doubleClickZoom: !touch }).setView([60.1680, 24.9400], 15);
+  // double tap zooms in one step where you tap (iOS Safari does not pass double taps to the map reliably)
+  if (touch) (function () {
+    var last = 0, lp = null, el = map.getContainer();
+    el.addEventListener("touchend", function (e) {
+      if (e.touches.length || e.changedTouches.length !== 1) return;
+      var t = e.changedTouches[0], now = Date.now(), p = L.point(t.clientX, t.clientY);
+      if (now - last < 320 && lp && p.distanceTo(lp) < 30 && !e.target.closest(".leaflet-marker-icon,.leaflet-control")) {
+        var r = el.getBoundingClientRect();
+        map.setZoomAround(L.point(t.clientX - r.left, t.clientY - r.top), map.getZoom() + 1);
+        last = 0; e.preventDefault(); return;
+      }
+      last = now; lp = p;
+    }, { passive: false });
+  })();
   L.control.zoom({ position: "topright" }).addTo(map);
   // basemap: clean OpenFreeMap vector style (free, commercial use ok); OSM raster only if it cannot load
   var dark = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches;
