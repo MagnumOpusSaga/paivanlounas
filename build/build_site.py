@@ -210,7 +210,7 @@ FASTFOOD = re.compile(r"(?i)burger king|mcdonald|hesburger|subway|kotipizza|taco
 CSS = open(os.path.join(os.path.dirname(__file__), "style.css")).read()
 import hashlib
 # cache-busting: each deploy points pages at /app.js?v=<content hash>, so phones never mix new HTML with an old cached script
-VER = {f: hashlib.md5(open(os.path.join(os.path.dirname(__file__), f), "rb").read()).hexdigest()[:8] for f in ("style.css", "app.js", "suggest.js", "m.js", "promo.js")}
+VER = {f: hashlib.md5(open(os.path.join(os.path.dirname(__file__), f), "rb").read()).hexdigest()[:8] for f in ("style.css", "app.js", "suggest.js", "m.js", "promo.js", "favicon.svg", "favicon.ico", "apple-touch-icon.png")}
 
 
 
@@ -465,7 +465,7 @@ def page(lg, title, desc, path, alt_path, body, preview, extra_head="", og_image
     ads_attr = f' data-ads="{esc(json.dumps({"c": ADSENSE, **AD_SLOTS}))}"' if AD_SLOTS and index else ""
     return f"""<!doctype html><html lang="{lg}" data-pt="{page_type(path)}" data-hl="{1 if has_list else 0}" data-k="{pk}"{sd_attr}{ads_attr}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title><meta name="description" content="{esc(desc)}"><link rel="canonical" href="{DOMAIN}{path}">{hl}{robots}
-<link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#ffffff"><meta name="color-scheme" content="light"><script>try{{if(localStorage.getItem("pl_theme")==="dark"){{document.documentElement.classList.add("dark");document.querySelector('meta[name=theme-color]').content="#211915"}}}}catch(e){{}}</script>
+<link rel="icon" href="/favicon.ico?v={VER['favicon.ico']}" sizes="48x48"><link rel="icon" href="/favicon.svg?v={VER['favicon.svg']}" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v={VER['apple-touch-icon.png']}"><meta name="theme-color" content="#ffffff"><meta name="color-scheme" content="light"><script>try{{if(localStorage.getItem("pl_theme")==="dark"){{document.documentElement.classList.add("dark");document.querySelector('meta[name=theme-color]').content="#211915"}}}}catch(e){{}}</script>
 <meta property="og:image" content="{DOMAIN}{og_image or '/icon-512.png'}">
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}"><meta property="og:type" content="website">
 <link rel="stylesheet" href="/style.css?v={VER['style.css']}">{extra_head}<script src="/m.js?v={VER['m.js']}" defer></script></head><body>{bar}
