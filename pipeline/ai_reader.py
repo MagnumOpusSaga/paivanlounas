@@ -217,7 +217,10 @@ def main(inp, days, out):
                         cache[neg + ":m"] = {"d": week[0], "t": today.isoformat()}
         with lock:
             if has_menu(res):
-                cache[last] = {"r": res, "d": week[0]}
+                # keep enough of the page to show the list even if the site does not open in a later run today
+                vv = {"name": v["name"], "website": v.get("website"), "pages": [{"url": p["url"], "text": ""} for p in v["pages"][:1]],
+                      "pdfs": (v.get("pdfs") or [])[:1], "imgs": []}
+                cache[last] = {"r": res, "d": week[0], "vv": vv}
                 cache.pop(neg, None)
             elif isinstance(res, dict) and res and not res.get("error"):
                 cache[neg] = {"d": week[0], "t": today.isoformat()}
@@ -225,6 +228,15 @@ def main(inp, days, out):
 
     with ThreadPoolExecutor(4) as ex:
         results = list(ex.map(one, todo))
+    # a site that does not open in this run (timeout, error, page changed for the day) keeps this week's last good
+    # reading: later runs of the day lost ~50 lists that were read fine in the morning (27.11.: 336 -> 288)
+    seen_k = {k for k, *_ in results}
+    carried = 0
+    for ck, cv in list(cache.items()):
+        k = ck[5:] if ck.startswith("last:") else None
+        if k and k not in seen_k and cv.get("d") == week[0] and cv.get("vv") and has_menu(cv.get("r")):
+            results.append((k, cv["vv"], cv["r"], {}))
+            carried += 1
     # keep only this and last week's entries
     keep = (datetime.date.fromisoformat(week[0]) - datetime.timedelta(days=7)).isoformat()
     json.dump({h: x for h, x in cache.items() if x["d"] >= keep}, open(cp, "w"), ensure_ascii=False)
@@ -232,7 +244,7 @@ def main(inp, days, out):
     tin = sum(u.get("input_tokens", 0) for *_, u in results)
     tout = sum(u.get("output_tokens", 0) for *_, u in results)
     per_day = {d: [] for d in week}
-    stats = {"sites": len(results), "cache_hits": hits, "skipped_budget": skipped["budget"], "skipped_no_lunch": skipped["neg"], "media_tried": media_n[0], "ok": 0, "fixed": 0, "stale": 0, "other_restaurant": 0, "errors": 0, "empty": 0}
+    stats = {"sites": len(results), "cache_hits": hits, "skipped_budget": skipped["budget"], "skipped_no_lunch": skipped["neg"], "media_tried": media_n[0], "ok": 0, "fixed": 0, "stale": 0, "other_restaurant": 0, "errors": 0, "empty": 0, "carried_over": carried}
     for k, v, r, _ in results:
         if not r:
             stats["empty"] += 1
