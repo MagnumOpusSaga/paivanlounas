@@ -371,7 +371,9 @@
   document.addEventListener("click", function (e) {
     var a = e.target.closest && e.target.closest("[data-adclick]"); if (a && window.plCount) window.plCount("adclick", a.getAttribute("data-adclick"));
   }, true);
-  try { fetch("/api/promo/active").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { if (d && d.promos && d.promos.length) { PROMOS = d.promos; render(); } }).catch(function () {}); } catch (e) {}
+  var nostoTest = false;
+  try { if (params.get("nostotesti") === "1") localStorage.setItem("pl_nostotesti", "1"); if (params.get("nostotesti") === "0") localStorage.removeItem("pl_nostotesti"); nostoTest = localStorage.getItem("pl_nostotesti") === "1"; } catch (e) {}
+  try { fetch("/api/promo/active" + (nostoTest ? "?test=1" : "")).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { if (d && d.promos && d.promos.length) { PROMOS = d.promos; render(); } }).catch(function () {}); } catch (e) {}
   map.on("moveend", countZone);
   function renderAreas() {
     var show = !state.me && state.locTried;

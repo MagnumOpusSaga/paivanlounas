@@ -18,6 +18,9 @@
       fetch("/data/week.json").then(function (r) { return r.json(); }),
     ]).then(function (a) {
       CFG = a[0]; ZONES = a[1]; VEN = a[2].venues;
+      // test mode: the calculator only works for whoever opened /mainosta/?nostotesti=1 (or /?nostotesti=1) on this device
+      var tst = false; try { if (qs.get("nostotesti") === "1") localStorage.setItem("pl_nostotesti", "1"); tst = localStorage.getItem("pl_nostotesti") === "1"; } catch (e) {}
+      if (CFG.test && !tst) CFG.enabled = false;
       $("ptest").hidden = !CFG.test;
       $("pzone").innerHTML = ZONES.map(function (z) { return '<option value="' + z.slug + '">' + esc(z.name) + "</option>"; }).join("");
       $("pvlist").innerHTML = VEN.map(function (v) { return '<option value="' + esc(v.n + " – " + (v.a || "")) + '">'; }).join("");

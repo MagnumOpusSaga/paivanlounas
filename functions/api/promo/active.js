@@ -1,10 +1,12 @@
 // GET /api/promo/active – today's paid promos (shown with the word "Mainos"). Also runs the make-good: a promo whose days are over
 // with under 80 % of the promised impressions continues on the next weekdays (max 10 extra days, only where a slot is free).
 import { schema, adStats, booked, json, fiDay, SLOTS, MAKEGOOD } from "../../../lib/promo.js";
-export async function onRequestGet({ env }) {
+export async function onRequestGet({ request, env }) {
   const today = fiDay(), wd = new Date(today + "T12:00:00Z").getUTCDay();
+  // test-mode purchases are never public: they show only to someone who opened /?nostotesti=1 on this device (Branu 27.11.)
+  const showTest = new URL(request.url).searchParams.get("test") === "1";
   await schema(env);
-  const r = await env.DB.prepare("SELECT id, venue, zone, days, extra, imps FROM promos WHERE status = 'paid'").all();
+  const r = await env.DB.prepare("SELECT id, venue, zone, days, extra, imps FROM promos WHERE status = 'paid' AND (live = 1 OR ?)").bind(showTest ? 1 : 0).all();
   const rows = r.results || [], out = [];
   const st = await adStats(env, rows.map((p) => p.id));
   for (const p of rows) {
@@ -20,5 +22,5 @@ export async function onRequestGet({ env }) {
       }
     }
   }
-  return json({ day: today, promos: out }, 200, { "cache-control": "public, max-age=60" });
+  return json({ day: today, promos: out }, 200, { "cache-control": showTest ? "no-store" : "public, max-age=60" });
 }
