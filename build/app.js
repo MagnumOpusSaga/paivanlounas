@@ -320,7 +320,10 @@
   var AREAS = [["Keskusta", 60.1690, 24.9440], ["Kamppi", 60.1685, 24.9320], ["Pasila", 60.1990, 24.9330], ["Ruoholahti", 60.1630, 24.9150],
     ["Kalasatama", 60.1870, 24.9770], ["Kallio", 60.1840, 24.9500], ["Töölö", 60.1790, 24.9220], ["Vallila", 60.1950, 24.9560],
     ["Meilahti", 60.1890, 24.9070], ["Kumpula", 60.2040, 24.9620], ["Herttoniemi", 60.1950, 25.0300], ["Itäkeskus", 60.2100, 25.0800],
-    ["Viikki", 60.2270, 25.0170], ["Malmi", 60.2510, 25.0110]];
+    ["Viikki", 60.2270, 25.0170], ["Malmi", 60.2510, 25.0110],
+    // Espoo (27.11.2026)
+    ["Keilaniemi", 60.1765, 24.8290], ["Otaniemi", 60.1860, 24.8270], ["Tapiola", 60.1755, 24.8050], ["Leppävaara", 60.2190, 24.8130],
+    ["Matinkylä", 60.1600, 24.7380], ["Espoon keskus", 60.2050, 24.6560]];
   var myArea = null; try { myArea = localStorage.getItem("pl_area"); } catch (e) {}
   function renderAreas() {
     var show = !state.me && state.locTried;

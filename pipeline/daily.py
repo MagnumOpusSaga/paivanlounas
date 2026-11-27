@@ -1,6 +1,6 @@
 """Daily run: fetch today's lunch lists and build the site into dist/.
 Usage: python3 -I pipeline/daily.py [YYYY-MM-DD]   (default: today in Europe/Helsinki)"""
-import urllib.parse, unicodedata, re
+import glob, urllib.parse, unicodedata, re
 import datetime, json, os, subprocess, sys
 from zoneinfo import ZoneInfo
 
@@ -40,6 +40,9 @@ def slugify(s):
 def load_registry():
     """Registry + websites found by find_sites_ai.py (data/sites_found.json) for places that had none."""
     reg = json.load(open(f"{ROOT}/data/registry_helsinki.json"))
+    for p_ in sorted(glob.glob(f"{ROOT}/data/registry_*.json")):  # other cities (pipeline/build_city.py)
+        if not p_.endswith("registry_helsinki.json"):
+            reg += json.load(open(p_))
     fp = f"{ROOT}/data/sites_found.json"
     found = json.load(open(fp)) if os.path.exists(fp) else {}
     for v in reg:
@@ -71,7 +74,8 @@ def main():
     # 3. restaurants' own websites (registry venues with a website and no chain source)
     # 3a. find official websites for places that have none (Claude + web search, once per venue, small budget; feedback 27.11.)
     if os.environ.get("SITES_BUDGET", "0.75") not in ("0", ""):
-        run(f"{P}/find_sites_ai.py", "data/registry_helsinki.json", "data/sites_found.json", "data/landed_raw.json", ok_fail=True)
+        regs = ",".join(sorted(os.path.relpath(p_, ROOT) for p_ in glob.glob(f"{ROOT}/data/registry_*.json")))
+        run(f"{P}/find_sites_ai.py", regs, "data/sites_found.json", "data/landed_raw.json", ok_fail=True)
     reg = load_registry()
     todo = [{"id": "osm:" + v["osm"] if v.get("osm") else v["id"], "name": v["name"], "website": v["website"]}
             for v in reg if v.get("website") and not any(s.split(":")[0] in ("compass", "sodexo", "unicafe") for s in v["sources"])]

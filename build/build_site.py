@@ -1,6 +1,6 @@
 """Build paivanlounas.fi (static, Cloudflare Pages) from the venue registry + today's menus.
 Usage: build_site.py <lounas_dir> <out_dir> <YYYY-MM-DD> [--preview]"""
-import json, math, re, sys, os, html, shutil, datetime, unicodedata, urllib.parse
+import json, math, re, sys, os, html, shutil, datetime, unicodedata, urllib.parse, glob
 
 SITE = "Päivän lounas"
 DOMAIN = "https://paivanlounas.fi"
@@ -44,14 +44,22 @@ def point_in_poly(x, y, poly):
     return inside
 
 
-def load_districts(path):
+def load_districts(path, city="helsinki"):
     out = []
     for f in json.load(open(path))["features"]:
         g = f["geometry"]
         polys = g["coordinates"] if g["type"] == "MultiPolygon" else [g["coordinates"]]
-        name = f["properties"]["nimi_fi"].title().replace("-", "-")
-        out.append({"name": name, "slug": slug(name), "polys": polys})
+        n0 = f["properties"]["nimi_fi"]
+        name = n0.title() if city == "helsinki" else n0  # other cities' area names are written as people write them
+        out.append({"name": name, "slug": slug(name), "polys": polys, "city": city})
     return out
+
+
+# cities other than Helsinki (Branu 27.11.: expand to all of Finland, slowly and carefully, a little every day)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pipeline"))
+from cities import CITIES  # noqa: E402
+# a new city's pages stay out of search engines until Branu has seen the page count (spam rule: report before publishing)
+INDEX_CITIES = set((os.environ.get("LOUNAS_INDEX_CITIES") or "helsinki").split(","))
 
 
 def district_of(lat, lon, ds):
@@ -224,7 +232,7 @@ T = {
            "wrong": "Väärä tieto?", "wrong_ok": "Kiitos ilmoituksesta!", "report_h": "Onko tämä sinun ravintolasi?", "report_p": "Kerro, missä lounaslistasi julkaistaan (oma sivu, Facebook-sivu tai pdf). Haemme sen jatkossa automaattisesti joka aamu – sinun ei tarvitse tehdä muuta.",
            "report_url": "Lounaslistan osoite", "report_btn": "Lähetä", "report_ok": "Kiitos! Tarkistamme osoitteen seuraavassa päivityksessä.",
            "footer1": "Lounaslistat haetaan automaattisesti ravintoloiden ja ketjujen omista lähteistä joka arkiaamu. Tarkista erityisruokavaliot aina ravintolasta.",
-           "footer2": "Elintarvikevalvonnan tulokset: Oiva / Ruokavirasto (oivahymy.fi). Osoitteet ja kaupunginosat: Helsingin kaupunki, CC BY 4.0. Kartta: © OpenStreetMapin tekijät.",
+           "footer2": "Elintarvikevalvonnan tulokset: Oiva / Ruokavirasto (oivahymy.fi). Osoitteet ja alueet: Helsingin kaupunki ja pääkaupunkiseudun kunnat (kartta.hel.fi), CC BY 4.0. Ravintolatiedot osin © OpenStreetMapin tekijät. Kartta: © OpenStreetMapin tekijät.",
            "about": "/tietoa/", "about_l": "Tietoa palvelusta", "privacy": "/tietosuoja/", "privacy_l": "Tietosuoja",
            "preview": "Esikatselu – sivusto on vielä kehitysvaiheessa", "notfound": "Sivua ei löytynyt", "tohome": "Etusivulle", "crumb_home": "Etusivu", "lang": "fi", "menu_lang": ""},
     "en": {"home": "/en/", "areas": "/en/lunch/", "area": "/en/lunch/{s}/", "venue": "/en/restaurant/{s}/", "nav_areas": "Areas", "theme": "Switch dark/light mode", "other": "Suomeksi", "other_home": "/",
@@ -248,7 +256,7 @@ T = {
            "wrong": "Wrong info?", "wrong_ok": "Thanks for letting us know!", "report_h": "Is this your restaurant?", "report_p": "Tell us where your lunch menu is published (website, Facebook page or pdf). We will fetch it automatically every morning – nothing else is needed.",
            "report_url": "Lunch menu address", "report_btn": "Send", "report_ok": "Thank you! We will check the address in the next update.",
            "footer1": "Lunch menus are fetched automatically from restaurants' and chains' own sources every weekday morning. Menus are shown in the language the restaurant publishes them (mostly Finnish). Always check special diets with the restaurant.",
-           "footer2": "Food-control results: Oiva / Finnish Food Authority (oivahymy.fi). Addresses and districts: City of Helsinki, CC BY 4.0. Map: © OpenStreetMap contributors.",
+           "footer2": "Food-control results: Oiva / Finnish Food Authority (oivahymy.fi). Addresses and areas: City of Helsinki and the Helsinki region municipalities (kartta.hel.fi), CC BY 4.0. Restaurant data partly © OpenStreetMap contributors. Map: © OpenStreetMap contributors.",
            "about": "/en/about/", "about_l": "About", "privacy": "/en/privacy/", "privacy_l": "Privacy",
            "preview": "Preview – the site is still under development", "notfound": "Page not found", "tohome": "Front page", "crumb_home": "Home", "lang": "en", "menu_lang": "en"},
 }
@@ -289,6 +297,7 @@ GATE = {
     "en": {"/en/"},     # English: only the front page until Search Console shows demand (language gate)
 }
 SITEMAP = {}            # path -> data signature, filled by add_url()
+PREV_SITEMAP = set()    # paths of the previous build's sitemap (data/lastmod.json)
 GATE_ON = os.environ.get("LOUNAS_GATE") == "1"  # off until Branu approves publishing the gate (N25); then set in the workflow
 
 
@@ -559,7 +568,15 @@ def main(L, out, day, preview):
     os.makedirs(out, exist_ok=True)
     days = week_days(day)
     show_day = day if datetime.date.fromisoformat(day).weekday() < 5 else days[0]
+    global PREV_SITEMAP
+    try:
+        PREV_SITEMAP = set(json.load(open(f"{L}/data/lastmod.json")))
+    except Exception:
+        PREV_SITEMAP = set()
     reg = json.load(open(f"{L}/data/registry_helsinki.json"))
+    for _p in sorted(glob.glob(f"{L}/data/registry_*.json")):
+        if not _p.endswith("registry_helsinki.json"):
+            reg += json.load(open(_p))
     _fp = f"{L}/data/sites_found.json"  # websites found by pipeline/find_sites_ai.py for places that had none
     if os.path.exists(_fp):
         _found = json.load(open(_fp))
@@ -568,6 +585,13 @@ def main(L, out, day, preview):
             if not _v.get("website") and _f and _f.get("status") == "ok":
                 _v["website"] = _f["website"]
     ds = load_districts(os.path.join(os.path.dirname(__file__), "..", "kaupunginosat.json"))
+    for _p in sorted(glob.glob(f"{L}/data/areas_*.json")):
+        _c = os.path.basename(_p)[6:-5]
+        _have = {d["slug"] for d in ds}
+        for d in load_districts(_p, _c):
+            if d["slug"] in _have:  # same name in two cities → "Kaupunki-Alue"
+                d["slug"] = slug(f"{CITIES[_c]['name']} {d['name']}")
+            ds.append(d)
     M = {d: menus_today(L, d) for d in days}
     R = raflaamo_today(L)
     venues = []
@@ -583,8 +607,8 @@ def main(L, out, day, preview):
                     break
         if show_day not in ms and norm(v["name"]) in R:
             ms[show_day] = R.pop(norm(v["name"]))["menu"]
-        dd = district_of(v["lat"], v["lon"], ds)
-        venues.append({**v, "ms": ms, "menu": ms.get(show_day), "district": dd["name"] if dd else None, "dslug": dd["slug"] if dd else None})
+        dd = district_of(v["lat"], v["lon"], ds)  # city = where the place is, not which registry found it
+        venues.append({**v, "city": (dd or {}).get("city") or v.get("city") or "helsinki", "rcity": v.get("city") or "helsinki", "ms": ms, "menu": ms.get(show_day), "district": dd["name"] if dd else None, "dslug": dd["slug"] if dd else None})
     def assign_slugs(vs):
         seen_, out_ = {}, []
         for v in vs:
@@ -622,6 +646,8 @@ def main(L, out, day, preview):
     byns = {}
     for i, v in enumerate(venues):  # same name at the same street address = one restaurant (rule: one page per question)
         k = (norm(v["name"]), norm(v.get("street") or ""))
+        if not k[1]:  # no street known: same name is not enough (Espresso House ×4 in Espoo)
+            continue
         if k in byns and i not in drop:
             j = byns[k]
             keep_j = bool(venues[j]["ms"]) >= bool(v["ms"])
@@ -739,6 +765,8 @@ def main(L, out, day, preview):
     for v in venues:
         if v["dslug"]:
             by_d.setdefault((v["dslug"], v["district"]), []).append(v)
+        if v["city"] != "helsinki":  # city page: "Lounas Espoo tänään" = every Espoo place
+            by_d.setdefault((v["city"], CITIES[v["city"]]["name"]), []).append(v)
     for lg in ("fi", "en"):
         t = T[lg]
         other = "en" if lg == "fi" else "fi"
@@ -861,26 +889,32 @@ def main(L, out, day, preview):
             ldh = "".join(f'<script type="application/ld+json">{json.dumps(x, ensure_ascii=False)}</script>' for x in ld)
             os.makedirs(f"{out}{path}", exist_ok=True)
             weekly = [v for v in vs if any(m and m.get("items") for m in v["ms"].values())]
-            ix = add_url(path, len(weekly) >= GATE["area"], [(v["slug"], v["ms"]) for v in weekly])
+            ix = add_url(path, len(weekly) >= GATE["area"] and vs[0]["city"] in INDEX_CITIES, [(v["slug"], v["ms"]) for v in weekly])
             open(f"{out}{path}index.html", "w").write(page(lg, t["area_title"].format(a=dn, n=nm), desc, path, alt, body + (SHARE_JS if img else ""), preview, ldh if ix else "", img, index=ix, has_list=nm > 0))
             idx.append((dn, dslug, nm, len(vs)))
             if ix:
                 n_area_ix += 1
-        lis = "".join(f'<li><a href="{t["area"].format(s=s)}">{esc(n)}</a> <small>{m} {t["lists"]} · {tt} {t["places"]}</small></li>' for n, s, m, tt in idx)
+        city_of_area = {k[0]: vs_[0]["city"] for k, vs_ in by_d.items()}
+        def _li(n, s, m, tt):
+            return f'<li><a href="{t["area"].format(s=s)}">{esc(n)}</a> <small>{m} {t["lists"]} · {tt} {t["places"]}</small></li>'
+        lis = "".join(_li(*x) for x in idx if city_of_area.get(x[1]) == "helsinki")
+        for _c in [c for c in CITIES if c != "helsinki" and any(city_of_area.get(x[1]) == c for x in idx)]:  # other cities under their own heading
+            _xs = [x for x in idx if city_of_area.get(x[1]) == _c]
+            lis += f'</ul><h2>{esc(CITIES[_c]["name"])}</h2><ul class="areas">' + "".join(_li(*x) for x in sorted(_xs, key=lambda x: (x[1] != _c, x[0])))
         os.makedirs(f"{out}{t['areas']}", exist_ok=True)
         ix = add_url(t["areas"], n_area_ix >= GATE["areas_index"], idx)
         open(f"{out}{t['areas']}index.html", "w").write(page(lg, t["areas_title"], t["areas_h1"], t["areas"], T[other]["areas"],
                                                               f'<main class="content"><h1>{t["areas_h1"]}</h1><ul class="areas">{lis}</ul></main>', preview, index=ix))
         # topic pages (cheapest / vegetarian / buffet in all of Helsinki), refreshed daily
         TP = TOPIC_T[lg]
-        allm_g = [v for v in venues if v["menu"]]
+        allm_g = [v for v in venues if v["menu"] and v["city"] == "helsinki"]  # the topic pages are about Helsinki
         mp_g = {v["slug"]: lunch_price(v["menu"]) for v in allm_g}
         topics = {
             "cheap": sorted([v for v in allm_g if mp_g[v["slug"]] and mp_g[v["slug"]] < 13], key=lambda v: mp_g[v["slug"]])[:80],
             "veg": sorted([v for v in allm_g if is_veg(v)], key=lambda v: (v["district"] or "", mp_g[v["slug"]] or 99))[:200],
             "buffet": sorted([v for v in allm_g if re.search(r"buffet|noutopöytä|seisova", menu_text(v))], key=lambda v: (v["district"] or "", v["name"]))[:200],
         }
-        top_areas = sorted(nmenu.items(), key=lambda kv: -kv[1])[:10]
+        top_areas = sorted(((k, n) for k, n in nmenu.items() if by_d[k][0]["city"] == "helsinki"), key=lambda kv: -kv[1])[:10]
         for key, items in topics.items():
             path, alt = TP[key]["path"], TOPIC_T[other][key]["path"]
             ps = [mp_g[v["slug"]] for v in items if mp_g[v["slug"]]]
@@ -934,12 +968,12 @@ def main(L, out, day, preview):
             week = "".join(f'<h3>{esc(datestr(d, lg))}</h3>{menu_html(v["ms"].get(d), lg, v["slug"], d, show_src=not v["menu"] or v["ms"][d].get("url") != src0)}' for d in days if d != show_day and d in v["ms"])
             week = f'<h2>{t["week"]}</h2>{week}' if week else ""
             jl = {"@context": "https://schema.org", "@type": "Restaurant", "name": v["name"],
-                  "address": {"@type": "PostalAddress", "streetAddress": v["street"], "postalCode": v.get("postal"), "addressLocality": "Helsinki", "addressCountry": "FI"},
+                  "address": {"@type": "PostalAddress", "streetAddress": v["street"], "postalCode": v.get("postal"), "addressLocality": CITIES[v["city"]]["name"], "addressCountry": "FI"},
                   "geo": {"@type": "GeoCoordinates", "latitude": v["lat"], "longitude": v["lon"]}}
             if v.get("website"):
                 jl["url"] = v["website"]
             body = f"""<main class="content"><nav class="crumbs"><a href="{t['home']}">{t['crumb_home']}</a>{dlink}</nav>
-<h1>{esc(t['venue_h1'].format(n=v['name']))}</h1><p class="addr">{esc(v['street'])}, Helsinki</p>{info_box(INFO.get(rid_) or INFO.get("sug:" + v["slug"]), lg, show_day) if not v["menu"] else ""}{near_box(v)}
+<h1>{esc(t['venue_h1'].format(n=v['name']))}</h1><p class="addr">{esc(v['street'])}, {CITIES[v['city']]['name']}</p>{info_box(INFO.get(rid_) or INFO.get("sug:" + v["slug"]), lg, show_day) if not v["menu"] else ""}{near_box(v)}
 <h2>{esc(t['list_for'].format(d=ds_))}</h2>{menu_html(v['menu'], lg, v['slug'], show_day)}{week}{oiva}{web}{ad_block("content", lg) if v["menu"] else ""}
 <p class="actions"><a class="btn" href="{t['home']}?v={v['slug']}">{t['show_map']}</a> <a class="btn ghost" href="https://www.google.com/maps/dir/?api=1&destination={v['lat']},{v['lon']}" rel="nofollow noopener">{t['route']}</a> {parkpenny(v, lg)} <a class="btn ghost" href="https://www.google.com/maps/search/?api=1&amp;query={urllib.parse.quote(v['name'] + ', ' + (v['street'] or '') + ', Helsinki')}" rel="nofollow noopener">{t['g_reviews']}</a></p>
 <p class="likerow">{f'<span class="popn">{LIKES[v["slug"]]} {t["pop_n"]}</span> ' if LIKES.get(v["slug"]) else ""}<button type="button" class="likebtn" data-like="{v['slug']}" data-done="{t['liked']}">{t['like']}</button></p>
@@ -947,13 +981,13 @@ def main(L, out, day, preview):
             os.makedirs(f"{out}{path}", exist_ok=True)
             rid = ("osm:" + v["osm"]) if v.get("osm") else v.get("id")
             ok_v = ((SEEN.get(v["slug"]) or "") >= since or v["slug"][:40] in LANDED or rid in LUNCHY
-                    or near_count(v) >= GATE["venue_near"])
+                    or near_count(v) >= GATE["venue_near"]) and (v["city"] in INDEX_CITIES or path in PREV_SITEMAP)  # a page already in the sitemap stays
             ix = add_url(path, ok_v, [v["ms"], v["slug"] in LANDED])
             open(f"{out}{path}index.html", "w").write(page(lg, t["venue_title"].format(n=v["name"]), t["venue_desc"].format(n=v["name"], a=v["street"]), path, alt, body, preview,
                                                            f'<script type="application/ld+json">{json.dumps(jl, ensure_ascii=False)}</script>', index=ix, has_list=bool(v["menu"])))
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import articles
-    articles.write_articles({"out": out, "preview": preview, "venues": venues, "show_day": show_day, "days": days, "likes": LIKES,
+    articles.write_articles({"out": out, "preview": preview, "venues": [v for v in venues if v["city"] == "helsinki"], "show_day": show_day, "days": days, "likes": LIKES,
                              "page": page, "add_url": add_url, "esc": esc, "fmt_price": fmt_price, "lunch_price": lunch_price,
                              "clean_dish": clean_dish, "datestr": datestr, "ad_block": ad_block, "history_path": f"{L}/data/price_history.json"})
     write_info_pages(out, preview, urls)
@@ -994,7 +1028,7 @@ INFO = {
 <li>Ravintoloiden omat verkkosivut, PDF-listat ja listakuvat. Ne luetaan joka arkiaamu koneellisesti, osin tekoälyn avulla (Anthropicin Claude).</li></ul>
 <p>Lähde ja linkki alkuperäiseen listaan näkyvät jokaisen listan alla. Lista voi joskus olla vanha tai väärä – tarkista erityisruokavaliot ja hinnat aina ravintolasta. Jos huomaat virheen, paina listan alla <b>Väärä tieto?</b>. Kun ilmoituksia tulee useampi, lista piilotetaan.</p>
 <h2>Muut tiedot</h2>
-<p>Oiva-hymyt: Ruokaviraston ja kuntien elintarvikevalvonta (oivahymy.fi). Osoitteet ja kaupunginosat: Helsingin kaupunki, CC BY 4.0. Kartta: © OpenStreetMapin tekijät.</p>
+<p>Oiva-hymyt: Ruokaviraston ja kuntien elintarvikevalvonta (oivahymy.fi). Osoitteet ja alueet: Helsingin kaupunki ja pääkaupunkiseudun kunnat (kartta.hel.fi), CC BY 4.0. Ravintolatiedot osin © OpenStreetMapin tekijät. Kartta: © OpenStreetMapin tekijät.</p>
 <h2>Ravintoloille</h2>
 <p>Listaa ei tarvitse syöttää meille. Jos listasi puuttuu, kerro ravintolasi sivulla, missä osoitteessa lounaslistasi julkaistaan – haemme sen sieltä joka aamu automaattisesti.</p>
 <h2>Ylläpitäjä ja yhteystiedot</h2>
@@ -1025,7 +1059,7 @@ INFO = {
 <li>Restaurants' own websites, PDF menus and menu images, read automatically every weekday morning, partly with AI (Anthropic's Claude).</li></ul>
 <p>The source and a link to the original menu are shown under every menu. A menu can sometimes be outdated or wrong – always check special diets and prices with the restaurant. If you spot a mistake, press <b>Wrong info?</b> under the menu; menus with several reports are hidden.</p>
 <h2>Other data</h2>
-<p>Oiva ratings: Finnish Food Authority and municipal food control (oivahymy.fi). Addresses and districts: City of Helsinki, CC BY 4.0. Map: © OpenStreetMap contributors.</p>
+<p>Oiva ratings: Finnish Food Authority and municipal food control (oivahymy.fi). Addresses and areas: City of Helsinki and the Helsinki region municipalities (kartta.hel.fi), CC BY 4.0. Restaurant data partly © OpenStreetMap contributors. Map: © OpenStreetMap contributors.</p>
 <h2>For restaurants</h2>
 <p>You don't need to send us your menu. If it is missing, tell us on your restaurant's page where your lunch menu is published – we fetch it automatically every morning.</p>
 <h2>Operator and contact</h2>

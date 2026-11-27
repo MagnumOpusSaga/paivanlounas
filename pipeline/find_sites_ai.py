@@ -15,10 +15,16 @@ from find_websites import fetch, text_of, tokens, ascii_, SKIP_NAME, PARKED  # n
 MODEL = os.environ.get("SITES_MODEL", "claude-haiku-5-5")
 LUNCH_NAME = re.compile(r"(?i)lounas|lunch|ruokala|henkilöstöravintola|henkilökuntaravintola|kotiruoka|buffet|lunchrestaurang")
 HUBS = [(60.1690, 24.9440), (60.1690, 24.9320), (60.1990, 24.9330), (60.1640, 24.9150), (60.1870, 24.9770), (60.1780, 24.9500)]
+try:  # lunch hubs of the other cities (pipeline/cities.py)
+    from cities import CITIES
+    for _c in CITIES.values():
+        HUBS += _c.get("hubs", [])
+except Exception:
+    pass
 COMPETITORS = re.compile(r"(?i)lounaat\.info|lounasaika|lounashaku|lounasinfo|ruokapaikkahaku|kanttiinit|lounari|tripadvisor|"
                          r"facebook\.com|instagram\.com|wolt\.com|foodora|google\.|myhelsinki|yelp|thefork|eat\.fi|fonecta|finder\.fi")
 PRICE_IN, PRICE_OUT, PRICE_SEARCH = 0.2 / 1e6, 1.0 / 1e6, 0.01  # $ per token (Haiku list price x2, to stay on the safe side) / per search
-SYSTEM = ("You find the official website of one restaurant in Helsinki. Use web search. Answer ONLY with JSON: "
+SYSTEM = ("You find the official website of one restaurant in Finland (city given). Use web search. Answer ONLY with JSON: "
           '{"website": "<official site URL or null>", "lunch_url": "<URL of its weekday lunch/lounas menu page on that site, or null>", '
           '"weekday_lunch": true|false|null}. The official site is the restaurant\'s or its operator\'s own domain – never a listing, '
           "review, delivery, social media or lunch-aggregator site. If unsure, use null.")
@@ -29,7 +35,7 @@ def km(a, b):
 
 
 def ask(v):
-    q = f'Restaurant "{v["name"]}", {v.get("street") or ""} {v.get("postal") or ""} Helsinki. Find its official website and weekday lunch menu page.'
+    q = f'Restaurant "{v["name"]}", {v.get("street") or ""} {v.get("postal") or ""} {(v.get("city") or "helsinki").title()}. Find its official website and weekday lunch menu page.'
     body = {"model": MODEL, "max_tokens": 600, "system": SYSTEM, "messages": [{"role": "user", "content": q}],
             "tools": [{"type": "web_search_20250305", "name": "web_search", "max_uses": 1}]}
     req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode(),
@@ -83,7 +89,10 @@ def main(reg_path, found_path, landed_path=None):
         print("find_sites_ai: no ANTHROPIC_API_KEY, skipping", file=sys.stderr)
         return
     budget = float(os.environ.get("SITES_BUDGET", "0.75"))
-    reg = json.load(open(reg_path))
+    reg = []
+    for rp in reg_path.split(","):  # one or more registries (Helsinki, Espoo, …)
+        if os.path.exists(rp):
+            reg += json.load(open(rp))
     found = json.load(open(found_path)) if os.path.exists(found_path) else {}
     landed = set()
     if landed_path and os.path.exists(landed_path):

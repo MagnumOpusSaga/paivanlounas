@@ -73,6 +73,14 @@ for _f in _glob.glob(f"{DIST}/ravintola/*/index.html"):
 print(f"info lunch facts boxes (N46): {_boxes}")
 check(_bad == 0, f"lunch facts boxes only on pages without today's list and always with a source link ({_bad} bad)")
 
+# 1f. a new city's pages stay out of search engines until Branu opens the city (LOUNAS_INDEX_CITIES; spam rule)
+_open = set((os.environ.get("LOUNAS_INDEX_CITIES") or "helsinki").split(","))
+for _c in ("espoo",):
+    _pth = os.path.join(DIST, "lounas", _c, "index.html")
+    if os.path.exists(_pth) and _c not in _open and os.environ.get("LOUNAS_GATE") == "1":
+        check('content="noindex' in open(_pth).read(), f"{_c}: city page is noindex until the city is opened")
+        check(f"/lounas/{_c}/" not in open(os.path.join(DIST, "sitemap.xml")).read(), f"{_c}: city page not in the sitemap yet")
+
 # 1d. a site that does not open in a later run keeps this week's list (27.11.: 336 lists at 05.30, 288 at 09.50)
 import tempfile as _tf
 try:

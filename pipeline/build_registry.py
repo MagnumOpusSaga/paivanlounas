@@ -25,9 +25,14 @@ def dist(a, b):
 
 
 def main(data, raw, out):
-    oiva = json.load(open(f"{data}/oiva_helsinki.json"))
-    osm = json.load(open(f"{data}/osm.json"))
-    addr = json.load(open(f"{raw}/hel_osoitteet.json"))["features"]
+    """Helsinki (the original registry)."""
+    build(json.load(open(f"{data}/oiva_helsinki.json")), json.load(open(f"{data}/osm.json")),
+          json.load(open(f"{raw}/hel_osoitteet.json"))["features"], data, "helsinki", out)
+
+
+def build(oiva, osm, addr, data, city, out):
+    """Merge Oiva premises + OSM places + chain restaurants of one city into venues (written to out).
+    addr: address points (GeoJSON features with katunimi / osoitenumero / osoitekirjain) for geocoding Oiva addresses."""
     A = {}
     for f in addr:
         p = f["properties"]
@@ -75,7 +80,7 @@ def main(data, raw, out):
     chains = []
     for f, src in (("compass", "compass"), ("sodexo", "sodexo"), ("unicafe", "unicafe")):
         for c in json.load(open(f"{data}/{f}.json")):
-            if (c.get("city") or "").lower() != "helsinki" or not c.get("lat"):
+            if (c.get("city") or "").lower() != city or not c.get("lat"):
                 continue
             chains.append((src, c))
     attached = 0
@@ -99,6 +104,8 @@ def main(data, raw, out):
     for v in venues:
         if v["website"] and not v["sources"]:
             v["sources"].append("web:" + v["website"])
+        if city != "helsinki":
+            v["city"] = city
     json.dump(venues, open(out, "w"), ensure_ascii=False)
     c = collections.Counter
     print("venues", len(venues), "| with coords", sum(1 for v in venues if v["lat"]), "| with Oiva", sum(1 for v in venues if v["oiva"]),
