@@ -121,6 +121,23 @@ with sync_playwright() as p:
     pg.screenshot(path="smoke-desktop.png")
     nl = pg.evaluate("document.querySelectorAll('.list>li').length")
     check(nl >= 20, f"desktop list rows {nl}")
+    # N45 (27.11.): "Näytä lisää (-30)" showed with 0 or few hits (CSS overrode [hidden]) and 0 hits had no message
+    MORE = """(()=>{const b=document.getElementById('more');const v=getComputedStyle(b).display!=='none'&&b.offsetHeight>0;
+      const e=document.querySelector('.list>li.empty');return {vis:v,txt:b.textContent,empty:e?e.innerText:'',clear:!!document.querySelector('.list [data-clear]')}})()"""
+    bad = []
+    for f in pg.evaluate("[...document.querySelectorAll('.chips button[data-f]')].map(b=>b.dataset.f)"):
+        pg.click(f'.chips button[data-f="{f}"]'); pg.wait_for_timeout(250)
+        m = pg.evaluate(MORE)
+        if m["vis"] and ("-" in m["txt"] or "(0)" in m["txt"]):
+            bad.append(f"{f}: {m['txt']}")
+        pg.click(f'.chips button[data-f="{f}"]'); pg.wait_for_timeout(150)
+    check(not bad, f"desktop: 'show more' never shows a zero/negative count {bad[:3]}")
+    pg.fill("#q", "zzzzqx"); pg.wait_for_timeout(700)
+    m = pg.evaluate(MORE)
+    check(not m["vis"] and "Ei osumia" in m["empty"] and m["clear"], f"desktop: search with 0 hits shows a message + clear button and no 'show more' ({m})")
+    pg.click(".list [data-clear]"); pg.wait_for_timeout(700)
+    nl2 = pg.evaluate("document.querySelectorAll('.list>li[data-i]').length")
+    check(nl2 >= 20 and pg.input_value("#q") == "", f"desktop: clear filters brings the list back ({nl2} rows)")
     check(not errs, f"desktop JS errors: {errs[:3]}")
 
     # 4. a restaurant page with a menu, and the cheapest-lunch page

@@ -4,12 +4,12 @@
   var LG = main ? main.getAttribute("data-lang") : "fi";
   var S = {
     fi: { n: " ravintolaa", menu: " – lista", nomenu: "Ei listaa tälle päivälle.", site: "Ravintolan sivu", src: "Lähde", orig: "alkuperäinen",
-          wrong: "Väärä tieto?", wrongOk: "Kiitos ilmoituksesta!", onmap: "Kartalla", more: "Näytä lisää", park: "Parkki lähellä",
+          wrong: "Väärä tieto?", wrongOk: "Kiitos ilmoituksesta!", onmap: "Kartalla", more: "Näytä lisää", empty: "Ei osumia tältä päivältä.", clear: "Poista suodattimet", otherDays: "Osumia muina päivinä:", park: "Parkki lähellä",
           like: "Söin täällä – hyvä lounas", liked: "Kiitos! Merkitty suositukseksi", pop: " suosittelee", none: "Ei osumia tällä valinnalla. Kokeile toista suodatinta tai siirrä karttaa.", ad: "Mainos", shN: " lounasta lähellä", shNme: " lounasta lähelläsi", route2: "Reitti", open2: "Lista ja tiedot", venue: "/ravintola/", noloc: "Sijaintia ei saatu.", close: "Sulje", walk: " min kävely", until: "auki ", untilEnd: " asti", closes: "sulkeutuu ", closesEnd: " min päästä", ended: "lounas päättynyt", opens: "lounas ", t3me: "Kolme hyvää lähelläsi",
           t3map: "Kolme hyvää tällä alueella", route: "Reitti", loc: "Näytä sijaintini", fav: "Lisää suosikiksi", unfav: "Poista suosikeista", near: "lähintä näkyvissä", nofav: "Ei vielä suosikkeja – lisää niitä tähdestä ravintolan nimen vierestä.",
           wd: ["sunnuntai", "maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai"], pp: "https://parkpenny.com/" },
     en: { n: " restaurants", menu: " – with menu", nomenu: "No menu for this day.", site: "Restaurant website", src: "Source", orig: "original",
-          wrong: "Wrong info?", wrongOk: "Thanks for letting us know!", onmap: "On map", more: "Show more", park: "Parking nearby",
+          wrong: "Wrong info?", wrongOk: "Thanks for letting us know!", onmap: "On map", more: "Show more", empty: "No matches for this day.", clear: "Clear filters", otherDays: "Matches on other days:", park: "Parking nearby",
           like: "I ate here – good lunch", liked: "Thanks! Counted as a recommendation", pop: " recommend", none: "Nothing with this choice. Try another filter or move the map.", ad: "Advertisement", shN: " lunches nearby", shNme: " lunches near you", route2: "Directions", open2: "Menu and details", venue: "/en/restaurant/", noloc: "Could not get your location.", close: "Close", walk: " min walk", until: "open until ", untilEnd: "", closes: "closes in ", closesEnd: " min", ended: "lunch over", opens: "lunch ", t3me: "Three good picks near you",
           t3map: "Three good picks in this area", route: "Directions", loc: "Show my location", fav: "Add to favourites", unfav: "Remove from favourites", near: "nearest shown", nofav: "No favourites yet – add them with the star next to a restaurant name.",
           wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], pp: "https://parkpenny.com/en/" }
@@ -220,8 +220,29 @@
         (lv ? menuHtml(v, true) : (m ? '<p class="dish">' + esc(dishLine(v)) + "</p>" : "")) + "</li>" + (k === 4 ? adHtml("list", "li") : "");
     }).join("");
     fillAds($("list"));
-    var more = $("more");
-    more.hidden = !(list.length > n); more.textContent = S.more + " (" + (list.length - n) + ")";
+    if (!total && !state.f.fav) $("list").innerHTML = emptyHtml();
+    var more = $("more"), left = list.length - n;
+    more.hidden = left <= 0; more.textContent = left > 0 ? S.more + " (" + left + ")" : "";
+  }
+  function anyFilter() { return !!(state.q || state.cat || Object.keys(state.f).some(function (k) { return k !== "menu" && state.f[k]; })); }
+  // nothing found: say so, offer to clear the filters and show the other weekdays that do have matches (N45)
+  function emptyHtml() {
+    var cur = state.day, other = [];
+    state.days.forEach(function (d) { if (d === cur) return; state.day = d; var k = filtered().length; if (k) other.push([d, k]); });
+    state.day = cur;
+    var btn = function (d) { var b = document.querySelector('.days button[data-day="' + d + '"]'); return b ? b.textContent.trim() : d; };
+    return '<li class="empty"><p class="enone">' + S.empty + "</p>" +
+      (anyFilter() ? '<p><button type="button" class="btn ghost" data-clear>' + S.clear + "</button></p>" : "") +
+      (other.length ? '<p class="eother">' + S.otherDays + "</p><p class=\"edays\">" + other.map(function (x) {
+        return '<button type="button" class="btn ghost" data-dgo="' + esc(x[0]) + '">' + esc(btn(x[0])) + " · " + x[1] + "</button>"; }).join("") + "</p>" : "") + "</li>";
+  }
+  function clearFilters() {
+    state.q = ""; ["q", "q2"].forEach(function (id) { var e = $(id); if (e) e.value = ""; });
+    state.cat = null; Object.keys(state.f).forEach(function (k) { if (k !== "menu") state.f[k] = false; });
+    document.querySelectorAll("[data-f]").forEach(function (x) { x.classList.toggle("on", !!state.f[x.getAttribute("data-f")]); });
+    document.querySelectorAll("[data-cat]").forEach(function (x) { x.classList.remove("on"); x.setAttribute("aria-pressed", "false"); });
+    document.querySelectorAll("[data-pill]").forEach(function (x) { x.classList.toggle("on", x.getAttribute("data-pill") === "near"); });
+    render();
   }
   function render() {
     var list = filtered();
@@ -435,6 +456,9 @@
   });
   $("more").addEventListener("click", function () { state.limit += 40; renderList(filtered()); });
   $("list").addEventListener("click", function (e) {
+    if (e.target.closest("[data-clear]")) { clearFilters(); return; }
+    var dg = e.target.closest("[data-dgo]");
+    if (dg) { var db = document.querySelector('.days button[data-day="' + dg.getAttribute("data-dgo") + '"]'); if (db) db.click(); return; }
     var go = e.target.closest("[data-go]");
     if (go) { e.preventDefault(); openOnMap(go.getAttribute("data-go")); return; }
     if (state.view === "list" || e.target.closest("a")) return;

@@ -72,7 +72,8 @@ h3{margin:0;font-size:16px}h3 a{color:var(--ink);text-decoration:none}h3 a:hover
 .app.mapview #map{height:calc(100vh - 58px);height:calc(100dvh - 58px)}
 .app.mapview .panel{display:none}
 .app.listview #map{display:none}
-.more{display:block;margin:16px auto 0}
+.more{display:block;margin:16px auto 0}.more[hidden]{display:none}
+.list>li.empty{cursor:default;border:0;padding:16px 0}.list>li.empty p{margin:0 0 10px}.enone{font-weight:700;font-size:16px}.eother{color:var(--mut);font-size:13px}.edays{display:flex;flex-wrap:wrap;gap:8px}
 .pp{margin:6px 0 0;font-size:14px}.list .onmap{font-size:14px}
 .wrong{color:var(--mut)}.wrongok{color:var(--g);font-weight:600}
 /* map pins */
