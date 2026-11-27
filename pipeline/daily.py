@@ -70,7 +70,7 @@ def main():
         json.dump([], open(f"{ROOT}/raw/raf_hki_parsed.json", "w"))
     # 3. restaurants' own websites (registry venues with a website and no chain source)
     # 3a. find official websites for places that have none (Claude + web search, once per venue, small budget; feedback 27.11.)
-    if os.environ.get("SITES_BUDGET", "0.25") not in ("0", ""):
+    if os.environ.get("SITES_BUDGET", "0.75") not in ("0", ""):
         run(f"{P}/find_sites_ai.py", "data/registry_helsinki.json", "data/sites_found.json", "data/landed_raw.json", ok_fail=True)
     reg = load_registry()
     todo = [{"id": "osm:" + v["osm"] if v.get("osm") else v["id"], "name": v["name"], "website": v["website"]}

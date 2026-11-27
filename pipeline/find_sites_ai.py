@@ -5,7 +5,7 @@ found what it could; this asks a search engine, then keeps only a page that show
 
 Order: places search visitors landed on, then nearest to the lunch hubs (centre, Kamppi, Pasila, Ruoholahti, Kalasatama).
 Each venue is asked once (data/sites_found.json, kept in the Actions cache; 'none' answers are retried after 30 days).
-Budget per run in dollars (env SITES_BUDGET, default 0.25). Never uses competing lunch-list services.
+Budget per day in dollars (env SITES_BUDGET, default 0.75 – Branu 27.11.: ok, may be raised if needed). Never uses competing lunch-list services.
 Usage: find_sites_ai.py <registry.json> <sites_found.json> [landed_raw.json]"""
 import datetime, json, math, os, re, sys, time, urllib.error, urllib.request
 
@@ -81,7 +81,7 @@ def main(reg_path, found_path, landed_path=None):
     if not os.environ.get("ANTHROPIC_API_KEY"):
         print("find_sites_ai: no ANTHROPIC_API_KEY, skipping", file=sys.stderr)
         return
-    budget = float(os.environ.get("SITES_BUDGET", "0.25"))
+    budget = float(os.environ.get("SITES_BUDGET", "0.75"))
     reg = json.load(open(reg_path))
     found = json.load(open(found_path)) if os.path.exists(found_path) else {}
     landed = set()
