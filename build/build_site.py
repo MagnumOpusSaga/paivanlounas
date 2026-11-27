@@ -424,7 +424,7 @@ def share_image(out, key, title, ds_, items, mp, url_path):
     try:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         import share_img
-        os.makedirs(f"{out}/jako", exist_ok=True)
+        os.makedirs(os.path.dirname(f"{out}/jako/{key}.png"), exist_ok=True)
         share_img.make(f"{out}/jako/{key}.png", "Halvimmat lounaat tänään", title, ds_,
                        [(v["name"], clean_dish(v["menu"]["items"][0]["d"][0]), fmt_price(mp[v["slug"]])) for v in rows], "paivanlounas.fi" + url_path)
         return f"/jako/{key}.png"
@@ -594,8 +594,7 @@ def main(L, out, day, preview):
         _c = os.path.basename(_p)[6:-5]
         _have = {d["slug"] for d in ds}
         for d in load_districts(_p, _c):
-            if d["slug"] in _have:  # same name in two cities → "Kaupunki-Alue"
-                d["slug"] = slug(f"{CITIES[_c]['name']} {d['name']}")
+            d["slug"] = f"{_c}/{d['slug']}"  # /lounas/espoo/tapiola/ (Branu 27.11.: the city in the address; Helsinki keeps /lounas/kallio/)
             ds.append(d)
     M = {d: menus_today(L, d) for d in days}
     R = raflaamo_today(L)
