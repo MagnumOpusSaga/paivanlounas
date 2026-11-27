@@ -7,6 +7,11 @@ on:
     - cron: "7 4 * * 1-5"    # backup / refresh (restaurants that publish in the early morning)
     - cron: "37 8 * * 1-5"   # midday refresh
   workflow_dispatch:
+    inputs:
+      morning:
+        description: "1 = morning rescue run started by the Cloudflare morning check (N41): full morning AI budget"
+        required: false
+        default: ""
   push:
     branches: [main]
 
@@ -92,7 +97,7 @@ jobs:
           ADSENSE_CLIENT: ca-pub-1421922359984193
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # morning run may spend up to $0.12 on new readings, the midday refresh and code pushes less
-          LOUNAS_AI_BUDGET: ${{ github.event.schedule == '17 2 * * 1-5' && '0.23' || github.event.schedule == '37 8 * * 1-5' && '0.03' || '0.05' }}
+          LOUNAS_AI_BUDGET: ${{ (github.event.schedule == '17 2 * * 1-5' || inputs.morning == '1') && '0.23' || github.event.schedule == '37 8 * * 1-5' && '0.03' || '0.05' }}
         run: python3 -I pipeline/daily.py
       - name: Quality gate (lists >= 80 % of usual, N41)
         id: gate

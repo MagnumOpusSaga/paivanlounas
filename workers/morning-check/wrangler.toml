@@ -1,0 +1,8 @@
+name = "paivanlounas-morning-check"
+main = "index.js"
+compatibility_date = "2026-11-01"
+workers_dev = false   # cron only, no public URL
+
+[triggers]
+# 02.30, 03.30, 04.30 UTC Mon–Fri; the code acts only at 05.xx and 06.xx Helsinki time (winter and summer time)
+crons = ["30 2,3,4 * * 1-5"]
