@@ -1,6 +1,6 @@
 // POST /api/e — anonymous usage counters (no cookies, no IP, no user id stored).
 // Body: JSON array of [kind, key] pairs, max 20 per request. Only the daily count per (day, kind, key, lang, page, has_list) is kept.
-const KINDS = new Set(["view", "click", "quick_exit", "land"]);
+const KINDS = new Set(["view", "click", "quick_exit", "land", "ad"]);
 const PAGES = new Set(["home", "area", "venue", "topic", "info", "other"]);
 export async function onRequestPost({ request, env }) {
   if ((request.headers.get("content-length") | 0) > 2000) return new Response("too big", { status: 413 });

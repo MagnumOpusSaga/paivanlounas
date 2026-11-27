@@ -12,7 +12,11 @@
   function ev(k) { clicked = true; q.push(["click", k]); if (q.length >= 10) send(); }
   window.plEvent = ev;
   // landed here from a search engine: which restaurant / district pages people really look for (index gate)
-  if (K && /(^|\.)(google|bing|duckduckgo|ecosia|yahoo|yandex|startpage|qwant)\./.test((document.referrer.split("/")[2] || ""))) q.push(["land", K]);
+  // a paid ad click (Google Ads auto-tagging or utm_medium=cpc) is counted as "ad" with the campaign, never as a search landing,
+  // so paid visits do not open pages in the index gate; no cookie, no id – only the campaign name and the page type
+  var qs = location.search, isAd = /[?&](gclid|gbraid|wbraid)=|[?&]utm_medium=cpc/.test(qs);
+  if (isAd) { var cm = (qs.match(/[?&]utm_campaign=([a-z0-9_-]{1,30})/i) || [])[1] || "gads"; q.push(["ad", (cm + ":" + (K || P)).toLowerCase().slice(0, 40)]); }
+  else if (K && /(^|\.)(google|bing|duckduckgo|ecosia|yahoo|yandex|startpage|qwant)\./.test((document.referrer.split("/")[2] || ""))) q.push(["land", K]);
   function kind(a) {
     var k = a.getAttribute("data-ev"); if (k) return k;
     if (a.closest(".nearby")) return "nearby";
