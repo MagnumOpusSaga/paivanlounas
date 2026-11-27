@@ -154,7 +154,7 @@ html.dark .pin.sel{background:var(--p);color:#14100d;outline-color:#fff}
 html.dark .pin.fv{background:#ffe08a;color:#14100d}
 html.dark .preview{background:#5a4b00;color:#fff3b0}
 .top nav{align-items:center}
-.themebtn{border:0;background:none;color:var(--p);cursor:pointer;padding:0;width:28px;height:28px;font-size:20px;line-height:1;flex:0 0 auto}
+.themebtn{border:0;background:none;color:var(--p);cursor:pointer;padding:0;width:28px;height:28px;line-height:0;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center}
 @media (max-width:420px){.top{gap:8px;padding:10px 12px}.top nav{gap:12px}.top nav a{font-size:14px}}
 
 /* day row above the map */

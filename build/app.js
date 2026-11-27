@@ -371,6 +371,8 @@
   var sheet = $("sheet"), cardsEl = $("cards"), hdr = document.querySelector(".top");
   function setHdr() { document.documentElement.style.setProperty("--hdr", (hdr ? hdr.offsetHeight : 56) + "px"); }
   setHdr(); addEventListener("resize", setHdr);
+  // the header can change height after the web fonts arrive: follow it, or a strip opens between header and map (smoke test 27.11.)
+  try { if (window.ResizeObserver && hdr) new ResizeObserver(setHdr).observe(hdr); if (document.fonts) document.fonts.ready.then(setHdr); } catch (e) {}
   function sheetOn() { return !wide.matches && state.view === "split"; }
   function sheetH(px) { document.documentElement.style.setProperty("--sheet-h", px + "px"); }
   function peekH() { var a = $("areas2"); return Math.min(256, Math.round(innerHeight * 0.34)) + (a && !a.hidden ? 40 : 0); }
