@@ -94,6 +94,33 @@ try:
 except Exception as e:
     check(False, f"AI reader carry-over test crashed: {e}")
 
+# 1e. own-site reader: a site that fails or shows a bot check in a later run keeps what was read earlier this week
+# (27.11.: Ilo Konala was read fine at one run and lost at the next – the place vanished from the app)
+try:
+    import fetch_independent as _fi
+    _seq = {"n": 0}
+    _ok_html = ("<html><body><h1>Lounas</h1><p>Lounaslista</p><h2>Perjantai 27.11.</h2><p>Lohikeitto L,G</p><p>Broilerikastike ja riisi L</p>"
+                "<p>Kasvispata L</p><p>Lounas 13,50 €</p></body></html>").encode()
+    _bot = b"<html><body>One moment, please... Please wait while your request is being verified...</body></html>"
+    def _fake(url, maxb=2_500_000, tries=3):
+        if _seq["n"] == 0:
+            return url, "text/html", _ok_html
+        return url, "error:BotCheck", b""
+    _fi.fetch = _fake
+    with _tf.TemporaryDirectory() as _td:
+        json.dump([{"id": "x", "name": "Testi", "website": "https://testi.fi/"}], open(f"{_td}/todo.json", "w"))
+        _fi.main(f"{_td}/todo.json", "2026-11-23,2026-11-24,2026-11-25,2026-11-26,2026-11-27", f"{_td}/m_{{day}}.json")
+        _first = json.load(open(f"{_td}/m_2026-11-27.json"))["results"][0]["status"]
+        _seq["n"] = 1
+        _fi.main(f"{_td}/todo.json", "2026-11-23,2026-11-24,2026-11-25,2026-11-26,2026-11-27", f"{_td}/m_{{day}}.json")
+        _r = json.load(open(f"{_td}/m_2026-11-27.json"))["results"][0]
+        _wp = json.load(open(f"{_td}/web_pages.json"))
+    check(_first in ("ok_daily", "ok_fixed") and _r["status"] == _first and _r.get("carried") and "x" in _wp,
+          f"own-site reader keeps this week's reading when the site fails later ({_first} -> {_r['status']}, pages kept {'x' in _wp})")
+    check(bool(_fi.CHALLENGE.search(_bot)), "bot-check page recognised (not read as 'no lunch')")
+except Exception as e:
+    check(False, f"own-site reader carry-over test crashed: {e}")
+
 srv = http.server.ThreadingHTTPServer(("127.0.0.1", 8799), functools.partial(Quiet, directory=DIST))
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 BASE = "http://127.0.0.1:8799"
@@ -147,6 +174,30 @@ with sync_playwright() as p:
     check(lum > 600, f"phone in dark mode: page stays light (body {bg})")
     tb = pg.evaluate("(()=>{const r=document.getElementById('themebtn').getBoundingClientRect();return r.right<=innerWidth&&r.width>0})()")
     check(tb, "phone: dark/light button fully on screen")
+    # small phone (360 px): header on one line, card texts inside their cards (feedback 27.11.: 'In English' and the
+    # logo wrapped into two lines, long dish words like 'pippurikastikkeessa' ran past the card edge)
+    pg, errs = page(viewport={"width": 360, "height": 740}, is_mobile=True, has_touch=True,
+                    geolocation={"latitude": 60.1699, "longitude": 24.9384}, permissions=["geolocation"])
+    pg.goto(BASE + "/", wait_until="domcontentloaded"); pg.wait_for_timeout(5000)
+    hd = pg.evaluate("""()=>[...document.querySelectorAll('.top .logo,.top nav a')].map(a=>{const r=a.getBoundingClientRect(),
+      lh=parseFloat(getComputedStyle(a).lineHeight)||parseFloat(getComputedStyle(a).fontSize)*1.4;return [a.textContent.trim(),Math.round(r.height),Math.round(lh),Math.round(r.right)]})""")
+    bad = [h for h in hd if h[1] > max(h[2] * 1.5, 30) or h[3] > 360]
+    check(not bad, f"360 px phone: header items on one line and on screen {bad or hd}")
+    pg.click("#grab"); pg.wait_for_timeout(900)
+    ov = pg.evaluate("""()=>{const o=[];document.querySelectorAll('.cards .card').forEach(c=>{const cr=c.getBoundingClientRect();
+      c.querySelectorAll('.c1,.c2,.c3,.c4').forEach(e=>{if(e.scrollWidth>e.clientWidth+1||e.getBoundingClientRect().right>cr.right+1)o.push(e.textContent.slice(0,40))})});return o}""")
+    check(not ov, f"360 px phone: card texts fit inside the cards {ov[:3]}")
+    pg.screenshot(path="smoke-phone-360.png")
+    check(not errs, f"360 px phone JS errors: {errs[:3]}")
+    # a place without today's list is still found by its name (feedback 27.11.: searching a Konala place gave "0 lunches")
+    _wk = json.load(open(os.path.join(DIST, "data", "week.json")))
+    _nl = sorted(v["n"] for v in _wk["venues"] if not v.get("ms") and len(v["n"]) >= 8)
+    if _nl:
+        _name = _nl[len(_nl) // 2]
+        pg.goto(BASE + "/", wait_until="domcontentloaded"); pg.wait_for_timeout(3000)
+        pg.fill("#q2", _name); pg.wait_for_timeout(1000)
+        _row = pg.evaluate("(()=>{const l=document.querySelector('#shRows li');return l?l.innerText:''})()")
+        check(_name.lower() in _row.lower(), f"search finds a place without today's list by name ({_name!r} -> {_row[:60]!r})")
     # 3. desktop front page: list next to the map
     pg, errs = page(viewport={"width": 1280, "height": 800})
     pg.add_init_script("window.__lt=[];try{new PerformanceObserver(l=>l.getEntries().forEach(e=>window.__lt.push(Math.round(e.duration)))).observe({type:'longtask',buffered:true})}catch(e){}")

@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from find_websites import fetch, text_of, tokens, ascii_, SKIP_NAME, PARKED  # noqa: E402
 
 MODEL = os.environ.get("SITES_MODEL", "claude-haiku-5-5")
+LUNCH_NAME = re.compile(r"(?i)lounas|lunch|ruokala|henkilöstöravintola|henkilökuntaravintola|kotiruoka|buffet|lunchrestaurang")
 HUBS = [(60.1690, 24.9440), (60.1690, 24.9320), (60.1990, 24.9330), (60.1640, 24.9150), (60.1870, 24.9770), (60.1780, 24.9500)]
 COMPETITORS = re.compile(r"(?i)lounaat\.info|lounasaika|lounashaku|lounasinfo|ruokapaikkahaku|kanttiinit|lounari|tripadvisor|"
                          r"facebook\.com|instagram\.com|wolt\.com|foodora|google\.|myhelsinki|yelp|thefork|eat\.fi|fonecta|finder\.fi")
@@ -104,8 +105,11 @@ def main(reg_path, found_path, landed_path=None):
             continue
         d = min(km((v["lat"], v["lon"]), h) for h in HUBS)
         slug = re.sub(r"[^a-z0-9]+", "-", ascii_(v["name"]).lower()).strip("-")
-        todo.append((0 if slug[:40] in landed else 1, d, v))
-    todo = [t for t in todo if t[0] == 0 or t[1] <= 1.5]
+        # tier 0: a page people landed on; 1: the name says it is a lunch place (feedback 27.11.: "Lounas Kuusenkerkkä"
+        # in Konala had its lunch list online but no website on file, and Konala is outside the hubs); 2: near the hubs
+        tier = 0 if slug[:40] in landed else 1 if LUNCH_NAME.search(v["name"]) else 2
+        todo.append((tier, d, v))
+    todo = [t for t in todo if t[0] <= 1 or t[1] <= 1.5]
     todo.sort(key=lambda t: (t[0], t[1]))
     spent, n_ok, n_tried = 0.0, 0, 0
     for _, d, v in todo:

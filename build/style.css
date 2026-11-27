@@ -155,7 +155,10 @@ html.dark .pin.fv{background:#ffe08a;color:#14100d}
 html.dark .preview{background:#5a4b00;color:#fff3b0}
 .top nav{align-items:center}
 .themebtn{border:0;background:none;color:var(--p);cursor:pointer;padding:0;width:28px;height:28px;line-height:0;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center}
-@media (max-width:420px){.top{gap:8px;padding:10px 12px}.top nav{gap:12px}.top nav a{font-size:14px}}
+.top .logo,.top nav a{white-space:nowrap}.top nav .lgs{display:none}
+@media (max-width:420px){.top{gap:8px;padding:10px 12px}.top nav{gap:12px}.top nav a{font-size:14px}.top nav .lgf{display:none}.top nav .lgs{display:inline}}
+/* long Finnish words (pippurikastikkeessa) broke out of the cards on phones (feedback 27.11.) */
+.card .c2,.card .c4,.t3 .td,.top3 .td{overflow-wrap:anywhere;hyphens:auto;-webkit-hyphens:auto}
 
 /* day row above the map */
 .daybar{order:-2;margin:0;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--line)}
@@ -215,7 +218,7 @@ html.dark .preview{background:#5a4b00;color:#fff3b0}
   .cards::-webkit-scrollbar,.pills::-webkit-scrollbar{display:none}
   .card{flex:0 0 calc(100% - 44px);scroll-snap-align:center;box-sizing:border-box;background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:0 6px 20px rgba(34,21,15,.10);padding:18px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
   .card .c1{margin:0;font-size:13px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.02em}
-  .card .c2{margin:0;font:800 27px/1.12 var(--display)}
+  .card .c2{margin:0;font:800 clamp(21px,6.6vw,27px)/1.12 var(--display)}
   .card .c3{margin:0;font-size:17px;font-weight:600;display:flex;align-items:center}
   .card .c4{margin:0;font-size:14px;color:var(--mut);line-height:1.45}
   .card .c5{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
@@ -262,3 +265,5 @@ html.dark .preview{background:#5a4b00;color:#fff3b0}
 .areas button small{color:var(--muted,#6b5e57);font-weight:500}
 .areas button.on{border-color:var(--p);color:var(--p-dark)}
 .sheet .areas{padding:0 16px 8px}
+
+.dish.nm{color:var(--mut);font-style:italic}

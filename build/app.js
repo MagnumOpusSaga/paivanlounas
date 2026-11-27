@@ -167,14 +167,18 @@
     return '<div class="row"><h3><button type="button" class="fav' + (fv ? " on" : "") + '" data-fav="' + esc(v.i) + '" aria-pressed="' + fv + '" title="' + (fv ? S.unfav : S.fav) + '" aria-label="' + (fv ? S.unfav : S.fav) + '">' + STAR + '</button><a href="' + S.venue + esc(v.i) + '/">' + esc(v.n) + "</a>" + (v.o === "A" ? '<span class="oiva">Oiva A</span>' : "") + (isStu(v) ? '<span class="stut">' + S.stuTag + "</span>" : "") + "</h3>" +
       (p ? '<span class="from">' + fmt(p) + "</span>" : "") + "</div>" + '<p class="addr">' + (meta || esc(v.a || "")) + "</p>";
   }
+  function nameRank(n, q) {  // 0: a word of the name starts with the search ("ilo" → "Lounasravintola Ilo"), 1: inside a word ("Piilo"), 2: no
+    n = n.toLowerCase(); var k = n.indexOf(q); if (k < 0) return 2;
+    return (" " + n).split(/[^a-z0-9åäöéü]+/).some(function (w) { return w.indexOf(q) === 0; }) ? 0 : 1;
+  }
   function filtered() {
     var q = state.q.toLowerCase(), f = state.f, dq = params.get("d");
     var out = state.data.filter(function (v) {
-      var m = M(v);
+      var m = M(v), named = q && v.n.toLowerCase().indexOf(q) >= 0;
       if (f.fav && !isFav(v.i)) return false;
       if (f.stu && !Object.keys(v.ms || {}).some(function (d) { return v.ms[d] && v.ms[d].stu; })) return false;
       if (state.cat && catHit(v) < 0) return false;
-      if (f.menu && !m) return false;
+      if (f.menu && !m && !named) return false;  // searched by name: show the place even without today's list (27.11.)
       if (f.open && !openNow(v)) return false;
       if (f.oivaA && v.o !== "A") return false;
       if (f.u13) { var p = minPrice(v); if (!p || p >= 13) return false; }
@@ -192,6 +196,10 @@
     out.sort(function (a, b) {
       var fa = isFav(a.i) ? 0 : 1, fb = isFav(b.i) ? 0 : 1;
       if (fa !== fb) return fa - fb;
+      if (q) {  // a place whose name matches comes before dish matches, then places with today's list
+        var na = nameRank(a.n, q), nb = nameRank(b.n, q); if (na !== nb) return na - nb;
+        var la = M(a) ? 0 : 1, lb = M(b) ? 0 : 1; if (la !== lb) return la - lb;
+      }
       var sa = !f.stu && isStu(a) ? 1 : 0, sb = !f.stu && isStu(b) ? 1 : 0;
       if (f.cheap) return (sa - sb) || (minPrice(a) || 99) - (minPrice(b) || 99);
       if (f.pop) return (b.lk || 0) - (a.lk || 0) || a._k - b._k;
@@ -239,7 +247,7 @@
     $("list").innerHTML = list.slice(0, n).map(function (v, k) {
       var m = M(v);
       return '<li data-i="' + esc(v.i) + '"' + (state.sel === v.i ? ' class="sel"' : "") + ">" + head(v) +
-        (lv ? menuHtml(v, true) : (m ? '<p class="dish">' + esc(dishLine(v)) + "</p>" : "")) + "</li>" + (k === 4 ? adHtml("list", "li") : "");
+        (lv ? menuHtml(v, true) : '<p class="dish' + (m ? "" : " nm") + '">' + esc(m ? dishLine(v) : S.nomenu) + "</p>") + "</li>" + (k === 4 ? adHtml("list", "li") : "");
     }).join("");
     fillAds($("list"));
     if (!total && !state.f.fav) $("list").innerHTML = emptyHtml();
@@ -405,7 +413,7 @@
     state.peek = peek.slice(0, 2);
     $("shRows").innerHTML = peek.slice(0, 2).map(function (v, k) {
       return '<li><button type="button" data-k="' + k + '"><span class="r1"><b>' + esc(v.n) + "</b><b>" + priceTxt(v) + '</b></span><span class="r2">' +
-        esc(firstDish(v)) + '</span><span class="r3">' + walkTxt(v) + "</span></button></li>";
+        esc(firstDish(v) || S.nomenu) + '</span><span class="r3">' + walkTxt(v) + "</span></button></li>";
     }).join("");
     if (state.sheet === "full") renderCards(list);
   }
@@ -417,7 +425,7 @@
       return '<article class="card" data-i="' + esc(v.i) + '"><p class="c1">' + walkTxt(v) + (timeTxt(v) ? " · " + timeTxt(v) : "") + "</p>" +
         '<h3 class="c2">' + esc(firstDish(v) || v.n) + "</h3>" +
         '<p class="c3"><button type="button" class="fav' + (isFav(v.i) ? " on" : "") + '" data-fav="' + esc(v.i) + '" aria-label="' + (isFav(v.i) ? S.unfav : S.fav) + '">' + STAR + "</button>" + esc(v.n) + (isStu(v) ? ' <span class="stut">' + S.stuTag + "</span>" : "") + "</p>" +
-        (more ? '<p class="c4">' + esc(more) + "</p>" : "") +
+        (more || !m ? '<p class="c4">' + esc(more || S.nomenu) + "</p>" : "") +
         '<p class="c6">' + (v.lk ? '<span class="popn">' + v.lk + S.pop + "</span>" : "") + '<button type="button" class="likebtn" data-like="' + esc(v.i) + '" data-done="' + S.liked + '">' + S.like + "</button></p>" +
         '<div class="c5"><span class="cp">' + priceTxt(v) + '</span><span class="cb"><a class="btn ghost" href="' + S.venue + esc(v.i) + '/">' + S.open2 + '</a><a class="btn" href="' + routeLink(v) + '" rel="nofollow noopener">' + S.route2 + "</a></span></div></article>" +
         (k % 6 === 5 ? adHtml("card", "article") : "");

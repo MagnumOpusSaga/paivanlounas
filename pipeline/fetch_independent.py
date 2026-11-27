@@ -1,7 +1,7 @@
 """Read today's lunch from independent restaurants' own websites (heuristic pilot reader).
 Usage: fetch_independent.py <restaurants.json> <YYYY-MM-DD> <out.json>
 Each restaurant needs: id, name, website."""
-import os, json, re, sys, time, html, datetime, urllib.request, urllib.parse
+import os, json, re, sys, time, html, datetime, urllib.request, urllib.error, urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
@@ -14,15 +14,33 @@ SOCIAL = re.compile(r"facebook\.com|instagram\.com|fb\.me|linktr\.ee", re.I)
 PRICE = re.compile(r"\d{1,2}(?:[,.]\d{1,2})?\s*(?:€|eur)", re.I)
 
 
-def fetch(url, maxb=2_500_000):
-    try:
-        req = urllib.request.Request(url, headers=UA)
-        with urllib.request.urlopen(req, timeout=15) as r:
-            ct = r.headers.get("Content-Type", "")
-            b = r.read(maxb)
-            return r.geturl(), ct, b
-    except Exception as e:
-        return url, "error:" + type(e).__name__, b""
+# bot-check pages some hosts show to servers now and then ("One moment, please... your request is being verified");
+# such a page is not "no lunch" – it must never wipe a list that was read fine earlier (feedback 27.11.: Ilo Konala vanished)
+CHALLENGE = re.compile(rb"(?i)one moment, please|request is being verified|just a moment\.\.\.|checking your browser|cf-chl-|sgcaptcha|"
+                       rb"captcha-delivery|attention required")
+
+
+def fetch(url, maxb=2_500_000, tries=3):
+    for i in range(tries):
+        try:
+            req = urllib.request.Request(url, headers=UA)
+            with urllib.request.urlopen(req, timeout=15) as r:
+                ct = r.headers.get("Content-Type", "")
+                b = r.read(maxb)
+                fu = r.geturl()
+            if "html" in ct and len(b) < 60_000 and CHALLENGE.search(b[:20_000]):
+                if i + 1 < tries:
+                    time.sleep(4 + 4 * i)
+                    continue
+                return fu, "error:BotCheck", b""
+            return fu, ct, b
+        except Exception as e:
+            err = "error:" + type(e).__name__
+            if i == 0 and tries > 1 and not isinstance(e, urllib.error.HTTPError) and "timed out" not in str(e).lower():
+                time.sleep(2)
+                continue
+            return url, err, b""
+    return url, "error:BotCheck", b""
 
 
 def to_text(b):
@@ -180,6 +198,8 @@ def read(r, days):
     pdfs += [u for u in links(final, b) if u.lower().split("?")[0].endswith(".pdf") and u not in pdfs]
     out["_pdfs"] = pdfs[:2]
     out["_imgs"] = imgs[:3]
+    if os.environ.get("LOUNAS_DEBUG_FILE"):
+        out["_dbg"] = {"final": final, "ct": ct, "bytes": len(b), "head": to_text(b)[:400] if b else ""}
     return out
 
 
@@ -189,12 +209,47 @@ def main(inp, days, out):
     rest = json.load(open(inp))
     with ThreadPoolExecutor(8) as ex:
         res = list(ex.map(lambda r: (r, read(r, days)), rest))
-    pages = {r["id"]: {"name": r["name"], "website": r.get("website"), "pages": x["_pages"], "pdfs": x["_pdfs"], "imgs": x["_imgs"]}
+    if os.environ.get("LOUNAS_DEBUG_FILE"):  # whole-run dump for comparing what the runner sees with what a browser sees
+        json.dump({r["id"]: {"site": r.get("website"), "status": (x if "status" in x else x[days[-1]]).get("status"), **x.get("_dbg", {})}
+                   for r, x in res}, open(os.environ["LOUNAS_DEBUG_FILE"], "w"), ensure_ascii=False)
+    dbg = set(filter(None, os.environ.get("LOUNAS_DEBUG", "").split(",")))  # e.g. LOUNAS_DEBUG=osm:n4615784213
+    for r, x in res:
+        if r["id"] in dbg:
+            info = x if "status" in x else {d: (x[d]["status"], x[d].get("err")) for d in days}
+            print("debug", r["id"], info, "pages", [(p["url"], len(p["text"])) for p in x.get("_pages", [])], file=sys.stderr)
+    today = datetime.date.today().isoformat()
+    pages = {r["id"]: {"name": r["name"], "website": r.get("website"), "pages": x["_pages"], "pdfs": x["_pdfs"], "imgs": x["_imgs"], "seen": today}
              for r, x in res if "status" not in x and (x["_pages"] or x["_pdfs"] or x["_imgs"])}
-    json.dump(pages, open(os.path.join(os.path.dirname(out), "web_pages.json"), "w"), ensure_ascii=False)
+    # A site that fails this run (timeout, bot check, a different page for servers) keeps what was read from it earlier
+    # this week. Before 27.11. one bad fetch dropped the list for the rest of the day (Ilo, Konala).
+    wp = os.path.join(os.path.dirname(out), "web_pages.json")
+    try:
+        old_pages = json.load(open(wp))
+    except Exception:
+        old_pages = {}
+    ids = {r["id"]: r.get("website") for r in rest}
+    kept = 0
+    for k, v in old_pages.items():
+        if k not in pages and k in ids and ids[k] == v.get("website") and (v.get("seen") or "") >= days[0]:
+            pages[k] = v
+            kept += 1
+    json.dump(pages, open(wp, "w"), ensure_ascii=False)
+    GOOD = ("ok_daily", "ok_fixed", "pdf_menu", "lunch_mentioned_unparsed")
+    carried = 0
     for d in days:
         rows = [{"id": r["id"], "name": r["name"], "website": r.get("website"), **(x if "status" in x else x[d])} for r, x in res]
+        try:
+            prev = {p_["id"]: p_ for p_ in json.load(open(out.replace("{day}", d)))["results"]}
+        except Exception:
+            prev = {}
+        for i, row in enumerate(rows):
+            p_ = prev.get(row["id"])
+            if row.get("status") not in GOOD and p_ and p_.get("status") in GOOD and p_.get("website") == row.get("website"):
+                rows[i] = {**p_, "carried": 1, "now": row.get("status")}
+                carried += 1
         json.dump({"date": d, "results": rows}, open(out.replace("{day}", d), "w"), ensure_ascii=False, indent=1)
+    st = __import__("collections").Counter((x if "status" in x else x[days[-1]]).get("err") or "" for _, x in res)
+    print(f"fetch_independent: sites {len(res)}, kept from earlier runs: pages {kept}, day results {carried}, bot checks {st.get('error:BotCheck', 0)}", file=sys.stderr)
 
 
 

@@ -228,6 +228,10 @@ def main(inp, days, out):
 
     with ThreadPoolExecutor(4) as ex:
         results = list(ex.map(one, todo))
+    dbg = set(filter(None, os.environ.get("LOUNAS_DEBUG", "").split(",")))
+    for k, v, r, _ in results:
+        if k in dbg:
+            print("debug", k, json.dumps(r, ensure_ascii=False)[:600], file=sys.stderr)
     # a site that does not open in this run (timeout, error, page changed for the day) keeps this week's last good
     # reading: later runs of the day lost ~50 lists that were read fine in the morning (27.11.: 336 -> 288)
     seen_k = {k for k, *_ in results}
