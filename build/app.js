@@ -7,12 +7,16 @@
           wrong: "Väärä tieto?", wrongOk: "Kiitos ilmoituksesta!", onmap: "Kartalla", more: "Näytä lisää", empty: "Ei osumia tältä päivältä.", clear: "Poista suodattimet", otherDays: "Osumia muina päivinä:", park: "Parkki lähellä",
           like: "Söin täällä – hyvä lounas", liked: "Kiitos! Merkitty suositukseksi", pop: " suosittelee", none: "Ei osumia tällä valinnalla. Kokeile toista suodatinta tai siirrä karttaa.", ad: "Mainos", shN: " lounasta lähellä", shNme: " lounasta lähelläsi", route2: "Reitti", open2: "Lista ja tiedot", venue: "/ravintola/", noloc: "Sijaintia ei saatu.", close: "Sulje", walk: " min kävely", until: "auki ", untilEnd: " asti", closes: "sulkeutuu ", closesEnd: " min päästä", ended: "lounas päättynyt", opens: "lounas ", t3me: "Kolme hyvää lähelläsi",
           t3map: "Kolme hyvää tällä alueella", route: "Reitti", loc: "Näytä sijaintini", fav: "Lisää suosikiksi", unfav: "Poista suosikeista", near: "lähintä näkyvissä", nofav: "Ei vielä suosikkeja – lisää niitä tähdestä ravintolan nimen vierestä.",
-          stuTag: "Opiskelijaravintola", areasH: "Valitse alue", areasMine: "oma alue", nolistDot: "Ei päivän listaa – katso tiedot", wd: ["sunnuntai", "maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai"], pp: "https://parkpenny.com/" },
+          stuTag: "Opiskelijaravintola", areasH: "Valitse alue", areasMine: "oma alue", nolistDot: "Ei päivän listaa – katso tiedot", wd: ["sunnuntai", "maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai"], pp: "https://parkpenny.com/",
+          stWk: "Arkilounaat jatkuvat maanantaina", stDay: "Päivän listat päivittyvät aamulla", stPre: "Viikonloppu · ", stFrom: "alla {d} listat", stFrom0: "Alla {d} listat",
+          gen: ["sunnuntain", "maanantain", "tiistain", "keskiviikon", "torstain", "perjantain", "lauantain"] },
     en: { n: " restaurants", menu: " – with menu", nomenu: "No menu for this day.", site: "Restaurant website", src: "Source", orig: "original",
           wrong: "Wrong info?", wrongOk: "Thanks for letting us know!", onmap: "On map", more: "Show more", empty: "No matches for this day.", clear: "Clear filters", otherDays: "Matches on other days:", park: "Parking nearby",
           like: "I ate here – good lunch", liked: "Thanks! Counted as a recommendation", pop: " recommend", none: "Nothing with this choice. Try another filter or move the map.", ad: "Advertisement", shN: " lunches nearby", shNme: " lunches near you", route2: "Directions", open2: "Menu and details", venue: "/en/restaurant/", noloc: "Could not get your location.", close: "Close", walk: " min walk", until: "open until ", untilEnd: "", closes: "closes in ", closesEnd: " min", ended: "lunch over", opens: "lunch ", t3me: "Three good picks near you",
           t3map: "Three good picks in this area", route: "Directions", loc: "Show my location", fav: "Add to favourites", unfav: "Remove from favourites", near: "nearest shown", nofav: "No favourites yet – add them with the star next to a restaurant name.",
-          stuTag: "Student restaurant", areasH: "Pick an area", areasMine: "your area", nolistDot: "No menu today – see details", wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], pp: "https://parkpenny.com/en/" }
+          stuTag: "Student restaurant", areasH: "Pick an area", areasMine: "your area", nolistDot: "No menu today – see details", wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], pp: "https://parkpenny.com/en/",
+          stWk: "Weekday lunches resume on Monday", stDay: "Today's menus are updated in the morning", stPre: "Weekend · ", stFrom: "showing {d} menus", stFrom0: "Showing {d} menus",
+          gen: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] }
   }[LG];
   var favs = {}; try { (JSON.parse(localStorage.getItem("pl_fav") || "[]")).forEach(function (k) { favs[k] = 1; }); } catch (e) {}
   function isFav(id) { return !!favs[id]; }
@@ -94,6 +98,14 @@
   function isStu(v) { var m = M(v); return !!(m && m.stu); }
   function km(a, b) { var dy = (a[0] - b[0]) * 111.0, dx = (a[1] - b[1]) * 111.0 * Math.cos(a[0] * Math.PI / 180); return Math.sqrt(dx * dx + dy * dy); }
   function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  // weekend / before the morning run: the newest lists are from an earlier day – say so instead of showing them as today's lunches
+  // (Branu 27.11.: "arkilounaat jatkuvat maanantaina")
+  function stale() {
+    var t = today(); if (!state.day || state.days.indexOf(t) >= 0) return null;
+    var w = new Date(t + "T12:00:00").getDay(), dd = new Date(state.day + "T12:00:00"), wk = w === 0 || w === 6;
+    var from = t > state.day ? S.gen[dd.getDay()] + " " + dd.getDate() + "." + (dd.getMonth() + 1) + "." : "";
+    return { wk: wk, title: wk ? S.stWk : S.stDay, note: from ? (wk ? S.stPre + S.stFrom.replace("{d}", from) : S.stFrom0.replace("{d}", from)) : (wk ? S.stPre.replace(/ · $/, "") : "") };
+  }
   function hours(v) { var m = M(v); var r = m && m.hours && m.hours.match(/(\d{1,2})[:.](\d{2})\s*[–-]\s*(\d{1,2})[:.](\d{2})/); return r ? [(+r[1]) * 60 + (+r[2]), (+r[3]) * 60 + (+r[4]), r[3] + "." + r[4]] : null; }
   function openNow(v) {
     var h = hours(v); if (!h || state.day !== today()) return false;
@@ -211,7 +223,7 @@
   function renderTop3(list) {
     var box = $("top3s");
     state.t3 = {};
-    if (state.f.fav || (state.view === "list" && !state.me)) { box.hidden = true; return; }
+    if (state.f.fav || stale() || (state.view === "list" && !state.me)) { box.hidden = true; return; }
     var ref = state.me || [map.getCenter().lat, map.getCenter().lng];
     var isToday = state.day === today();
     var c = list.filter(function (v) { return M(v) && minPrice(v) && (state.f.stu || !isStu(v)) && (!isToday || !hours(v) || openNow(v)); })
@@ -244,6 +256,9 @@
     list = list.filter(function (v) { return !t3[v.i]; });  // the three picks are already shown above
     $("count").textContent = total + S.n + (state.f.menu ? S.menu : "") + (list.length > n && !state.f.cheap ? " · " + n + " " + S.near : "");
     if (state.f.fav && !list.length) $("count").textContent = S.nofav;
+    var st = stale(), sb = $("stale");
+    if (!sb) { sb = document.createElement("p"); sb.id = "stale"; sb.className = "stale"; sb.setAttribute("role", "status"); $("count").parentNode.insertBefore(sb, $("count")); }
+    sb.hidden = !st; if (st) sb.innerHTML = "<b>" + esc(st.title) + "</b>" + (st.note ? " " + esc(st.note) : "");
     $("list").innerHTML = (state.f.fav ? "" : promoHtml("li", "plist")) + list.slice(0, n).map(function (v, k) {
       var m = M(v);
       return '<li data-i="' + esc(v.i) + '"' + (state.sel === v.i ? ' class="sel"' : "") + ">" + head(v) +
@@ -436,7 +451,7 @@
   try { if (window.ResizeObserver && hdr) new ResizeObserver(setHdr).observe(hdr); if (document.fonts) document.fonts.ready.then(setHdr); } catch (e) {}
   function sheetOn() { return !wide.matches && state.view === "split"; }
   function sheetH(px) { document.documentElement.style.setProperty("--sheet-h", px + "px"); }
-  function peekH() { var a = $("areas2"), pr = document.querySelector("#shRows .prow"); return Math.min(256, Math.round(innerHeight * 0.34)) + (a && !a.hidden ? 40 : 0) + (pr ? pr.offsetHeight * document.querySelectorAll("#shRows .prow").length : 0); }
+  function peekH() { var a = $("areas2"), pr = document.querySelector("#shRows .prow"); return Math.min(256, Math.round(innerHeight * 0.34)) + (a && !a.hidden ? 40 : 0) + (pr ? pr.offsetHeight * document.querySelectorAll("#shRows .prow").length : 0) + (document.querySelector("#shRows .stn") ? document.querySelector("#shRows .stn").offsetHeight : 0); }
   function fullH() { return Math.round(innerHeight - (hdr ? hdr.offsetHeight : 56) - 130); }
   function syncMode() {
     var on = sheetOn();
@@ -461,15 +476,16 @@
   function renderSheet(list) {
     state.lastList = list;
     if (!sheetOn()) return;
-    $("shTitle").textContent = list.length + (state.me ? S.shNme : S.shN);
+    var st = stale();
+    $("shTitle").textContent = st ? st.title : list.length + (state.me ? S.shNme : S.shN);
     var peek = state.f.stu ? list : list.filter(function (v) { return !isStu(v); }).concat(list.filter(isStu));
     state.peek = peek.slice(0, 2);
-    $("shRows").innerHTML = promoHtml("li", "prow") + peek.slice(0, 2).map(function (v, k) {
+    $("shRows").innerHTML = (st && st.note ? '<li class="stn" role="status">' + esc(st.note) + "</li>" : "") + promoHtml("li", "prow") + peek.slice(0, 2).map(function (v, k) {
       return '<li><button type="button" data-k="' + k + '"><span class="r1"><b>' + esc(v.n) + "</b><b>" + priceTxt(v) + '</b></span><span class="r2">' +
         esc(firstDish(v) || S.nomenu) + '</span><span class="r3">' + walkTxt(v) + "</span></button></li>";
     }).join("");
     watchPromos($("shRows"));
-    if (state.sheet !== "full" && document.querySelector("#shRows .prow")) sheetH(peekH());
+    if (state.sheet !== "full" && document.querySelector("#shRows .prow,#shRows .stn")) sheetH(peekH());
     if (state.sheet === "full") renderCards(list);
   }
   function renderCards(list) {

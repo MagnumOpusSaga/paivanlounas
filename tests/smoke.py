@@ -177,7 +177,7 @@ with sync_playwright() as p:
     check(abs(g["mt"] - g["hb"]) <= 2 and g["mb"] >= g["vh"] - 2, f"phone map fills screen under header (top {g['mt']:.0f}/{g['hb']:.0f}, bottom {g['mb']:.0f}/{g['vh']})")
     if g["ct"] is not None:
         check(g["ct"] <= g["mt"] + 2 and g["cb"] >= g["mb"] - 2, f"basemap canvas covers the map (no empty band) {g['ct']:.0f}-{g['cb']:.0f} vs {g['mt']:.0f}-{g['mb']:.0f}")
-    check(g["sheet"] == "flex" and g["rows"] >= 1 and "lounas" in g["title"], f"phone sheet shows lists ({g['title']!r}, rows {g['rows']})")
+    check(g["sheet"] == "flex" and g["rows"] >= 1 and ("lounas" in g["title"] or "lounaat" in g["title"]), f"phone sheet shows lists ({g['title']!r}, rows {g['rows']})")
     check(g["pins"] >= 20, f"price pins on map: {g['pins']}")
     check(g["scroll"] <= g["vh"] + 2, f"phone page itself does not scroll (height {g['scroll']})")
     me = pg.evaluate("""()=>{const d=[...document.querySelectorAll('path.leaflet-interactive')].find(p=>p.getAttribute('fill')==='#2563eb');
@@ -217,6 +217,30 @@ with sync_playwright() as p:
     check(not ov, f"360 px phone: card texts fit inside the cards {ov[:3]}")
     pg.screenshot(path="smoke-phone-360.png")
     check(not errs, f"360 px phone JS errors: {errs[:3]}")
+    # weekend: Friday's lists are not shown as today's lunches (Branu 27.11.: "arkilounaat jatkuvat maanantaina")
+    import datetime as _dt
+    _wkd = json.load(open(os.path.join(DIST, "data", "week.json")))
+    _last = _dt.date.fromisoformat(_wkd["days"][-1])
+    _sat = _last + _dt.timedelta(days=(5 - _last.weekday()) % 7 or 7)
+    _fake_now = "(()=>{const T=new Date('%sT12:30:00').getTime();const O=Date;class D extends O{constructor(...a){a.length?super(...a):super(T)} static now(){return T}};window.Date=D;})()"
+    for _when, _want in ((_sat, "maanantaina"), (_dt.date.fromisoformat(_wkd["date"]), None)):
+        pg, errs = page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True,
+                        geolocation={"latitude": 60.1699, "longitude": 24.9384}, permissions=["geolocation"])
+        pg.add_init_script(_fake_now % _when.isoformat())
+        pg.goto(BASE + "/", wait_until="domcontentloaded"); pg.wait_for_timeout(4000)
+        _w = pg.evaluate("({t:document.getElementById('shTitle').textContent,n:(document.querySelector('#shRows .stn')||{}).textContent||'',t3:document.getElementById('top3s').hidden,sh:Math.round(document.getElementById('sheet').getBoundingClientRect().top)})")
+        if _want:
+            check(_want in _w["t"] and _w["n"] and _w["t3"], f"weekend {_when}: sheet says weekday lunches resume Monday ({_w['t']!r} / {_w['n']!r}, top3 hidden {_w['t3']})")
+            check(_w["sh"] >= 844 * 0.45, f"weekend notice does not push the sheet over the map (sheet top {_w['sh']})")
+            pg.screenshot(path="smoke-weekend.png")
+            _ap = next((u for u in ("/lounas/kamppi/", "/lounas/kallio/") if os.path.exists(os.path.join(DIST, u.strip("/"), "index.html"))), None)
+            if _ap:
+                pg.goto(BASE + _ap, wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
+                _b = pg.evaluate("(document.getElementById('staleb')||{}).textContent||''")
+                check("maanantaina" in _b, f"weekend: area page {_ap} shows the notice ({_b[:80]!r})")
+        else:
+            check("maanantaina" not in _w["t"] and not _w["n"], f"on the list day no weekend notice ({_w['t']!r})")
+        check(not errs, f"weekend check JS errors: {errs[:3]}")
     # Nosto: a paid promo is always labelled "Mainos" with the name, at most 2 per area, and the map is not covered
     _wk2 = json.load(open(os.path.join(DIST, "data", "week.json")))
     _near = sorted((v for v in _wk2["venues"] if v.get("ms")), key=lambda v: (v["y"] - 60.1685) ** 2 + ((v["x"] - 24.932) * 0.5) ** 2)[:3]

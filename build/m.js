@@ -87,3 +87,23 @@
     location.reload();  // the map style is chosen at load
   });
 })();
+
+// weekend / before the morning run on list pages: the lists on this page are from an earlier day (Branu 27.11.)
+(function () {
+  var d = document.documentElement, sd = d.getAttribute("data-sd"), pt = d.getAttribute("data-pt");
+  if (!sd || !/^(venue|area|topic)$/.test(pt)) return;
+  var n = new Date(), t = n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0") + "-" + String(n.getDate()).padStart(2, "0");
+  if (t === sd) return;
+  var fi = d.lang !== "en", w = n.getDay(), wk = w === 0 || w === 6, x = new Date(sd + "T12:00:00");
+  var G = fi ? ["sunnuntailta", "maanantailta", "tiistailta", "keskiviikolta", "torstailta", "perjantailta", "lauantailta"] : ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  var from = t > sd ? (fi ? " Tämän sivun listat ovat " : " The menus on this page are from ") + G[x.getDay()] + " " + x.getDate() + "." + (x.getMonth() + 1) + "." : "";
+  var h = wk ? (fi ? "Viikonloppu – arkilounaat jatkuvat maanantaina." : "Weekend – weekday lunches resume on Monday.")
+             : (fi ? "Päivän listat päivittyvät aamulla." : "Today's menus are updated in the morning.");
+  function put() {
+    var top = document.querySelector("header.top"); if (!top || document.getElementById("staleb")) return;
+    var b = document.createElement("p"); b.id = "staleb"; b.className = "stale sbar"; b.setAttribute("role", "status");
+    b.innerHTML = "<b></b>"; b.firstChild.textContent = h; b.appendChild(document.createTextNode(from));
+    top.parentNode.insertBefore(b, top.nextSibling);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", put); else put();
+})();

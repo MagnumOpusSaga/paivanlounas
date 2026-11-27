@@ -433,6 +433,9 @@ def share_image(out, key, title, ds_, items, mp, url_path):
         return None
 
 
+SHOW_DAY = ""  # the day the static list pages show (data-sd; m.js says so on weekends)
+
+
 def page_type(path):
     p = path[3:] if path.startswith("/en/") else path
     if p in ("/", ""):
@@ -458,8 +461,9 @@ def page(lg, title, desc, path, alt_path, body, preview, extra_head="", og_image
     hl = (f'<link rel="alternate" hreflang="{lg}" href="{DOMAIN}{path}"><link rel="alternate" hreflang="{other}" href="{DOMAIN}{alt_path}">'
           f'<link rel="alternate" hreflang="x-default" href="{DOMAIN}{path if lg == "fi" else alt_path}">') if alt_path_hl else ""
     pk = path.rstrip("/").rsplit("/", 1)[-1][:40] if page_type(path) in ("venue", "area") else ""
+    sd_attr = f' data-sd="{SHOW_DAY}"' if SHOW_DAY and page_type(path) in ("venue", "area", "topic") else ""
     ads_attr = f' data-ads="{esc(json.dumps({"c": ADSENSE, **AD_SLOTS}))}"' if AD_SLOTS and index else ""
-    return f"""<!doctype html><html lang="{lg}" data-pt="{page_type(path)}" data-hl="{1 if has_list else 0}" data-k="{pk}"{ads_attr}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    return f"""<!doctype html><html lang="{lg}" data-pt="{page_type(path)}" data-hl="{1 if has_list else 0}" data-k="{pk}"{sd_attr}{ads_attr}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title><meta name="description" content="{esc(desc)}"><link rel="canonical" href="{DOMAIN}{path}">{hl}{robots}
 <link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#ffffff"><meta name="color-scheme" content="light"><script>try{{if(localStorage.getItem("pl_theme")==="dark"){{document.documentElement.classList.add("dark");document.querySelector('meta[name=theme-color]').content="#211915"}}}}catch(e){{}}</script>
 <meta property="og:image" content="{DOMAIN}{og_image or '/icon-512.png'}">
@@ -580,7 +584,8 @@ def main(L, out, day, preview):
     os.makedirs(out, exist_ok=True)
     days = week_days(day)
     show_day = day if datetime.date.fromisoformat(day).weekday() < 5 else days[0]
-    global PREV_SITEMAP
+    global PREV_SITEMAP, SHOW_DAY
+    SHOW_DAY = show_day
     try:
         PREV_SITEMAP = set(json.load(open(f"{L}/data/lastmod.json")))
     except Exception:
