@@ -189,6 +189,11 @@ def main(inp, days, out):
     rest = json.load(open(inp))
     with ThreadPoolExecutor(8) as ex:
         res = list(ex.map(lambda r: (r, read(r, days)), rest))
+    dbg = set(filter(None, os.environ.get("LOUNAS_DEBUG", "").split(",")))  # e.g. LOUNAS_DEBUG=osm:n4615784213
+    for r, x in res:
+        if r["id"] in dbg:
+            info = x if "status" in x else {d: (x[d]["status"], x[d].get("err")) for d in days}
+            print("debug", r["id"], info, "pages", [(p["url"], len(p["text"])) for p in x.get("_pages", [])], file=sys.stderr)
     pages = {r["id"]: {"name": r["name"], "website": r.get("website"), "pages": x["_pages"], "pdfs": x["_pdfs"], "imgs": x["_imgs"]}
              for r, x in res if "status" not in x and (x["_pages"] or x["_pdfs"] or x["_imgs"])}
     json.dump(pages, open(os.path.join(os.path.dirname(out), "web_pages.json"), "w"), ensure_ascii=False)
