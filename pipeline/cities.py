@@ -25,3 +25,16 @@ CITIES = {
 
 def city_of(v):
     return v.get("city") or "helsinki"
+
+
+def city_of_postal(pc):
+    """City by postal code (Branu 27.11.: the official address decides; the map only when there is no postal code).
+    None = no postal code or a municipality we do not cover yet."""
+    pc = (pc or "").strip()
+    if len(pc) != 5 or not pc.isdigit():
+        return None
+    if pc.startswith("00"):
+        return "helsinki"
+    if pc.startswith("02") and pc not in ("02700", "02701", "02705"):  # 027xx = Kauniainen
+        return "espoo"
+    return None

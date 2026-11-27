@@ -81,6 +81,12 @@ for _c in ("espoo",):
         check('content="noindex' in open(_pth).read(), f"{_c}: city page is noindex until the city is opened")
         check(f"/lounas/{_c}/" not in open(os.path.join(DIST, "sitemap.xml")).read(), f"{_c}: city page not in the sitemap yet")
 
+# 1g. the postal code decides the city (Branu 27.11.): Ravilla, Valjakkotie 1, 00370 Helsinki sits just across the border
+_rv = os.path.join(DIST, "ravintola", "lounasravintola-ravilla", "index.html")
+if os.path.exists(_rv):
+    _t = open(_rv).read()
+    check(", Helsinki</p>" in _t and "/lounas/leppavaara/" not in _t, "Helsinki address (00370) is shown in Helsinki, not under an Espoo area")
+
 # 1d. a site that does not open in a later run keeps this week's list (27.11.: 336 lists at 05.30, 288 at 09.50)
 import tempfile as _tf
 try:

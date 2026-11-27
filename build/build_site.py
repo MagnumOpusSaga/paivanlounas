@@ -57,9 +57,14 @@ def load_districts(path, city="helsinki"):
 
 # cities other than Helsinki (Branu 27.11.: expand to all of Finland, slowly and carefully, a little every day)
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pipeline"))
-from cities import CITIES  # noqa: E402
+from cities import CITIES, city_of_postal  # noqa: E402
 # a new city's pages stay out of search engines until Branu has seen the page count (spam rule: report before publishing)
 INDEX_CITIES = set((os.environ.get("LOUNAS_INDEX_CITIES") or "helsinki").split(","))
+
+
+def dist2_ring(ring, v):
+    """Squared distance (degrees, lon scaled) from a venue to the nearest vertex of a polygon ring."""
+    return min((p[1] - v["lat"]) ** 2 + ((p[0] - v["lon"]) * 0.5) ** 2 for p in ring)
 
 
 def district_of(lat, lon, ds):
@@ -607,7 +612,15 @@ def main(L, out, day, preview):
                     break
         if show_day not in ms and norm(v["name"]) in R:
             ms[show_day] = R.pop(norm(v["name"]))["menu"]
-        dd = district_of(v["lat"], v["lon"], ds)  # city = where the place is, not which registry found it
+        dd = district_of(v["lat"], v["lon"], ds)
+        # city: postal code first, then the map (Branu 27.11.: a Helsinki address never shows under Espoo, even if the
+        # point sits across the border – e.g. Ravilla, Valjakkotie 1, 00370 Helsinki fell inside Leppävaara)
+        pcity = city_of_postal(v.get("postal"))
+        if pcity and dd and dd.get("city") != pcity:
+            same = [d for d in ds if d.get("city") == pcity]
+            dd = min(same, key=lambda d: min(dist2_ring(r[0], v) for r in d["polys"])) if same else None  # nearest area of that city
+        if pcity and not dd:
+            dd = {"name": None, "slug": None, "city": pcity}
         venues.append({**v, "city": (dd or {}).get("city") or v.get("city") or "helsinki", "rcity": v.get("city") or "helsinki", "ms": ms, "menu": ms.get(show_day), "district": dd["name"] if dd else None, "dslug": dd["slug"] if dd else None})
     def assign_slugs(vs):
         seen_, out_ = {}, []
