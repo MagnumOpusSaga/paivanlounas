@@ -70,3 +70,14 @@
   });
   setTimeout(send, 4000);
 })();
+
+// dark/light toggle in the header (◐): light by default, dark only when chosen (feedback 27.11.)
+(function () {
+  var b = document.getElementById("themebtn");
+  if (!b) return;
+  b.addEventListener("click", function () {
+    var on = !document.documentElement.classList.contains("dark");
+    try { localStorage.setItem("pl_theme", on ? "dark" : "light"); } catch (e) {}
+    location.reload();  // the map style is chosen at load
+  });
+})();

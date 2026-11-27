@@ -39,7 +39,7 @@
   })();
   L.control.zoom({ position: "topright" }).addTo(map);
   // basemap: clean OpenFreeMap vector style (free, commercial use ok); OSM raster only if it cannot load
-  var dark = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches;
+  var dark = document.documentElement.classList.contains("dark");  // opt-in only (header ◐), light map by default (feedback 27.11.)
   var ATTR = '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>';
   map.attributionControl.setPrefix(false);
   function osm() { L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map); }

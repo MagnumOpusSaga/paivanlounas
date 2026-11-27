@@ -203,7 +203,7 @@ VER = {f: hashlib.md5(open(os.path.join(os.path.dirname(__file__), f), "rb").rea
 
 # ---------------------------------------------------------------- i18n
 T = {
-    "fi": {"home": "/", "areas": "/lounas/", "area": "/lounas/{s}/", "venue": "/ravintola/{s}/", "nav_areas": "Alueet", "other": "In English", "other_home": "/en/",
+    "fi": {"home": "/", "areas": "/lounas/", "area": "/lounas/{s}/", "venue": "/ravintola/{s}/", "nav_areas": "Alueet", "theme": "Vaihda tumma/vaalea tila", "other": "In English", "other_home": "/en/",
            "wd": ["maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai", "sunnuntai"],
            "wd_short": ["Ma", "Ti", "Ke", "To", "Pe", "La", "Su"],
            "h1_home": "Lounas Helsinki", "v_map": "Kartta", "v_list": "Lista", "d_list": "Lista", "d_map": "Kartta", "d_filter": "Suodata", "d_big": "Koko kartta", "d_back": "Takaisin listaan", "sheet_label": "Lounaat lähellä", "locate": "Hae sijaintini", "sheet_more": "Näytä lisää", "as_list": "Näytä listana", "done": "Valmis", "search_ph": "Hae ruokaa tai paikkaa",
@@ -227,7 +227,7 @@ T = {
            "footer2": "Elintarvikevalvonnan tulokset: Oiva / Ruokavirasto (oivahymy.fi). Osoitteet ja kaupunginosat: Helsingin kaupunki, CC BY 4.0. Kartta: © OpenStreetMapin tekijät.",
            "about": "/tietoa/", "about_l": "Tietoa palvelusta", "privacy": "/tietosuoja/", "privacy_l": "Tietosuoja",
            "preview": "Esikatselu – sivusto on vielä kehitysvaiheessa", "notfound": "Sivua ei löytynyt", "tohome": "Etusivulle", "crumb_home": "Etusivu", "lang": "fi", "menu_lang": ""},
-    "en": {"home": "/en/", "areas": "/en/lunch/", "area": "/en/lunch/{s}/", "venue": "/en/restaurant/{s}/", "nav_areas": "Areas", "other": "Suomeksi", "other_home": "/",
+    "en": {"home": "/en/", "areas": "/en/lunch/", "area": "/en/lunch/{s}/", "venue": "/en/restaurant/{s}/", "nav_areas": "Areas", "theme": "Switch dark/light mode", "other": "Suomeksi", "other_home": "/",
            "wd": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
            "wd_short": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
            "h1_home": "Lunch in Helsinki", "v_map": "Map", "v_list": "List", "d_list": "List", "d_map": "Map", "d_filter": "Filter", "d_big": "Full map", "d_back": "Back to list", "sheet_label": "Lunches nearby", "locate": "Find my location", "sheet_more": "Show more", "as_list": "Show as list", "done": "Done", "search_ph": "Search food or place",
@@ -447,11 +447,11 @@ def page(lg, title, desc, path, alt_path, body, preview, extra_head="", og_image
     ads_attr = f' data-ads="{esc(json.dumps({"c": ADSENSE, **AD_SLOTS}))}"' if AD_SLOTS and index else ""
     return f"""<!doctype html><html lang="{lg}" data-pt="{page_type(path)}" data-hl="{1 if has_list else 0}" data-k="{pk}"{ads_attr}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title><meta name="description" content="{esc(desc)}"><link rel="canonical" href="{DOMAIN}{path}">{hl}{robots}
-<link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#221a16" media="(prefers-color-scheme: dark)"><meta name="color-scheme" content="light dark">
+<link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#ffffff"><meta name="color-scheme" content="light"><script>try{{if(localStorage.getItem("pl_theme")==="dark"){{document.documentElement.classList.add("dark");document.querySelector('meta[name=theme-color]').content="#211915"}}}}catch(e){{}}</script>
 <meta property="og:image" content="{DOMAIN}{og_image or '/icon-512.png'}">
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}"><meta property="og:type" content="website">
 <link rel="stylesheet" href="/style.css?v={VER['style.css']}">{extra_head}<script src="/m.js?v={VER['m.js']}" defer></script></head><body>{bar}
-<header class="top"><a class="logo" href="{t['home']}"><img src="/favicon.svg" width="28" height="28" alt="">Päivän lounas</a><nav><a href="{t['areas']}">{t['nav_areas']}</a><a href="{alt_path or t['other_home']}" hreflang="{other}">{t['other']}</a></nav></header>
+<header class="top"><a class="logo" href="{t['home']}"><img src="/favicon.svg" width="28" height="28" alt="">Päivän lounas</a><nav><a href="{t['areas']}">{t['nav_areas']}</a><a href="{alt_path or t['other_home']}" hreflang="{other}">{t['other']}</a><button type="button" class="themebtn" id="themebtn" aria-label="{t['theme']}" title="{t['theme']}">◐</button></nav></header>
 {body}
 <footer><p class="flinks">{' · '.join(f'<a href="{TOPIC_T[lg][k]["path"]}">{TOPIC_T[lg][k]["h1"]}</a>' for k in ("cheap", "veg", "buffet"))}</p><p>{t['footer1']}</p><p>{t['footer2']}</p><p>© 2026 Päivän lounas · <a href="{t['about']}">{t['about_l']}</a> · <a href="{t['privacy']}">{t['privacy_l']}</a> · {CONTACT}</p></footer></body></html>"""
 

@@ -139,6 +139,14 @@ with sync_playwright() as p:
     check(pg.evaluate("document.querySelector('.app').classList.contains('sheetfull')") and nc >= 5, f"pulled-up sheet shows cards ({nc})")
     check(not errs, f"phone front page JS errors: {errs[:3]}")
 
+    # phone in dark mode still gets the light page and map (feedback 27.11.: dark map hard to read outdoors)
+    pg, errs = page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, color_scheme="dark")
+    pg.goto(BASE + "/", wait_until="domcontentloaded"); pg.wait_for_timeout(3000)
+    bg = pg.evaluate("getComputedStyle(document.body).backgroundColor")
+    lum = sum(int(x) for x in bg[bg.find("(") + 1:bg.find(")")].split(",")[:3])
+    check(lum > 600, f"phone in dark mode: page stays light (body {bg})")
+    tb = pg.evaluate("(()=>{const r=document.getElementById('themebtn').getBoundingClientRect();return r.right<=innerWidth&&r.width>0})()")
+    check(tb, "phone: dark/light button fully on screen")
     # 3. desktop front page: list next to the map
     pg, errs = page(viewport={"width": 1280, "height": 800})
     pg.add_init_script("window.__lt=[];try{new PerformanceObserver(l=>l.getEntries().forEach(e=>window.__lt.push(Math.round(e.duration)))).observe({type:'longtask',buffered:true})}catch(e){}")

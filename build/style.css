@@ -142,14 +142,20 @@ footer{max-width:1120px;margin:0 auto;padding:18px 20px 28px;color:var(--mut);fo
 .cats button{flex:none;border:0;background:var(--tint);color:var(--p-dark);border-radius:10px;padding:8px 12px;font:700 14px var(--body);cursor:pointer;min-height:38px;white-space:nowrap}
 .cats button.on{background:var(--p);color:var(--p-ink)}
 .soon{color:var(--p-dark);font-weight:700}.late{color:var(--mut);text-decoration:line-through}
-/* dark mode follows the phone setting */
-@media (prefers-color-scheme: dark){
-  :root{--bg:#17110e;--card:#221a16;--ink:#f3ebe5;--mut:#b4a59b;--line:#3a2e28;--p:#f0763a;--p-dark:#ff9b66;--p-ink:#1a110c;--tint:#3b2418;--g:#86c993;--g-tint:#1e2f22;--map:#1b1512}
-  .leaflet-bar a,.leaflet-control-attribution{background:var(--card)!important;color:var(--ink)!important;border-color:var(--line)!important}
-  .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--card);color:var(--ink)}
-  .pin.fv{background:#4a3a10}
-  .preview{background:#5a4b00;color:#fff3b0}
-}
+/* dark theme: opt-in from the header button (27.11.: automatic dark mode gave phones a black map that is hard to read outdoors).
+   More contrast than before: brighter text, white price pins on the dark map. */
+html.dark{--bg:#14100d;--card:#211915;--ink:#fbf6f2;--mut:#d3c5bb;--line:#4a3b33;--p:#ff8a4c;--p-dark:#ffb088;--p-ink:#14100d;--tint:#3b2418;--g:#9be0a8;--g-tint:#1e2f22;--map:#1b1512}
+html.dark .leaflet-bar a,html.dark .leaflet-control-attribution{background:var(--card)!important;color:var(--ink)!important;border-color:var(--line)!important}
+html.dark .leaflet-control-attribution a{color:var(--p-dark)!important}
+html.dark .leaflet-popup-content-wrapper,html.dark .leaflet-popup-tip{background:var(--card);color:var(--ink)}
+html.dark .pin{background:#fff;color:#14100d;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+html.dark .pin.st{background:#d9cfc8;color:#3a2e28}
+html.dark .pin.sel{background:var(--p);color:#14100d;outline-color:#fff}
+html.dark .pin.fv{background:#ffe08a;color:#14100d}
+html.dark .preview{background:#5a4b00;color:#fff3b0}
+.top nav{align-items:center}
+.themebtn{border:0;background:none;color:var(--p);cursor:pointer;padding:0;width:28px;height:28px;font-size:20px;line-height:1;flex:0 0 auto}
+@media (max-width:420px){.top{gap:8px;padding:10px 12px}.top nav{gap:12px}.top nav a{font-size:14px}}
 
 /* day row above the map */
 .daybar{order:-2;margin:0;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--line)}
@@ -242,7 +248,6 @@ footer{max-width:1120px;margin:0 auto;padding:18px 20px 28px;color:var(--mut);fo
 .likerow{margin:14px 0}
 /* contrast (N22): links on the green Oiva box and map credits in dark mode */
 .oivabox a{color:var(--p-dark)}
-@media (prefers-color-scheme: dark){.leaflet-control-attribution a{color:var(--p-dark)!important}}
 /* the round locate arrow is a phone control: never on wide screens (it showed as a grey bar under the map) */
 .locfab{display:none}
 @media (min-width:900px){.locfab,.app.sheetmode .locfab{display:none!important}}
