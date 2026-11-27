@@ -147,6 +147,21 @@ with sync_playwright() as p:
     check(lum > 600, f"phone in dark mode: page stays light (body {bg})")
     tb = pg.evaluate("(()=>{const r=document.getElementById('themebtn').getBoundingClientRect();return r.right<=innerWidth&&r.width>0})()")
     check(tb, "phone: dark/light button fully on screen")
+    # small phone (360 px): header on one line, card texts inside their cards (feedback 27.11.: 'In English' and the
+    # logo wrapped into two lines, long dish words like 'pippurikastikkeessa' ran past the card edge)
+    pg, errs = page(viewport={"width": 360, "height": 740}, is_mobile=True, has_touch=True,
+                    geolocation={"latitude": 60.1699, "longitude": 24.9384}, permissions=["geolocation"])
+    pg.goto(BASE + "/", wait_until="domcontentloaded"); pg.wait_for_timeout(5000)
+    hd = pg.evaluate("""()=>[...document.querySelectorAll('.top .logo,.top nav a')].map(a=>{const r=a.getBoundingClientRect(),
+      lh=parseFloat(getComputedStyle(a).lineHeight)||parseFloat(getComputedStyle(a).fontSize)*1.4;return [a.textContent.trim(),Math.round(r.height),Math.round(lh),Math.round(r.right)]})""")
+    bad = [h for h in hd if h[1] > max(h[2] * 1.5, 30) or h[3] > 360]
+    check(not bad, f"360 px phone: header items on one line and on screen {bad or hd}")
+    pg.click("#grab"); pg.wait_for_timeout(900)
+    ov = pg.evaluate("""()=>{const o=[];document.querySelectorAll('.cards .card').forEach(c=>{const cr=c.getBoundingClientRect();
+      c.querySelectorAll('.c1,.c2,.c3,.c4').forEach(e=>{if(e.scrollWidth>e.clientWidth+1||e.getBoundingClientRect().right>cr.right+1)o.push(e.textContent.slice(0,40))})});return o}""")
+    check(not ov, f"360 px phone: card texts fit inside the cards {ov[:3]}")
+    pg.screenshot(path="smoke-phone-360.png")
+    check(not errs, f"360 px phone JS errors: {errs[:3]}")
     # 3. desktop front page: list next to the map
     pg, errs = page(viewport={"width": 1280, "height": 800})
     pg.add_init_script("window.__lt=[];try{new PerformanceObserver(l=>l.getEntries().forEach(e=>window.__lt.push(Math.round(e.duration)))).observe({type:'longtask',buffered:true})}catch(e){}")

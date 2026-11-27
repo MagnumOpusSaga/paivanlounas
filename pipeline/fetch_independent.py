@@ -180,6 +180,8 @@ def read(r, days):
     pdfs += [u for u in links(final, b) if u.lower().split("?")[0].endswith(".pdf") and u not in pdfs]
     out["_pdfs"] = pdfs[:2]
     out["_imgs"] = imgs[:3]
+    if os.environ.get("LOUNAS_DEBUG_FILE"):
+        out["_dbg"] = {"final": final, "ct": ct, "bytes": len(b), "head": to_text(b)[:400] if b else ""}
     return out
 
 
@@ -189,6 +191,9 @@ def main(inp, days, out):
     rest = json.load(open(inp))
     with ThreadPoolExecutor(8) as ex:
         res = list(ex.map(lambda r: (r, read(r, days)), rest))
+    if os.environ.get("LOUNAS_DEBUG_FILE"):  # whole-run dump for comparing what the runner sees with what a browser sees
+        json.dump({r["id"]: {"site": r.get("website"), "status": (x if "status" in x else x[days[-1]]).get("status"), **x.get("_dbg", {})}
+                   for r, x in res}, open(os.environ["LOUNAS_DEBUG_FILE"], "w"), ensure_ascii=False)
     dbg = set(filter(None, os.environ.get("LOUNAS_DEBUG", "").split(",")))  # e.g. LOUNAS_DEBUG=osm:n4615784213
     for r, x in res:
         if r["id"] in dbg:
