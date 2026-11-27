@@ -142,6 +142,10 @@ def main(inp, days, out):
     media_n = [0]
     todo.sort(key=lambda kv: f"last:{kv[0]}" not in cache)  # sites that had a menu go first when the budget is tight
 
+    def has_days(r):
+        return isinstance(r, dict) and not r.get("error") and r.get("belongs") is not False and not r.get("stale") and \
+            any(r.get("days", {}).get(d) for d in week)
+
     def has_menu(r):
         return isinstance(r, dict) and not r.get("error") and r.get("belongs") is not False and not r.get("stale") and \
             (any(r.get("days", {}).get(d) for d in week) or bool(r.get("fixed")))
@@ -190,10 +194,13 @@ def main(inp, days, out):
                 cache[h] = {"r": res, "d": week[0]}
         elif text and last in cache and cache[last]["d"] == week[0]:
             res = cache[last]["r"]  # out of budget: keep this week's last good reading
-        # nothing from the text → try the menu PDF / one image (images only when the page talks about lunch)
+        # nothing from the text → try the menu PDF / one image (images only when the page talks about lunch).
+        # A PDF is also read when the text only gave a fixed lunch ("Lounasbuffet 13,50 €") – the dishes of the week are
+        # often only in the PDF (feedback 27.11.: Kuusenkerkkä showed "Lounasbuffet" while VIIKKO-48.pdf had every day's food)
         imgs_ok = bool(v["pages"])
-        if not has_menu(res) and (v.get("pdfs") or (imgs_ok and v.get("imgs"))) and not neg_recent(neg + ":m"):
-            blocks, ids = media_blocks(v if imgs_ok else {**v, "imgs": []})
+        want_pdf = bool(v.get("pdfs")) and not has_days(res)
+        if (not has_menu(res) or want_pdf) and (v.get("pdfs") or (imgs_ok and v.get("imgs"))) and not neg_recent(neg + ":m"):
+            blocks, ids = media_blocks(v if imgs_ok and not has_menu(res) else {**v, "imgs": []})
             if blocks:
                 hm = hashlib.sha256(f"{MODEL}|{PV}|media|{v['name']}|{week[0]}|{'|'.join(ids)}".encode()).hexdigest()[:24]
                 r2 = {}
@@ -209,8 +216,13 @@ def main(inp, days, out):
                     if isinstance(r2, dict) and not r2.get("error"):
                         cache[hm] = {"r": r2, "d": week[0]}
                     media_n[0] += 1
-                if has_menu(r2):
+                if has_menu(r2) and (not has_menu(res) or has_days(r2)):
+                    r2 = dict(r2)
                     r2["_media"] = True
+                    fp = [x.get("price") for x in (res.get("fixed") or []) if isinstance(res, dict) and x.get("price")] if isinstance(res, dict) else []
+                    if fp:  # the page's buffet price for PDF dishes that carry no price
+                        r2["days"] = {d: [{**x, "price": x.get("price") or min(fp)} for x in (xs or [])] for d, xs in (r2.get("days") or {}).items()}
+                    r2["hours"] = r2.get("hours") or (res.get("hours") if isinstance(res, dict) else None)
                     res = r2
                 elif isinstance(r2, dict) and r2 and not r2.get("error"):
                     with lock:

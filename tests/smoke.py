@@ -91,6 +91,20 @@ try:
     if _old_key is None:
         os.environ.pop("ANTHROPIC_API_KEY", None)
     check(_ids == ["a", "b"], f"AI reader keeps this week's list when a site does not open later ({_ids})")
+    # page text only gives "Lounasbuffet 13,50 €", the dishes are in the week's PDF → the PDF is read (27.11.: Kuusenkerkkä)
+    os.environ["ANTHROPIC_API_KEY"] = _old_key or "test"
+    _ar.media_blocks = lambda v: ([{"type": "document"}], ["pdf1"]) if v.get("pdfs") else ([], [])
+    _ar.call = lambda text, name, week, blocks=None: (({"belongs": True, "stale": False, "fixed": [], "days": {d: [{"dish": "Hernekeitto", "price": None}] for d in week}})
+                                                     if blocks else {"belongs": True, "stale": False, "fixed": [{"dish": "Lounasbuffet", "price": 13.5}], "days": {}}, {})
+    with _tf.TemporaryDirectory() as _td:
+        json.dump({"k": {"name": "Kerkka", "website": "https://k.fi", "pages": [{"url": "https://k.fi/", "text": "Lounasbuffet 13,5 €"}],
+                         "pdfs": ["https://k.fi/VIIKKO-48.pdf"], "imgs": []}}, open(f"{_td}/web_pages.json", "w"))
+        _ar.main(f"{_td}/web_pages.json", ",".join(_wk), f"{_td}/menus_ai_{{day}}.json")
+        _it = json.load(open(f"{_td}/menus_ai_2026-11-27.json"))["results"][0]["items"]
+    if _old_key is None:
+        os.environ.pop("ANTHROPIC_API_KEY", None)
+    check(_it and "Hernekeitto" in json.dumps(_it, ensure_ascii=False) and "13.5" in json.dumps(_it),
+          f"week PDF read when the page only names a buffet; buffet price kept ({json.dumps(_it, ensure_ascii=False)[:120]})")
 except Exception as e:
     check(False, f"AI reader carry-over test crashed: {e}")
 
