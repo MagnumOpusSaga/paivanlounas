@@ -48,10 +48,28 @@
     var css = document.createElement("link"); css.rel = "stylesheet"; css.href = "/vendor/maplibre/maplibre-gl.css"; document.head.appendChild(css);
     addScript("/vendor/maplibre/maplibre-gl.js", function () {
       addScript("/vendor/maplibre/leaflet-maplibre-gl.js", function () {
-        try { L.maplibreGL({ style: "https://tiles.openfreemap.org/styles/" + (dark ? "dark" : "positron"), attribution: ATTR }).addTo(map); } catch (e) { osm(); }
+        try {
+          var gl = L.maplibreGL({ style: "https://tiles.openfreemap.org/styles/" + (dark ? "dark" : "positron"), attribution: ATTR }).addTo(map);
+          // "a Helsinki person must read the geography in a second" (feedback 27.11.): the grey positron gets blue sea,
+          // green parks and stronger district names, still calm enough for the price pins to stay on top
+          var mm = gl.getMaplibreMap();
+          mm.on("style.load", function () { try { tintMap(mm); } catch (e) {} });
+        } catch (e) { osm(); }
       }, osm);
     }, osm);
   })();
+  function tintMap(mm) {
+    var W = dark ? "#1d3446" : "#b9d6ee", G = dark ? "#1f3324" : "#d4e8cc", T = dark ? "#e8ddd5" : "#3d322c", H = dark ? "#14100d" : "#ffffff";
+    mm.getStyle().layers.forEach(function (l) {
+      var id = l.id;
+      if (l.type === "fill" && /water/.test(id)) mm.setPaintProperty(id, "fill-color", W);
+      else if (l.type === "line" && /waterway/.test(id)) mm.setPaintProperty(id, "line-color", W);
+      else if (l.type === "fill" && /park|wood|grass|landcover|landuse_cemetery|forest/.test(id)) { mm.setPaintProperty(id, "fill-color", G); mm.setPaintProperty(id, "fill-opacity", 0.9); }
+      else if (l.type === "symbol" && /place|suburb|neighbourhood|quarter|city|town/.test(id)) {
+        mm.setPaintProperty(id, "text-color", T); mm.setPaintProperty(id, "text-halo-color", H); mm.setPaintProperty(id, "text-halo-width", 1.6);
+      } else if (l.type === "symbol" && /water_name|waterway/.test(id)) mm.setPaintProperty(id, "text-color", dark ? "#8fb4d3" : "#3f6f96");
+    });
+  }
   var layer = L.layerGroup().addTo(map);
   // mobile: one small button on the map itself (full-screen map / back to list) instead of a floating bar over the content
   var mapEl = document.getElementById("map"), bigBtn;
@@ -124,7 +142,8 @@
   function fmt(p) { return p ? p.toFixed(2).replace(".", ",") + " €" : ""; }
   function dist(v) { return state.me ? km(state.me, [v.y, v.x]) : null; }
   function distTxt(d) { return d == null ? "" : d < 1 ? Math.round(d * 1000) + " m" : d.toFixed(1).replace(".", ",") + " km"; }
-  function clean(d) { return String(d || "").replace(/^\s*(?:henkilökunta|henkilöstö|opiskelijat?|staff|students?)(?:\s*(?:&|ja|and|\/)\s*(?:henkilökunta|henkilöstö|opiskelijat?|staff|students?))*\s*:\s*/i, "").replace(/\s*\((?:[A-Za-z]{1,4}(?:[\s,+*\/]+|(?=\))))+\)/g, "").replace(/\s+(?:VL|VE|VEG|L|G|M|K|V|\*)(?:\s*[,\/]\s*(?:VL|VE|VEG|L|G|M|K|V|\*))+(?=\s|$)/g, "").replace(/[\s,;·]+$/, ""); }
+  function decapJs(t) { var L = t.replace(/[^A-Za-zÅÄÖåäö]/g, ""); if (L.length < 8 || L.replace(/[^A-ZÅÄÖ]/g, "").length < L.length * 0.7) return t; t = t.toLowerCase(); return t.charAt(0).toUpperCase() + t.slice(1); }
+  function clean(d) { return decapJs(String(d || "")).replace(/^\s*(?:henkilökunta|henkilöstö|opiskelijat?|staff|students?)(?:\s*(?:&|ja|and|\/)\s*(?:henkilökunta|henkilöstö|opiskelijat?|staff|students?))*\s*:\s*/i, "").replace(/\s*\((?:[A-Za-z]{1,4}(?:[\s,+*\/]+|(?=\))))+\)/g, "").replace(/\s+(?:VL|VE|VEG|L|G|M|K|V|\*)(?:\s*[,\/]\s*(?:VL|VE|VEG|L|G|M|K|V|\*))+(?=\s|$)/g, "").replace(/[\s,;·]+$/, ""); }
   function firstDish(v) { var m = M(v); if (!m) return ""; var h = state.cat ? catHit(v) : 0; var it = m.items[h > 0 ? h : 0]; return it ? clean(it.d[0]) : ""; }
   function ppLink(v) { return S.pp + "?lat=" + v.y + "&lon=" + v.x + "&q=" + encodeURIComponent(v.n) + "&dur=60"; }
   function routeLink(v) { return "https://www.google.com/maps/dir/?api=1&destination=" + v.y + "," + v.x; }

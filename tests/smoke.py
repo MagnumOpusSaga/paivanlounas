@@ -38,7 +38,7 @@ venue = next((v["i"] for v in wk["venues"] if (v.get("ms") or {}).get(day)), Non
 import re as _re, subprocess, time as _time
 texts = [x for v in wk["venues"] for m in (v.get("ms") or {}).values() if m for i in m.get("items", []) for x in i.get("d", [])]
 js = open(f"{DIST}/app.js").read()
-mjs = _re.search(r"function clean\(d\) \{.*?\n", js)
+mjs = _re.search(r"(?:function decapJs[^\n]*\n\s*)?function clean\(d\) \{.*?\n", js)
 if mjs:
     json.dump(texts, open("/tmp/_smoke_texts.json", "w"))
     node = ("const t=require('/tmp/_smoke_texts.json');" + mjs.group(0) +
