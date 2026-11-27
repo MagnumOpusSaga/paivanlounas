@@ -37,6 +37,18 @@ def slugify(s):
     return re.sub(r"[^a-z0-9]+", "-", s).strip("-")
 
 
+def load_registry():
+    """Registry + websites found by find_sites_ai.py (data/sites_found.json) for places that had none."""
+    reg = json.load(open(f"{ROOT}/data/registry_helsinki.json"))
+    fp = f"{ROOT}/data/sites_found.json"
+    found = json.load(open(fp)) if os.path.exists(fp) else {}
+    for v in reg:
+        f = found.get(v["id"])
+        if not v.get("website") and f and f.get("status") == "ok" and not is_competitor(f["website"]):
+            v["website"] = f["website"]
+    return reg
+
+
 def main():
     day = sys.argv[1] if len(sys.argv) > 1 else datetime.datetime.now(ZoneInfo("Europe/Helsinki")).date().isoformat()
     os.makedirs(f"{ROOT}/raw", exist_ok=True)
@@ -57,7 +69,10 @@ def main():
     if run(f"{P}/raflaamo.py", "raw/raf_hki_parsed.json", ok_fail=True):
         json.dump([], open(f"{ROOT}/raw/raf_hki_parsed.json", "w"))
     # 3. restaurants' own websites (registry venues with a website and no chain source)
-    reg = json.load(open(f"{ROOT}/data/registry_helsinki.json"))
+    # 3a. find official websites for places that have none (Claude + web search, once per venue, small budget; feedback 27.11.)
+    if os.environ.get("SITES_BUDGET", "0.25") not in ("0", ""):
+        run(f"{P}/find_sites_ai.py", "data/registry_helsinki.json", "data/sites_found.json", "data/landed_raw.json", ok_fail=True)
+    reg = load_registry()
     todo = [{"id": "osm:" + v["osm"] if v.get("osm") else v["id"], "name": v["name"], "website": v["website"]}
             for v in reg if v.get("website") and not any(s.split(":")[0] in ("compass", "sodexo", "unicafe") for s in v["sources"])]
     # hand-checked menu addresses (data/hints.json: {venue-slug: url}) – first for the pages Google sends visitors to (N34)

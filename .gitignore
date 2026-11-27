@@ -17,3 +17,4 @@ data/landed_raw.json
 smoke-*.png
 data/price_history.json
 data/lists_history.json
+data/sites_found.json

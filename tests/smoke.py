@@ -151,6 +151,14 @@ with sync_playwright() as p:
     vis = pg.evaluate("(()=>{const b=document.getElementById('locfab');if(!b)return false;const r=b.getBoundingClientRect();return getComputedStyle(b).display!=='none'&&r.width>0&&r.height>0})()")
     check(not vis, "desktop: phone locate button hidden")
     mb = pg.evaluate("(()=>{const m=document.getElementById('map').getBoundingClientRect();return Math.round(innerHeight-m.bottom)})()")
+    # feedback 27.11.: price pins must not pile on top of each other, and student restaurants are not among the three picks
+    ov = pg.evaluate("""()=>{const r=[...document.querySelectorAll('.pin')].map(p=>p.getBoundingClientRect()).filter(b=>b.width&&b.bottom>0&&b.top<innerHeight);
+      let n=0;for(let i=0;i<r.length;i++)for(let j=i+1;j<r.length;j++){const a=r[i],b=r[j];
+        if(Math.min(a.right,b.right)-Math.max(a.left,b.left)>a.width*0.5&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>a.height*0.5)n++}
+      return {pins:r.length,overlap:n}}""")
+    check(ov["overlap"] == 0, f"desktop: price pins do not pile up ({ov['pins']} pins, {ov['overlap']} overlapping pairs)")
+    st3 = pg.evaluate("[...document.querySelectorAll('#top3 a')].filter(a=>/unicafe/i.test(a.textContent)).length")
+    check(st3 == 0, f"desktop: no student restaurant among the three picks ({st3})")
     print(f"info desktop gap under map {mb} px")
     pg.screenshot(path="smoke-desktop.png")
     nl = pg.evaluate("document.querySelectorAll('.list>li').length")

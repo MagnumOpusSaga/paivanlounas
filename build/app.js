@@ -7,12 +7,12 @@
           wrong: "Väärä tieto?", wrongOk: "Kiitos ilmoituksesta!", onmap: "Kartalla", more: "Näytä lisää", empty: "Ei osumia tältä päivältä.", clear: "Poista suodattimet", otherDays: "Osumia muina päivinä:", park: "Parkki lähellä",
           like: "Söin täällä – hyvä lounas", liked: "Kiitos! Merkitty suositukseksi", pop: " suosittelee", none: "Ei osumia tällä valinnalla. Kokeile toista suodatinta tai siirrä karttaa.", ad: "Mainos", shN: " lounasta lähellä", shNme: " lounasta lähelläsi", route2: "Reitti", open2: "Lista ja tiedot", venue: "/ravintola/", noloc: "Sijaintia ei saatu.", close: "Sulje", walk: " min kävely", until: "auki ", untilEnd: " asti", closes: "sulkeutuu ", closesEnd: " min päästä", ended: "lounas päättynyt", opens: "lounas ", t3me: "Kolme hyvää lähelläsi",
           t3map: "Kolme hyvää tällä alueella", route: "Reitti", loc: "Näytä sijaintini", fav: "Lisää suosikiksi", unfav: "Poista suosikeista", near: "lähintä näkyvissä", nofav: "Ei vielä suosikkeja – lisää niitä tähdestä ravintolan nimen vierestä.",
-          wd: ["sunnuntai", "maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai"], pp: "https://parkpenny.com/" },
+          stuTag: "Opiskelijaravintola", nolistDot: "Ei päivän listaa – katso tiedot", wd: ["sunnuntai", "maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai"], pp: "https://parkpenny.com/" },
     en: { n: " restaurants", menu: " – with menu", nomenu: "No menu for this day.", site: "Restaurant website", src: "Source", orig: "original",
           wrong: "Wrong info?", wrongOk: "Thanks for letting us know!", onmap: "On map", more: "Show more", empty: "No matches for this day.", clear: "Clear filters", otherDays: "Matches on other days:", park: "Parking nearby",
           like: "I ate here – good lunch", liked: "Thanks! Counted as a recommendation", pop: " recommend", none: "Nothing with this choice. Try another filter or move the map.", ad: "Advertisement", shN: " lunches nearby", shNme: " lunches near you", route2: "Directions", open2: "Menu and details", venue: "/en/restaurant/", noloc: "Could not get your location.", close: "Close", walk: " min walk", until: "open until ", untilEnd: "", closes: "closes in ", closesEnd: " min", ended: "lunch over", opens: "lunch ", t3me: "Three good picks near you",
           t3map: "Three good picks in this area", route: "Directions", loc: "Show my location", fav: "Add to favourites", unfav: "Remove from favourites", near: "nearest shown", nofav: "No favourites yet – add them with the star next to a restaurant name.",
-          wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], pp: "https://parkpenny.com/en/" }
+          stuTag: "Student restaurant", nolistDot: "No menu today – see details", wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], pp: "https://parkpenny.com/en/" }
   }[LG];
   var favs = {}; try { (JSON.parse(localStorage.getItem("pl_fav") || "[]")).forEach(function (k) { favs[k] = 1; }); } catch (e) {}
   function isFav(id) { return !!favs[id]; }
@@ -72,6 +72,8 @@
     var p = m.items.map(function (i) { return i.p; }).filter(function (x) { return x && x >= 5 && x <= 25; });
     return p.length ? Math.min.apply(null, p) : null;
   }
+  // student restaurants (UniCafe, campus Compass/Sodexo): fine for students, but not what most office workers want – shown, never pushed first
+  function isStu(v) { var m = M(v); return !!(m && m.stu); }
   function km(a, b) { var dy = (a[0] - b[0]) * 111.0, dx = (a[1] - b[1]) * 111.0 * Math.cos(a[0] * Math.PI / 180); return Math.sqrt(dx * dx + dy * dy); }
   function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
   function hours(v) { var m = M(v); var r = m && m.hours && m.hours.match(/(\d{1,2})[:.](\d{2})\s*[–-]\s*(\d{1,2})[:.](\d{2})/); return r ? [(+r[1]) * 60 + (+r[2]), (+r[3]) * 60 + (+r[4]), r[3] + "." + r[4]] : null; }
@@ -143,7 +145,7 @@
     var p = minPrice(v), dk = dist(v);
     var meta = [dk == null ? "" : (dk < 2.5 ? Math.max(1, Math.round(dk * 1000 / 80)) + S.walk : distTxt(dk)), esc(v.d || ""), timeTxt(v)].filter(Boolean).join(" · ");
     var fv = isFav(v.i);
-    return '<div class="row"><h3><button type="button" class="fav' + (fv ? " on" : "") + '" data-fav="' + esc(v.i) + '" aria-pressed="' + fv + '" title="' + (fv ? S.unfav : S.fav) + '" aria-label="' + (fv ? S.unfav : S.fav) + '">' + STAR + '</button><a href="' + S.venue + esc(v.i) + '/">' + esc(v.n) + "</a>" + (v.o === "A" ? '<span class="oiva">Oiva A</span>' : "") + "</h3>" +
+    return '<div class="row"><h3><button type="button" class="fav' + (fv ? " on" : "") + '" data-fav="' + esc(v.i) + '" aria-pressed="' + fv + '" title="' + (fv ? S.unfav : S.fav) + '" aria-label="' + (fv ? S.unfav : S.fav) + '">' + STAR + '</button><a href="' + S.venue + esc(v.i) + '/">' + esc(v.n) + "</a>" + (v.o === "A" ? '<span class="oiva">Oiva A</span>' : "") + (isStu(v) ? '<span class="stut">' + S.stuTag + "</span>" : "") + "</h3>" +
       (p ? '<span class="from">' + fmt(p) + "</span>" : "") + "</div>" + '<p class="addr">' + (meta || esc(v.a || "")) + "</p>";
   }
   function filtered() {
@@ -171,9 +173,10 @@
     out.sort(function (a, b) {
       var fa = isFav(a.i) ? 0 : 1, fb = isFav(b.i) ? 0 : 1;
       if (fa !== fb) return fa - fb;
-      if (f.cheap) return (minPrice(a) || 99) - (minPrice(b) || 99);
+      var sa = !f.stu && isStu(a) ? 1 : 0, sb = !f.stu && isStu(b) ? 1 : 0;
+      if (f.cheap) return (sa - sb) || (minPrice(a) || 99) - (minPrice(b) || 99);
       if (f.pop) return (b.lk || 0) - (a.lk || 0) || a._k - b._k;
-      return a._k - b._k;
+      return (a._k + sa * 0.3) - (b._k + sb * 0.3);
     });
     return out;
   }
@@ -184,7 +187,7 @@
     if (state.f.fav || (state.view === "list" && !state.me)) { box.hidden = true; return; }
     var ref = state.me || [map.getCenter().lat, map.getCenter().lng];
     var isToday = state.day === today();
-    var c = list.filter(function (v) { return M(v) && minPrice(v) && (!isToday || !hours(v) || openNow(v)); })
+    var c = list.filter(function (v) { return M(v) && minPrice(v) && (state.f.stu || !isStu(v)) && (!isToday || !hours(v) || openNow(v)); })
       .map(function (v) { return [km(ref, [v.y, v.x]), v]; }).filter(function (x) { return x[0] < 1.5; })
       .sort(function (a, b) { return a[0] - b[0]; }).slice(0, 3);
     if (c.length < 3) { box.hidden = true; return; }
@@ -197,9 +200,9 @@
     }).join("");
     box.hidden = false;
   }
-  function pinFor(v) {
+  function pinFor(v, big) {
     var p = minPrice(v), m = M(v);
-    if (m && p) return L.marker([v.y, v.x], { icon: L.divIcon({ className: "", html: '<span class="pin' + (isFav(v.i) ? " fv" : "") + '">' + fmt(p).replace(" €", "") + "</span>", iconSize: [0, 0] }), riseOnHover: true });
+    if (m && p && big) return L.marker([v.y, v.x], { icon: L.divIcon({ className: "", html: '<span class="pin' + (isFav(v.i) ? " fv" : "") + (isStu(v) ? " st" : "") + '">' + fmt(p).replace(" €", "") + "</span>", iconSize: [0, 0] }), riseOnHover: true });
     return L.circleMarker([v.y, v.x], { radius: m ? 6 : 4, weight: 1.5, color: "#fff", fillColor: m ? "#c2410c" : "#9b8e86", fillOpacity: 0.95 });
   }
   // reserved ad places, filled only when the page carries data-ads (AdSense approved + ad units): every 6th card, one list row
@@ -251,16 +254,42 @@
     renderTop3(list);
     renderList(list);
     renderSheet(list);
+    state.pinList = list; drawPins();
+  }
+  // Map like Airbnb: price pins never pile up. A price pin is drawn only where it does not cover another one; the most interesting place wins
+  // (favourite, recommended, normal lunch place before a student restaurant, nearest); the rest are small dots.
+  // Zoomed in (16+), also places without today's list appear as faint dots, so the street looks as full as it is.
+  function pinPrio(v) { return (isFav(v.i) ? 0 : 20) - Math.min(v.lk || 0, 10) + (isStu(v) && !state.f.stu ? 8 : 0) + (v._k || 0); }
+  function drawPins() {
+    var list = state.pinList || [], z = map.getZoom(), b = map.getBounds().pad(0.25), placed = [];
     layer.clearLayers(); state.byId = {};
-    list.slice(0, 900).forEach(function (v) {
-      var mk = pinFor(v);
+    list.slice(0, 900).sort(function (a, c) { return pinPrio(a) - pinPrio(c); }).forEach(function (v) {
+      var big = true;
+      if (M(v) && minPrice(v) && b.contains([v.y, v.x])) {
+        var pt = map.latLngToContainerPoint([v.y, v.x]);
+        big = !placed.some(function (q) { return Math.abs(q.x - pt.x) < 56 && Math.abs(q.y - pt.y) < 28; });
+        if (big) placed.push(pt);
+      }
+      var mk = pinFor(v, big);
       if (wide.matches) {
         mk.bindPopup(function () { return '<div class="pop">' + head(v) + menuHtml(v, false) + "</div>"; }, { maxWidth: 320, autoPanPadding: [40, 40] });
         mk.on("popupopen", function () { select(v.i); });
       } else mk.on("click", function () { if (sheetOn()) { setSheet("full"); setTimeout(function () { toCard(v.i); }, 60); } else showCard(v); });
       mk.addTo(layer); state.byId[v.i] = mk;
     });
+    if (state.f.menu && z >= 16 && !state.q && !state.cat) {
+      var k = 0;
+      state.data.forEach(function (v) {
+        if (k > 400 || M(v) || state.byId[v.i] || !b.contains([v.y, v.x])) return; k++;
+        var d = L.circleMarker([v.y, v.x], { radius: 3.5, weight: 1, color: "#fff", fillColor: "#9b8e86", fillOpacity: 0.85 });
+        var html = '<div class="pop"><a href="' + S.venue + esc(v.i) + '/"><b>' + esc(v.n) + "</b></a><br><small>" + S.nolistDot + "</small></div>";
+        if (wide.matches) d.bindPopup(html, { maxWidth: 260 }); else d.on("click", function () { location.href = S.venue + v.i + "/"; });
+        d.addTo(layer);
+      });
+    }
   }
+  var pt0 = null;
+  map.on("zoomend moveend", function () { clearTimeout(pt0); pt0 = setTimeout(drawPins, 120); });
   function select(id) {
     state.sel = id;
     document.querySelectorAll(".list>li.sel").forEach(function (x) { x.classList.remove("sel"); });
@@ -323,7 +352,9 @@
     state.lastList = list;
     if (!sheetOn()) return;
     $("shTitle").textContent = list.length + (state.me ? S.shNme : S.shN);
-    $("shRows").innerHTML = list.slice(0, 2).map(function (v, k) {
+    var peek = state.f.stu ? list : list.filter(function (v) { return !isStu(v); }).concat(list.filter(isStu));
+    state.peek = peek.slice(0, 2);
+    $("shRows").innerHTML = peek.slice(0, 2).map(function (v, k) {
       return '<li><button type="button" data-k="' + k + '"><span class="r1"><b>' + esc(v.n) + "</b><b>" + priceTxt(v) + '</b></span><span class="r2">' +
         esc(firstDish(v)) + '</span><span class="r3">' + walkTxt(v) + "</span></button></li>";
     }).join("");
@@ -336,7 +367,7 @@
       var m = M(v), more = m && m.items.length > 1 ? m.items.slice(1, 3).map(function (i) { return clean(i.d[0]); }).join(" · ") : "";
       return '<article class="card" data-i="' + esc(v.i) + '"><p class="c1">' + walkTxt(v) + (timeTxt(v) ? " · " + timeTxt(v) : "") + "</p>" +
         '<h3 class="c2">' + esc(firstDish(v) || v.n) + "</h3>" +
-        '<p class="c3"><button type="button" class="fav' + (isFav(v.i) ? " on" : "") + '" data-fav="' + esc(v.i) + '" aria-label="' + (isFav(v.i) ? S.unfav : S.fav) + '">' + STAR + "</button>" + esc(v.n) + "</p>" +
+        '<p class="c3"><button type="button" class="fav' + (isFav(v.i) ? " on" : "") + '" data-fav="' + esc(v.i) + '" aria-label="' + (isFav(v.i) ? S.unfav : S.fav) + '">' + STAR + "</button>" + esc(v.n) + (isStu(v) ? ' <span class="stut">' + S.stuTag + "</span>" : "") + "</p>" +
         (more ? '<p class="c4">' + esc(more) + "</p>" : "") +
         '<p class="c6">' + (v.lk ? '<span class="popn">' + v.lk + S.pop + "</span>" : "") + '<button type="button" class="likebtn" data-like="' + esc(v.i) + '" data-done="' + S.liked + '">' + S.like + "</button></p>" +
         '<div class="c5"><span class="cp">' + priceTxt(v) + '</span><span class="cb"><a class="btn ghost" href="' + S.venue + esc(v.i) + '/">' + S.open2 + '</a><a class="btn" href="' + routeLink(v) + '" rel="nofollow noopener">' + S.route2 + "</a></span></div></article>" +
@@ -375,7 +406,7 @@
   $("shTitle").addEventListener("click", function () { setSheet(state.sheet === "full" ? "peek" : "full"); });
   $("shRows").addEventListener("click", function (e) {
     var b = e.target.closest("[data-k]"); if (!b) return;
-    var v = (state.lastList || [])[+b.getAttribute("data-k")]; setSheet("full"); if (v) setTimeout(function () { toCard(v.i); }, 50);
+    var v = (state.peek || [])[+b.getAttribute("data-k")]; setSheet("full"); if (v) setTimeout(function () { toCard(v.i); }, 50);
   });
   var y0 = null, h0 = 0, moved = false;
   sheet.addEventListener("touchstart", function (e) {
@@ -509,8 +540,8 @@
     map.setView(map.unproject(pt, z), z);
   }
   var meDot = null, locBtn;
-  function locate(fromList) {
-    if (!navigator.geolocation) { $("count").textContent = S.noloc; return; }
+  function locate(fromList, auto) {
+    if (!navigator.geolocation) { if (!auto) $("count").textContent = S.noloc; return; }
     if (locBtn) locBtn.classList.add("busy"); $("locfab").classList.add("busy");
     navigator.geolocation.getCurrentPosition(function (p) {
       if (locBtn) locBtn.classList.remove("busy"); $("locfab").classList.remove("busy"); $("locfab").classList.add("on");
@@ -519,12 +550,13 @@
       else meDot = L.circleMarker(state.me, { radius: 8, color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }).addTo(map);
       state.quiet = true; render();
       if (fromList && !sheetOn()) { var t = $("top3s").hidden ? $("count") : $("top3s"); t.scrollIntoView({ behavior: "smooth", block: "start" }); }
-    }, function () { if (locBtn) locBtn.classList.remove("busy"); $("locfab").classList.remove("busy"); $("count").textContent = S.noloc; }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+    }, function () { if (locBtn) locBtn.classList.remove("busy"); $("locfab").classList.remove("busy"); if (!auto) $("count").textContent = S.noloc; }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
   }
   $("near").addEventListener("click", function () { locate(true); });
   $("locfab").addEventListener("click", function () { locate(false); });
   // phones: find the user right away (the browser asks once); the list then starts from where you are
-  if (touch && navigator.geolocation) setTimeout(function () { locate(false); }, 300);
+  // every device: find the user right away (the browser asks once) and start from what is around them (feedback 27.11.)
+  if (navigator.geolocation) setTimeout(function () { locate(false, true); }, 300);
   var Loc = L.Control.extend({ options: { position: "topright" }, onAdd: function () {
     var d = L.DomUtil.create("div", "leaflet-bar leaflet-control");
     locBtn = L.DomUtil.create("a", "locbtn", d); locBtn.href = "#"; locBtn.setAttribute("role", "button");

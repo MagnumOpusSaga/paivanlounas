@@ -79,6 +79,7 @@ jobs:
             data/lists_history.json
             data/lunch_info.json
             data/info_cache.json
+            data/sites_found.json
           key: gate-${{ github.run_id }}
           restore-keys: gate-
       - name: Restore last fetched lists (code pushes only)
@@ -130,6 +131,7 @@ jobs:
             data/lists_history.json
             data/lunch_info.json
             data/info_cache.json
+            data/sites_found.json
           key: gate-${{ github.run_id }}
       - name: Save fetched lists
         if: github.ref == 'refs/heads/main'

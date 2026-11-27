@@ -560,6 +560,13 @@ def main(L, out, day, preview):
     days = week_days(day)
     show_day = day if datetime.date.fromisoformat(day).weekday() < 5 else days[0]
     reg = json.load(open(f"{L}/data/registry_helsinki.json"))
+    _fp = f"{L}/data/sites_found.json"  # websites found by pipeline/find_sites_ai.py for places that had none
+    if os.path.exists(_fp):
+        _found = json.load(open(_fp))
+        for _v in reg:
+            _f = _found.get(_v["id"])
+            if not _v.get("website") and _f and _f.get("status") == "ok":
+                _v["website"] = _f["website"]
     ds = load_districts(os.path.join(os.path.dirname(__file__), "..", "kaupunginosat.json"))
     M = {d: menus_today(L, d) for d in days}
     R = raflaamo_today(L)

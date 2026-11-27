@@ -246,3 +246,6 @@ footer{max-width:1120px;margin:0 auto;padding:18px 20px 28px;color:var(--mut);fo
 /* the round locate arrow is a phone control: never on wide screens (it showed as a grey bar under the map) */
 .locfab{display:none}
 @media (min-width:900px){.locfab,.app.sheetmode .locfab{display:none!important}}
+/* student restaurants: shown, but quieter than normal lunch places (feedback 27.11.) */
+.stut{font-size:11px;font-weight:600;color:var(--muted,#6b5e57);border:1px solid currentColor;border-radius:5px;padding:0 5px;margin-left:6px;vertical-align:2px;white-space:nowrap}
+.pin.st{background:var(--bg,#fffbf7);color:#7a6a60;box-shadow:0 1px 3px rgba(0,0,0,.18);font-weight:600}
