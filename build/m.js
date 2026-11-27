@@ -11,6 +11,8 @@
   }
   function ev(k) { clicked = true; q.push(["click", k]); if (q.length >= 10) send(); }
   window.plEvent = ev;
+  // other counters: "zone" (the map was used in area X), "adimp"/"adclick" (a Nosto really on screen / clicked) – no ids, no cookies
+  window.plCount = function (k, key) { q.push([k, String(key || "").slice(0, 40)]); clearTimeout(window._plT); window._plT = setTimeout(send, 1500); };
   // landed here from a search engine: which restaurant / district pages people really look for (index gate)
   // a paid ad click (Google Ads auto-tagging or utm_medium=cpc) is counted as "ad" with the campaign, never as a search landing,
   // so paid visits do not open pages in the index gate; no cookie, no id – only the campaign name and the page type

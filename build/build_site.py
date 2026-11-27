@@ -210,7 +210,7 @@ FASTFOOD = re.compile(r"(?i)burger king|mcdonald|hesburger|subway|kotipizza|taco
 CSS = open(os.path.join(os.path.dirname(__file__), "style.css")).read()
 import hashlib
 # cache-busting: each deploy points pages at /app.js?v=<content hash>, so phones never mix new HTML with an old cached script
-VER = {f: hashlib.md5(open(os.path.join(os.path.dirname(__file__), f), "rb").read()).hexdigest()[:8] for f in ("style.css", "app.js", "suggest.js", "m.js")}
+VER = {f: hashlib.md5(open(os.path.join(os.path.dirname(__file__), f), "rb").read()).hexdigest()[:8] for f in ("style.css", "app.js", "suggest.js", "m.js", "promo.js")}
 
 
 
@@ -553,7 +553,14 @@ def report_form(v, lg):
 <form method="post" action="/api/suggest" class="suggest"><input type="hidden" name="venue" value="{esc(v['slug'])}"><input type="hidden" name="lang" value="{lg}">
 <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
 <label>{t['report_url']}<input type="url" name="url" required placeholder="https://"></label><button class="btn" type="submit">{t['report_btn']}</button>
-<p class="ok" hidden>{t['report_ok']}</p></form></section>"""
+<p class="ok" hidden>{t['report_ok']}</p></form>{promo_link(v, lg)}</section>"""
+
+
+def promo_link(v, lg):
+    """Owner link to buy a Nosto – only once Branu opens the sales (LOUNAS_PROMO=1 in the workflow)."""
+    if lg != "fi" or os.environ.get("LOUNAS_PROMO") != "1":
+        return ""
+    return f'<p class="promolink"><a href="/mainosta/?v={esc(v["slug"])}" data-ev="promo">Nosta ravintolasi lounaskartalla →</a> <small>hinta näyttömääristä, osto heti</small></p>'
 
 
 def week_days(day):
@@ -726,7 +733,7 @@ def main(L, out, day, preview):
     json.dump({"date": show_day, "days": days, "venues": app}, open(f"{out}/data/week.json", "w"), ensure_ascii=False, separators=(",", ":"))
 
     here = os.path.dirname(__file__)
-    for f in ("style.css", "app.js", "suggest.js", "m.js", "favicon.svg", "favicon.ico", "apple-touch-icon.png", "icon-48.png", "icon-192.png", "icon-512.png", "logo.png", "brand.html"):
+    for f in ("style.css", "app.js", "suggest.js", "m.js", "promo.js", "favicon.svg", "favicon.ico", "apple-touch-icon.png", "icon-48.png", "icon-192.png", "icon-512.png", "logo.png", "brand.html"):
         shutil.copy(os.path.join(here, f), f"{out}/{f}")
     os.makedirs(f"{out}/vendor/leaflet/images", exist_ok=True)
     lf = os.path.join(here, "..", "node_modules", "leaflet", "dist")
@@ -999,6 +1006,12 @@ def main(L, out, day, preview):
                                                            f'<script type="application/ld+json">{json.dumps(jl, ensure_ascii=False)}</script>', index=ix, has_list=bool(v["menu"])))
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import articles
+    # Nosto pages + data/zones.json (constants read from lib/promo.js so the page text and the server never disagree)
+    _pj = open(os.path.join(here, "..", "lib", "promo.js")).read()
+    _c = {k: re.search(rf"export const {n} = ([0-9.]+)", _pj).group(1) for k, n in (("cpm", "CPM_EUR"), ("min_day", "MIN_DAY_EUR"), ("min_order", "MIN_ORDER_EUR"))}
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import promo_pages
+    promo_pages.write(out, page, preview, add_url, venues, os.path.join(here, "app.js"), VER["promo.js"], _c)
     articles.write_articles({"out": out, "preview": preview, "venues": [v for v in venues if v["city"] == "helsinki"], "show_day": show_day, "days": days, "likes": LIKES,
                              "page": page, "add_url": add_url, "esc": esc, "fmt_price": fmt_price, "lunch_price": lunch_price,
                              "clean_dish": clean_dish, "datestr": datestr, "ad_block": ad_block, "history_path": f"{L}/data/price_history.json"})
@@ -1054,6 +1067,7 @@ INFO = {
 <li><b>Sijainti:</b> jos painat ”Lähellä”, selain kysyy luvan ja sijaintia käytetään vain selaimessasi ravintoloiden järjestämiseen. Sitä ei lähetetä meille.</li>
 <li><b>Asetukset:</b> kartta- tai listanäkymän valinta tallennetaan selaimesi paikalliseen muistiin (localStorage). Se ei lähde meille.</li>
 <li><b>”Väärä tieto?” -ilmoitukset ja ravintoloiden listaosoitteet:</b> tallennamme ravintolan, päivän ja ilmoitetun osoitteen. IP-osoitetta ei tallenneta; siitä lasketaan päiväkohtainen tiiviste, jolla rajoitetaan toistuvia ilmoituksia.</li>
+<li><b>Nostojen ostot (ravintolat):</b> maksun käsittelee Stripe (Stripe Payments Europe). Stripe kerää ostajan nimen, sähköpostin, laskutusosoitteen ja maksutiedot omana rekisterinpitäjänään laskua ja kuittia varten. Me tallennamme ostetun noston tiedot (ravintola, alue, päivät, hinta) sekä ostajan yrityksen nimen kirjanpitoa varten; korttitietoja emme näe.</li>
 <li><b>Palvelin:</b> sivusto toimii Cloudflaren palveluissa, jotka käsittelevät teknisiä yhteystietoja (esim. IP-osoite) sivun toimittamiseksi ja tietoturvan vuoksi.</li>
 <li><b>Karttatiilet</b> ladataan OpenStreetMapin palvelimilta, jotka näkevät IP-osoitteesi.</li>
 <li><b>Kävijätilastot:</b> Cloudflare Web Analytics laskee sivujen katselut ilman evästeitä eikä tunnista yksittäisiä kävijöitä.</li>
@@ -1085,6 +1099,7 @@ INFO = {
 <li><b>Location:</b> if you press “Near me”, your browser asks for permission and the location is used only in your browser to sort restaurants. It is not sent to us.</li>
 <li><b>Settings:</b> your choice of map or list view is stored in your browser (localStorage). It is not sent to us.</li>
 <li><b>“Wrong info?” reports and menu addresses sent by restaurants:</b> we store the restaurant, the day and the submitted address. IP addresses are not stored; a daily hash of it is used to limit repeated reports.</li>
+<li><b>Promotion purchases (restaurants):</b> payments are processed by Stripe (Stripe Payments Europe), which collects the buyer's name, email, billing address and payment details as an independent controller for the receipt and invoice. We store the purchased promotion (restaurant, area, days, price) and the buyer's company name for bookkeeping; we never see card details.</li>
 <li><b>Hosting:</b> the site runs on Cloudflare, which processes technical connection data (e.g. IP address) to deliver pages and for security.</li>
 <li><b>Map tiles</b> are loaded from OpenStreetMap's servers, which see your IP address.</li>
 <li><b>Visitor statistics:</b> Cloudflare Web Analytics counts page views without cookies and does not identify individual visitors.</li>

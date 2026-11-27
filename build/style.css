@@ -267,3 +267,16 @@ html.dark .preview{background:#5a4b00;color:#fff3b0}
 .sheet .areas{padding:0 16px 8px}
 
 .dish.nm{color:var(--mut);font-style:italic}
+
+/* Nosto (paid): always the word "Mainos" + the payer, quiet frame, same size as a normal row (27.11.2026) */
+.promo a{display:flex;flex-direction:column;gap:2px;text-decoration:none;color:var(--ink);padding:10px 12px;border:1px dashed var(--line);border-radius:12px;background:var(--card);margin:6px 0}
+.promo .adtag{font-size:12px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.02em}
+.promo .pd{font-weight:700;overflow-wrap:anywhere}
+.promo .pp2{font-size:13px;color:var(--mut)}
+#shRows .prow{list-style:none}
+.promo-page label{display:block;font-weight:600;margin:10px 0}.promo-page input,.promo-page select{display:block;width:100%;max-width:480px;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-top:4px;background:var(--card);color:var(--ink)}
+.pdays{display:flex;flex-wrap:wrap;gap:8px}.pday{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:8px 10px;font:inherit;display:flex;flex-direction:column;align-items:flex-start;cursor:pointer;min-width:118px}
+.pday span{font-size:13px;color:var(--mut)}.pday.on{border:2px solid var(--p);background:color-mix(in srgb,var(--p) 8%,var(--card))}.pday:disabled{opacity:.45;cursor:default}
+.pnote{color:var(--mut);font-size:14px}.ptestnote{background:#fff3cd;color:#5c4400;padding:8px 12px;border-radius:10px}.ptable{border-collapse:collapse;width:100%;max-width:560px}.ptable td,.ptable th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.psteps{padding-left:20px}.promolink{margin-top:12px}
+.btn:disabled{opacity:.45;cursor:default}

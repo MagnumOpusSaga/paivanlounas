@@ -244,12 +244,12 @@
     list = list.filter(function (v) { return !t3[v.i]; });  // the three picks are already shown above
     $("count").textContent = total + S.n + (state.f.menu ? S.menu : "") + (list.length > n && !state.f.cheap ? " · " + n + " " + S.near : "");
     if (state.f.fav && !list.length) $("count").textContent = S.nofav;
-    $("list").innerHTML = list.slice(0, n).map(function (v, k) {
+    $("list").innerHTML = (state.f.fav ? "" : promoHtml("li", "plist")) + list.slice(0, n).map(function (v, k) {
       var m = M(v);
       return '<li data-i="' + esc(v.i) + '"' + (state.sel === v.i ? ' class="sel"' : "") + ">" + head(v) +
         (lv ? menuHtml(v, true) : '<p class="dish' + (m ? "" : " nm") + '">' + esc(m ? dishLine(v) : S.nomenu) + "</p>") + "</li>" + (k === 4 ? adHtml("list", "li") : "");
     }).join("");
-    fillAds($("list"));
+    fillAds($("list")); watchPromos($("list"));
     if (!total && !state.f.fav) $("list").innerHTML = emptyHtml();
     var more = $("more"), left = list.length - n;
     more.hidden = left <= 0; more.textContent = left > 0 ? S.more + " (" + left + ")" : "";
@@ -325,6 +325,54 @@
     ["Keilaniemi", 60.1765, 24.8290], ["Otaniemi", 60.1860, 24.8270], ["Tapiola", 60.1755, 24.8050], ["Leppävaara", 60.2190, 24.8130],
     ["Matinkylä", 60.1600, 24.7380], ["Espoon keskus", 60.2050, 24.6560]];
   var myArea = null; try { myArea = localStorage.getItem("pl_area"); } catch (e) {}
+  // ---- Nosto (paid promoted places, 27.11.2026): one area = the nearest of AREAS within 1.5 km of you / the map centre.
+  // A promo is always labelled "Mainos" with the payer's name; at most 2 per area per day; counted only when really on screen.
+  function zoneAt(ll) {
+    var best = null, bd = 1.5;
+    AREAS.forEach(function (a) { var d = km(ll, [a[1], a[2]]); if (d < bd) { bd = d; best = slug(a[0]); } });
+    return best;
+  }
+  function curZone() { return zoneAt(state.me || [map.getCenter().lat, map.getCenter().lng]); }
+  var zoneSent = {}, zt = null;
+  function countZone() {  // anonymous: "the map was used in area X today" – the basis of the public numbers and the price
+    clearTimeout(zt); zt = setTimeout(function () {
+      var z = curZone(); if (!z || zoneSent[z] || Object.keys(zoneSent).length >= 3) return;
+      zoneSent[z] = 1; if (window.plCount) window.plCount("zone", z);
+    }, 2500);
+  }
+  var PROMOS = [];
+  function promoVenues() {
+    var z = curZone(); if (!z || !PROMOS.length || !state.data) return [];
+    return PROMOS.filter(function (p) { return p.z === z; }).slice(0, 2).map(function (p) {
+      var v = state.data.find(function (x) { return x.i === p.v; }); return v ? { p: p, v: v } : null;
+    }).filter(Boolean);
+  }
+  function promoHtml(tag, cls) {
+    if (anyFilter()) return "";  // searching or filtering: only what was asked for, no promos
+    return promoVenues().map(function (x) {
+      var v = x.v, m = M(v);
+      return "<" + tag + ' class="promo ' + cls + '" data-promo="' + esc(x.p.id) + '"><a href="' + S.venue + esc(v.i) + '/" data-adclick="' + esc(x.p.id) + '">' +
+        '<span class="adtag">' + S.ad + " · " + esc(v.n) + "</span>" + '<span class="pd">' + esc(m ? firstDish(v) : S.nomenu) + "</span>" +
+        '<span class="pp2">' + (m ? priceTxt(v) : "") + (dist(v) != null ? " · " + walkTxt(v) : "") + "</span></a></" + tag + ">";
+    }).join("");
+  }
+  var seenAd = {}, adObs = null;
+  function watchPromos(root) {
+    if (!window.IntersectionObserver) return;
+    if (!adObs) adObs = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        var id = e.target.getAttribute("data-promo"); if (!id || seenAd[id]) return;
+        if (e.isIntersecting) { e.target._t = setTimeout(function () { if (!seenAd[id]) { seenAd[id] = 1; if (window.plCount) window.plCount("adimp", id); } }, 1000); }
+        else clearTimeout(e.target._t);
+      });
+    }, { threshold: 0.5 });
+    (root || document).querySelectorAll("[data-promo]").forEach(function (el) { adObs.observe(el); });
+  }
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("[data-adclick]"); if (a && window.plCount) window.plCount("adclick", a.getAttribute("data-adclick"));
+  }, true);
+  try { fetch("/api/promo/active").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { if (d && d.promos && d.promos.length) { PROMOS = d.promos; render(); } }).catch(function () {}); } catch (e) {}
+  map.on("moveend", countZone);
   function renderAreas() {
     var show = !state.me && state.locTried;
     ["areas", "areas2"].forEach(function (id) {
@@ -386,7 +434,7 @@
   try { if (window.ResizeObserver && hdr) new ResizeObserver(setHdr).observe(hdr); if (document.fonts) document.fonts.ready.then(setHdr); } catch (e) {}
   function sheetOn() { return !wide.matches && state.view === "split"; }
   function sheetH(px) { document.documentElement.style.setProperty("--sheet-h", px + "px"); }
-  function peekH() { var a = $("areas2"); return Math.min(256, Math.round(innerHeight * 0.34)) + (a && !a.hidden ? 40 : 0); }
+  function peekH() { var a = $("areas2"), pr = document.querySelector("#shRows .prow"); return Math.min(256, Math.round(innerHeight * 0.34)) + (a && !a.hidden ? 40 : 0) + (pr ? pr.offsetHeight * document.querySelectorAll("#shRows .prow").length : 0); }
   function fullH() { return Math.round(innerHeight - (hdr ? hdr.offsetHeight : 56) - 130); }
   function syncMode() {
     var on = sheetOn();
@@ -414,10 +462,12 @@
     $("shTitle").textContent = list.length + (state.me ? S.shNme : S.shN);
     var peek = state.f.stu ? list : list.filter(function (v) { return !isStu(v); }).concat(list.filter(isStu));
     state.peek = peek.slice(0, 2);
-    $("shRows").innerHTML = peek.slice(0, 2).map(function (v, k) {
+    $("shRows").innerHTML = promoHtml("li", "prow") + peek.slice(0, 2).map(function (v, k) {
       return '<li><button type="button" data-k="' + k + '"><span class="r1"><b>' + esc(v.n) + "</b><b>" + priceTxt(v) + '</b></span><span class="r2">' +
         esc(firstDish(v) || S.nomenu) + '</span><span class="r3">' + walkTxt(v) + "</span></button></li>";
     }).join("");
+    watchPromos($("shRows"));
+    if (state.sheet !== "full" && document.querySelector("#shRows .prow")) sheetH(peekH());
     if (state.sheet === "full") renderCards(list);
   }
   function renderCards(list) {

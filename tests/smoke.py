@@ -217,6 +217,19 @@ with sync_playwright() as p:
     check(not ov, f"360 px phone: card texts fit inside the cards {ov[:3]}")
     pg.screenshot(path="smoke-phone-360.png")
     check(not errs, f"360 px phone JS errors: {errs[:3]}")
+    # Nosto: a paid promo is always labelled "Mainos" with the name, at most 2 per area, and the map is not covered
+    _wk2 = json.load(open(os.path.join(DIST, "data", "week.json")))
+    _near = sorted((v for v in _wk2["venues"] if v.get("ms")), key=lambda v: (v["y"] - 60.1685) ** 2 + ((v["x"] - 24.932) * 0.5) ** 2)[:3]
+    _fake = {"day": "x", "promos": [{"id": f"t{k}", "v": v["i"], "z": "kamppi"} for k, v in enumerate(_near)]}
+    pg, errs = page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True,
+                    geolocation={"latitude": 60.1685, "longitude": 24.932}, permissions=["geolocation"])
+    pg.route("**/api/promo/active", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(_fake)))
+    pg.goto(BASE + "/", wait_until="domcontentloaded"); pg.wait_for_timeout(5000)
+    _pr = pg.evaluate("[...document.querySelectorAll('#shRows .promo')].map(e=>e.innerText)")
+    check(1 <= len(_pr) <= 2 and all(x.upper().startswith("MAINOS · ") for x in _pr), f"Nosto shown with 'Mainos · name', max 2 per area ({len(_pr)}: {[x[:30] for x in _pr]})")
+    _sh = pg.evaluate("(()=>{const s=document.getElementById('sheet').getBoundingClientRect();return Math.round(s.top)})()")
+    check(_sh >= 844 * 0.45, f"Nosto does not push the sheet over the map (sheet top {_sh})")
+    check(not errs, f"Nosto JS errors: {errs[:3]}")
     # a place without today's list is still found by its name (feedback 27.11.: searching a Konala place gave "0 lunches")
     _wk = json.load(open(os.path.join(DIST, "data", "week.json")))
     _nl = sorted(v["n"] for v in _wk["venues"] if not v.get("ms") and len(v["n"]) >= 8)
