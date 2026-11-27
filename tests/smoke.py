@@ -158,6 +158,12 @@ with sync_playwright() as p:
       return {pins:r.length,overlap:n}}""")
     check(ov["overlap"] == 0, f"desktop: price pins do not pile up ({ov['pins']} pins, {ov['overlap']} overlapping pairs)")
     st3 = pg.evaluate("[...document.querySelectorAll('#top3 a')].filter(a=>/unicafe/i.test(a.textContent)).length")
+    # no location given: one row of areas to pick from (feedback 27.11.); picking one is remembered
+    ar = pg.evaluate("(()=>{const e=document.getElementById('areas');return e&&!e.hidden?e.querySelectorAll('[data-area]').length:0})()")
+    check(ar >= 5, f"desktop without location: area picker shows {ar} areas")
+    if ar:
+        pg.click("#areas [data-area]"); pg.wait_for_timeout(800)
+        check(bool(pg.evaluate("localStorage.getItem('pl_area')")), "desktop: picked area is remembered")
     check(st3 == 0, f"desktop: no student restaurant among the three picks ({st3})")
     print(f"info desktop gap under map {mb} px")
     pg.screenshot(path="smoke-desktop.png")

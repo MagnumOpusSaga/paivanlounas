@@ -7,12 +7,12 @@
           wrong: "Väärä tieto?", wrongOk: "Kiitos ilmoituksesta!", onmap: "Kartalla", more: "Näytä lisää", empty: "Ei osumia tältä päivältä.", clear: "Poista suodattimet", otherDays: "Osumia muina päivinä:", park: "Parkki lähellä",
           like: "Söin täällä – hyvä lounas", liked: "Kiitos! Merkitty suositukseksi", pop: " suosittelee", none: "Ei osumia tällä valinnalla. Kokeile toista suodatinta tai siirrä karttaa.", ad: "Mainos", shN: " lounasta lähellä", shNme: " lounasta lähelläsi", route2: "Reitti", open2: "Lista ja tiedot", venue: "/ravintola/", noloc: "Sijaintia ei saatu.", close: "Sulje", walk: " min kävely", until: "auki ", untilEnd: " asti", closes: "sulkeutuu ", closesEnd: " min päästä", ended: "lounas päättynyt", opens: "lounas ", t3me: "Kolme hyvää lähelläsi",
           t3map: "Kolme hyvää tällä alueella", route: "Reitti", loc: "Näytä sijaintini", fav: "Lisää suosikiksi", unfav: "Poista suosikeista", near: "lähintä näkyvissä", nofav: "Ei vielä suosikkeja – lisää niitä tähdestä ravintolan nimen vierestä.",
-          stuTag: "Opiskelijaravintola", nolistDot: "Ei päivän listaa – katso tiedot", wd: ["sunnuntai", "maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai"], pp: "https://parkpenny.com/" },
+          stuTag: "Opiskelijaravintola", areasH: "Valitse alue", areasMine: "oma alue", nolistDot: "Ei päivän listaa – katso tiedot", wd: ["sunnuntai", "maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai"], pp: "https://parkpenny.com/" },
     en: { n: " restaurants", menu: " – with menu", nomenu: "No menu for this day.", site: "Restaurant website", src: "Source", orig: "original",
           wrong: "Wrong info?", wrongOk: "Thanks for letting us know!", onmap: "On map", more: "Show more", empty: "No matches for this day.", clear: "Clear filters", otherDays: "Matches on other days:", park: "Parking nearby",
           like: "I ate here – good lunch", liked: "Thanks! Counted as a recommendation", pop: " recommend", none: "Nothing with this choice. Try another filter or move the map.", ad: "Advertisement", shN: " lunches nearby", shNme: " lunches near you", route2: "Directions", open2: "Menu and details", venue: "/en/restaurant/", noloc: "Could not get your location.", close: "Close", walk: " min walk", until: "open until ", untilEnd: "", closes: "closes in ", closesEnd: " min", ended: "lunch over", opens: "lunch ", t3me: "Three good picks near you",
           t3map: "Three good picks in this area", route: "Directions", loc: "Show my location", fav: "Add to favourites", unfav: "Remove from favourites", near: "nearest shown", nofav: "No favourites yet – add them with the star next to a restaurant name.",
-          stuTag: "Student restaurant", nolistDot: "No menu today – see details", wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], pp: "https://parkpenny.com/en/" }
+          stuTag: "Student restaurant", areasH: "Pick an area", areasMine: "your area", nolistDot: "No menu today – see details", wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], pp: "https://parkpenny.com/en/" }
   }[LG];
   var favs = {}; try { (JSON.parse(localStorage.getItem("pl_fav") || "[]")).forEach(function (k) { favs[k] = 1; }); } catch (e) {}
   function isFav(id) { return !!favs[id]; }
@@ -254,7 +254,7 @@
     renderTop3(list);
     renderList(list);
     renderSheet(list);
-    state.pinList = list; drawPins();
+    state.pinList = list; drawPins(); renderAreas();
   }
   // Map like Airbnb: price pins never pile up. A price pin is drawn only where it does not cover another one; the most interesting place wins
   // (favourite, recommended, normal lunch place before a student restaurant, nearest); the rest are small dots.
@@ -288,6 +288,34 @@
       });
     }
   }
+  // Area picker (feedback 27.11., like kanttiinit.fi): when we do not know where you are, pick your work area once;
+  // the choice is remembered on this device and the map opens there next time. Chips show how many lists the area has today.
+  var AREAS = [["Keskusta", 60.1690, 24.9440], ["Kamppi", 60.1685, 24.9320], ["Pasila", 60.1990, 24.9330], ["Ruoholahti", 60.1630, 24.9150],
+    ["Kalasatama", 60.1870, 24.9770], ["Kallio", 60.1840, 24.9500], ["Töölö", 60.1790, 24.9220], ["Vallila", 60.1950, 24.9560],
+    ["Meilahti", 60.1890, 24.9070], ["Kumpula", 60.2040, 24.9620], ["Herttoniemi", 60.1950, 25.0300], ["Itäkeskus", 60.2100, 25.0800],
+    ["Viikki", 60.2270, 25.0170], ["Malmi", 60.2510, 25.0110]];
+  var myArea = null; try { myArea = localStorage.getItem("pl_area"); } catch (e) {}
+  function renderAreas() {
+    var show = !state.me && state.locTried;
+    ["areas", "areas2"].forEach(function (id) {
+      var el = $(id); if (!el) return;
+      if (!show || (id === "areas" && sheetOn()) || (id === "areas2" && !sheetOn())) { el.hidden = true; return; }
+      var html = AREAS.map(function (a) {
+        var n = state.data.filter(function (v) { return M(v) && km([a[1], a[2]], [v.y, v.x]) < 0.7; }).length;
+        return n ? '<button type="button" class="' + (myArea === a[0] ? "on" : "") + '" data-area="' + esc(a[0]) + '">' + esc(a[0]) + " <small>" + n + "</small></button>" : "";
+      }).join("");
+      el.innerHTML = '<span class="ah">' + S.areasH + "</span>" + html; el.hidden = false;
+    });
+    if (sheetOn() && state.sheet !== "full") sheetH(peekH());
+  }
+  function goArea(name) {
+    var a = AREAS.filter(function (x) { return x[0] === name; })[0]; if (!a) return;
+    myArea = name; try { localStorage.setItem("pl_area", name); } catch (e) {}
+    goTo([a[1], a[2]], 16); setTimeout(function () { var l = filtered(); renderTop3(l); renderList(l); renderSheet(l); renderAreas(); }, 350);
+  }
+  ["areas", "areas2"].forEach(function (id) {
+    var el = $(id); if (el) el.addEventListener("click", function (e) { var b = e.target.closest("[data-area]"); if (b) goArea(b.getAttribute("data-area")); });
+  });
   var pt0 = null;
   map.on("zoomend moveend", function () { clearTimeout(pt0); pt0 = setTimeout(drawPins, 120); });
   function select(id) {
@@ -326,7 +354,7 @@
   setHdr(); addEventListener("resize", setHdr);
   function sheetOn() { return !wide.matches && state.view === "split"; }
   function sheetH(px) { document.documentElement.style.setProperty("--sheet-h", px + "px"); }
-  function peekH() { return Math.min(256, Math.round(innerHeight * 0.34)); }
+  function peekH() { var a = $("areas2"); return Math.min(256, Math.round(innerHeight * 0.34)) + (a && !a.hidden ? 40 : 0); }
   function fullH() { return Math.round(innerHeight - (hdr ? hdr.offsetHeight : 56) - 130); }
   function syncMode() {
     var on = sheetOn();
@@ -548,15 +576,18 @@
       state.me = [p.coords.latitude, p.coords.longitude]; goTo(state.me, 16);
       if (meDot) meDot.setLatLng(state.me);
       else meDot = L.circleMarker(state.me, { radius: 8, color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }).addTo(map);
-      state.quiet = true; render();
+      state.quiet = true; render(); renderAreas();
       if (fromList && !sheetOn()) { var t = $("top3s").hidden ? $("count") : $("top3s"); t.scrollIntoView({ behavior: "smooth", block: "start" }); }
-    }, function () { if (locBtn) locBtn.classList.remove("busy"); $("locfab").classList.remove("busy"); if (!auto) $("count").textContent = S.noloc; }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+    }, function () { if (locBtn) locBtn.classList.remove("busy"); $("locfab").classList.remove("busy"); if (!auto) $("count").textContent = S.noloc; state.locTried = true; renderAreas(); }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
   }
   $("near").addEventListener("click", function () { locate(true); });
   $("locfab").addEventListener("click", function () { locate(false); });
   // phones: find the user right away (the browser asks once); the list then starts from where you are
   // every device: find the user right away (the browser asks once) and start from what is around them (feedback 27.11.)
+  if (myArea && !params.get("d")) { var a0 = AREAS.filter(function (x) { return x[0] === myArea; })[0]; if (a0) map.setView([a0[1], a0[2]], 16); }
   if (navigator.geolocation) setTimeout(function () { locate(false, true); }, 300);
+  // no answer to the location question within 4 s (or no geolocation at all): offer the areas
+  setTimeout(function () { if (!state.me) { state.locTried = true; renderAreas(); } }, navigator.geolocation ? 4000 : 0);
   var Loc = L.Control.extend({ options: { position: "topright" }, onAdd: function () {
     var d = L.DomUtil.create("div", "leaflet-bar leaflet-control");
     locBtn = L.DomUtil.create("a", "locbtn", d); locBtn.href = "#"; locBtn.setAttribute("role", "button");

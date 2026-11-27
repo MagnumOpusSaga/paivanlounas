@@ -757,6 +757,7 @@ def main(L, out, day, preview):
 <div class="views" role="tablist"><button data-view="split" class="on">{t['v_map']}</button><button data-view="list">{t['v_list']}</button></div></div>
 <div class="cats" id="cats" role="group">{cats}</div>
 <div class="search"><input id="q" type="search" placeholder="{esc(t['search'])}" aria-label="{esc(t['search'])}"><button id="near" type="button">{t['near']}</button></div>
+<div class="areas" id="areas" hidden></div>
 <section class="top3" id="top3s" aria-labelledby="t3h" hidden><div class="t3head"><h2 id="t3h"></h2></div><div id="top3" class="t3"></div></section>
 <div class="chips" id="chips">{chips}</div><p id="count" class="count"></p><ol id="list" class="list"></ol><button id="more" class="btn ghost more" hidden></button>
 <p class="hl">{' · '.join(f'<a href="{TOPIC_T[lg][k]["path"]}">{TOPIC_T[lg][k]["h1"]}</a>' for k in ("cheap", "veg", "buffet"))} · <a href="{t['areas']}">{t['nav_areas']}</a></p>
@@ -766,7 +767,7 @@ def main(L, out, day, preview):
 <button type="button" class="locfab" id="locfab" aria-label="{t['locate']}" title="{t['locate']}"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="currentColor" d="M21 3 3 10.5l7.2 2.3L12.5 20z"/></svg></button>
 <section class="sheet" id="sheet" aria-label="{t['sheet_label']}">
 <button type="button" class="grab" id="grab" aria-label="{t['sheet_more']}"><span></span></button>
-<h2 id="shTitle"></h2>
+<h2 id="shTitle"></h2><div class="areas" id="areas2" hidden></div>
 <ul id="shRows" class="shrows"></ul>
 <div class="shfull"><div class="pills" role="group">{pills_html}</div>
 <div class="cards" id="cards"></div><p class="cardnav"><span id="cardPos"></span><button type="button" id="asList" class="linkbtn">{t['as_list']}</button></p></div>
