@@ -460,6 +460,56 @@ def fmt_price(p):
     return f"{p:.2f} €".replace(".", ",")
 
 
+INFO_T = {
+    "fi": {"h": "Lounas ravintolan omien sivujen mukaan", "f": {"buffet": "Lounasbuffet", "daily": "Vaihtuva lounas", "fixed": "Kiinteä lounaslista",
+                                                               "a_la_carte": "Lounas à la carte -listalta", "set": "Lounasmenu"},
+           "days": ["ma", "ti", "ke", "to", "pe", "la", "su"], "wd": ["maanantaisin", "tiistaisin", "keskiviikkoisin", "torstaisin", "perjantaisin", "lauantaisin", "sunnuntaisin"],
+           "notoday": "Ei lounasta tänään ({d}).", "today": "Lounas tänään.",
+           "src": 'Ravintola ei julkaise päivän listaa verkossa, tai sitä ei löytynyt. Tiedot on luettu koneellisesti <a href="{u}" rel="nofollow noopener">ravintolan omalta sivulta</a> {c} – varmista muutokset ravintolalta.'},
+    "en": {"h": "Lunch according to the restaurant's own website", "f": {"buffet": "Lunch buffet", "daily": "Changing lunch menu", "fixed": "Fixed lunch menu",
+                                                                         "a_la_carte": "Lunch from the à la carte menu", "set": "Lunch set menu"},
+           "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "wd": [],
+           "notoday": "No lunch today ({d}).", "today": "Lunch served today.",
+           "src": 'No daily menu is published online, or none was found. Read automatically from <a href="{u}" rel="nofollow noopener">the restaurant\'s own website</a> on {c} – check changes with the restaurant.'},
+}
+
+
+def info_box(x, lg, day):
+    """N46: lunch facts (format, days, hours, price) from the restaurant's own page, for pages without today's list."""
+    if not x:
+        return ""
+    it = INFO_T[lg]
+    parts = []
+    if x.get("f"):
+        parts.append(it["f"][x["f"]])
+    if x.get("di"):
+        names = it["days"]
+        rr = []
+        for i in x["di"]:
+            if rr and i == rr[-1][-1] + 1:
+                rr[-1].append(i)
+            else:
+                rr.append([i])
+        parts.append(", ".join(f"{names[r[0]]}–{names[r[-1]]}" if len(r) > 1 else names[r[0]] for r in rr))
+    if x.get("h"):
+        parts.append(("klo " if lg == "fi" else "") + x["h"])
+    if x.get("p"):
+        pr = fmt_price(x["p"]) if lg == "fi" else fmt_price(x["p"]).replace(",", ".")
+        if x.get("p2"):
+            pr = pr.replace(" €", "") + "–" + (fmt_price(x["p2"]) if lg == "fi" else fmt_price(x["p2"]).replace(",", "."))
+        parts.append(pr)
+    if not parts:
+        return ""
+    wd = datetime.date.fromisoformat(day).weekday()
+    td = ""
+    if x.get("di"):
+        td = it["today"] if wd in x["di"] else it["notoday"].format(d=it["days"][wd])
+    c = x.get("c") or ""
+    c = f"{int(c[8:])}.{int(c[5:7])}.{c[:4]}" if len(c) == 10 else c
+    return (f'<section class="lunchinfo"><h2>{it["h"]}</h2><p class="li-main">{esc(" · ".join(parts))}</p>' + (f'<p class="li-today">{td}</p>' if td else "") +
+            f'<p class="li-src">{it["src"].format(u=esc(x.get("u") or ""), c=c)}</p></section>')
+
+
 def menu_html(m, lg, slug_=None, day=None, show_src=True):
     t = T[lg]
     if not m:
@@ -671,6 +721,13 @@ def main(L, out, day, preview):
             print("landed unreadable", e, file=sys.stderr)
     wp_ = f"{L}/data/web_pages.json"
     LUNCHY = set(json.load(open(wp_))) if os.path.exists(wp_) else set()
+    ip_ = f"{L}/data/lunch_info.json"
+    try:
+        INFO = json.load(open(ip_)) if os.path.exists(ip_) else {}
+    except Exception as e:
+        print("lunch_info unreadable", e, file=sys.stderr)
+        INFO = {}
+    print("lunch info (N46)", len(INFO), file=sys.stderr)
     by_d = {}
     for v in venues:
         if v["dslug"]:
@@ -865,6 +922,7 @@ def main(L, out, day, preview):
             web = f'<p><a href="{esc(v["website"])}" rel="nofollow noopener">{t["website"]}</a></p>' if v.get("website") else ""
             dlink = f' · <a href="{t["area"].format(s=v["dslug"])}">{esc(t["area_h1"].format(a=v["district"]))}</a>' if v["dslug"] else ""
             src0 = (v["menu"] or {}).get("url")
+            rid_ = ("osm:" + v["osm"]) if v.get("osm") else v.get("id")
             week = "".join(f'<h3>{esc(datestr(d, lg))}</h3>{menu_html(v["ms"].get(d), lg, v["slug"], d, show_src=not v["menu"] or v["ms"][d].get("url") != src0)}' for d in days if d != show_day and d in v["ms"])
             week = f'<h2>{t["week"]}</h2>{week}' if week else ""
             jl = {"@context": "https://schema.org", "@type": "Restaurant", "name": v["name"],
@@ -873,7 +931,7 @@ def main(L, out, day, preview):
             if v.get("website"):
                 jl["url"] = v["website"]
             body = f"""<main class="content"><nav class="crumbs"><a href="{t['home']}">{t['crumb_home']}</a>{dlink}</nav>
-<h1>{esc(t['venue_h1'].format(n=v['name']))}</h1><p class="addr">{esc(v['street'])}, Helsinki</p>{near_box(v)}
+<h1>{esc(t['venue_h1'].format(n=v['name']))}</h1><p class="addr">{esc(v['street'])}, Helsinki</p>{info_box(INFO.get(rid_) or INFO.get("sug:" + v["slug"]), lg, show_day) if not v["menu"] else ""}{near_box(v)}
 <h2>{esc(t['list_for'].format(d=ds_))}</h2>{menu_html(v['menu'], lg, v['slug'], show_day)}{week}{oiva}{web}{ad_block("content", lg) if v["menu"] else ""}
 <p class="actions"><a class="btn" href="{t['home']}?v={v['slug']}">{t['show_map']}</a> <a class="btn ghost" href="https://www.google.com/maps/dir/?api=1&destination={v['lat']},{v['lon']}" rel="nofollow noopener">{t['route']}</a> {parkpenny(v, lg)} <a class="btn ghost" href="https://www.google.com/maps/search/?api=1&amp;query={urllib.parse.quote(v['name'] + ', ' + (v['street'] or '') + ', Helsinki')}" rel="nofollow noopener">{t['g_reviews']}</a></p>
 <p class="likerow">{f'<span class="popn">{LIKES[v["slug"]]} {t["pop_n"]}</span> ' if LIKES.get(v["slug"]) else ""}<button type="button" class="likebtn" data-like="{v['slug']}" data-done="{t['liked']}">{t['like']}</button></p>

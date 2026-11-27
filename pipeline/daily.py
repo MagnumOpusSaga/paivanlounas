@@ -110,6 +110,9 @@ def main():
             json.dump({"date": d, "results": []}, open(f"{ROOT}/data/menus_independent_{d}.json", "w"))
     # 4. AI reader for the saved lunch pages (skips itself without ANTHROPIC_API_KEY)
     run(f"{P}/ai_reader.py", "data/web_pages.json", ",".join(week), "data/menus_ai_{day}.json", ok_fail=True)
+    # 4b. lunch facts (format, days, hours, price) for restaurants without a list (N46; skips itself without the key)
+    if os.path.exists(f"{ROOT}/data/web_pages.json"):
+        run(f"{P}/ai_info.py", "data/web_pages.json", ",".join(week), "data/lunch_info.json", "data/landed_raw.json", ok_fail=True)
     # 5. build
     run("build/build_site.py", ".", "dist", day, *preview)
 

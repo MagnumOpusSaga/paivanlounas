@@ -60,6 +60,19 @@ try:
 except Exception as e:
     print("info clean_dish timing skipped:", e)
 
+# 1c. N46 lunch facts box: only on pages without today's list, always with the source link (never an unsourced claim)
+import glob as _glob
+_boxes = _bad = 0
+for _f in _glob.glob(f"{DIST}/ravintola/*/index.html"):
+    _h = open(_f, encoding="utf-8").read()
+    if 'class="lunchinfo"' in _h:
+        _boxes += 1
+        _box = _h.split('class="lunchinfo"', 1)[1].split("</section>", 1)[0]
+        if 'class="nomenu"' not in _h or not _re.search(r'class="li-src">[^<]*<a href="https?://', _box) or 'class="li-main"></p>' in _box:
+            _bad += 1
+print(f"info lunch facts boxes (N46): {_boxes}")
+check(_bad == 0, f"lunch facts boxes only on pages without today's list and always with a source link ({_bad} bad)")
+
 srv = http.server.ThreadingHTTPServer(("127.0.0.1", 8799), functools.partial(Quiet, directory=DIST))
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 BASE = "http://127.0.0.1:8799"

@@ -13,10 +13,10 @@ on:
         required: false
         default: ""
   push:
-    branches: [main]
+    branches: [main, "test/**"]   # test/** = full run without deploy or cache saves (try changes with real data)
 
 concurrency:
-  group: daily
+  group: daily-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -77,25 +77,29 @@ jobs:
             data/lastmod.json
             data/price_history.json
             data/lists_history.json
+            data/lunch_info.json
+            data/info_cache.json
           key: gate-${{ github.run_id }}
           restore-keys: gate-
       - name: Restore last fetched lists (code pushes only)
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/restore@v4
         with:
           path: |
             data/menus_*.json
             data/ai_stats.json
+            data/web_pages.json
             raw/raf_hki_parsed.json
           key: lists-${{ github.run_id }}
           restore-keys: lists-
       - name: Fetch lunch lists and build site
         env:
-          QUICK: ${{ github.event_name == 'push' && '1' || '' }}
+          QUICK: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && '1' || '' }}
           LOUNAS_GATE: "1"   # index gate on (Branu 26.11.: decide what works best, never drop what people search)
           PUBLIC: "1"  # site open to search engines since 24.11.2026
           ADSENSE_CLIENT: ca-pub-1421922359984193
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LOUNAS_INFO_BUDGET: ${{ github.event.schedule == '37 8 * * 1-5' && '0.02' || '0.04' }}  # N46 lunch facts, new readings only
           # morning run may spend up to $0.12 on new readings, the midday refresh and code pushes less
           LOUNAS_AI_BUDGET: ${{ (github.event.schedule == '17 2 * * 1-5' || inputs.morning == '1') && '0.23' || github.event.schedule == '37 8 * * 1-5' && '0.03' || '0.05' }}
         run: python3 -I pipeline/daily.py
@@ -103,20 +107,20 @@ jobs:
         id: gate
         run: python3 -I pipeline/quality_gate.py
       - name: Alert when lists are thin
-        if: steps.gate.outputs.alert != ''
+        if: steps.gate.outputs.alert != '' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
           ALERT: ${{ steps.gate.outputs.alert }}
         run: |
           gh issue create --repo "${{ github.repository }}" --title "Lounaslistat vajaat $(date +%d.%m.)" --body "${ALERT} Ajo ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || true
       - name: Save AI reader cache
-        if: always()
+        if: always() && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v4
         with:
           path: data/ai_cache.json
           key: ai-cache-${{ github.run_id }}
       - name: Save index-gate state
-        if: success()
+        if: success() && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v4
         with:
           path: |
@@ -124,13 +128,17 @@ jobs:
             data/lastmod.json
             data/price_history.json
             data/lists_history.json
+            data/lunch_info.json
+            data/info_cache.json
           key: gate-${{ github.run_id }}
       - name: Save fetched lists
+        if: github.ref == 'refs/heads/main'
         uses: actions/cache/save@v4
         with:
           path: |
             data/menus_*.json
             data/ai_stats.json
+            data/web_pages.json
             raw/raf_hki_parsed.json
           key: lists-${{ github.run_id }}
       - name: Smoke test before deploy (fails = the old site stays live)
@@ -147,13 +155,28 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: D1 schema (idempotent)
+        if: github.ref == 'refs/heads/main'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@3 d1 execute paivanlounas --remote --file schema.sql
       - name: Deploy to Cloudflare Pages
-        if: steps.gate.outputs.deploy == '1'
+        if: steps.gate.outputs.deploy == '1' && github.ref == 'refs/heads/main'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@3 pages deploy dist --project-name paivanlounas --branch main --commit-dirty=true
+      - name: Test branch output (lunch facts, pages with the N46 box)
+        if: always() && github.ref != 'refs/heads/main'
+        run: |
+          mkdir -p testout
+          cp data/lunch_info.json testout/ 2>/dev/null || true
+          grep -l 'class="lunchinfo"' dist/ravintola/*/index.html | head -40 | xargs -r cp --parents -t testout
+          grep -c '<loc>' dist/sitemap.xml > testout/sitemap_count.txt || true
+      - name: Upload test branch output
+        if: always() && github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output
+          path: testout
+          retention-days: 3
