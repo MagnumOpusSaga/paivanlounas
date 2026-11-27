@@ -73,6 +73,27 @@ for _f in _glob.glob(f"{DIST}/ravintola/*/index.html"):
 print(f"info lunch facts boxes (N46): {_boxes}")
 check(_bad == 0, f"lunch facts boxes only on pages without today's list and always with a source link ({_bad} bad)")
 
+# 1d. a site that does not open in a later run keeps this week's list (27.11.: 336 lists at 05.30, 288 at 09.50)
+import tempfile as _tf
+try:
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pipeline"))
+    import ai_reader as _ar
+    _wk = ["2026-11-23", "2026-11-24", "2026-11-25", "2026-11-26", "2026-11-27"]
+    _ar.call = lambda text, name, week, blocks=None: ({"belongs": True, "stale": False, "fixed": [], "days": {d: [{"dish": "Lohikeitto " + name, "price": 12.5}] for d in week}}, {})
+    _old_key = os.environ.get("ANTHROPIC_API_KEY"); os.environ["ANTHROPIC_API_KEY"] = os.environ.get("ANTHROPIC_API_KEY") or "test"
+    with _tf.TemporaryDirectory() as _td:
+        _pg = {k: {"name": k, "website": f"https://{k}.fi", "pages": [{"url": f"https://{k}.fi/", "text": "Lounas " + k}], "pdfs": [], "imgs": []} for k in ("a", "b")}
+        json.dump(_pg, open(f"{_td}/web_pages.json", "w"))
+        _ar.main(f"{_td}/web_pages.json", ",".join(_wk), f"{_td}/menus_ai_{{day}}.json")
+        del _pg["b"]; json.dump(_pg, open(f"{_td}/web_pages.json", "w"))
+        _ar.main(f"{_td}/web_pages.json", ",".join(_wk), f"{_td}/menus_ai_{{day}}.json")
+        _ids = sorted(r["id"] for r in json.load(open(f"{_td}/menus_ai_2026-11-27.json"))["results"])
+    if _old_key is None:
+        os.environ.pop("ANTHROPIC_API_KEY", None)
+    check(_ids == ["a", "b"], f"AI reader keeps this week's list when a site does not open later ({_ids})")
+except Exception as e:
+    check(False, f"AI reader carry-over test crashed: {e}")
+
 srv = http.server.ThreadingHTTPServer(("127.0.0.1", 8799), functools.partial(Quiet, directory=DIST))
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 BASE = "http://127.0.0.1:8799"
