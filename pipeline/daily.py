@@ -56,11 +56,20 @@ def main():
     day = sys.argv[1] if len(sys.argv) > 1 else datetime.datetime.now(ZoneInfo("Europe/Helsinki")).date().isoformat()
     os.makedirs(f"{ROOT}/raw", exist_ok=True)
     preview = [] if os.environ.get("PUBLIC") == "1" else ["--preview"]
+    # code push on a weekend: rebuild Friday's site, not next week's (28.11.: a Saturday push started a full fetch for Mon 30.11.
+    # and would have published a week with almost no lists). The weekend notice on the site says the lists are Friday's.
+    if os.environ.get("QUICK") == "1" and len(sys.argv) <= 1:
+        dt0 = datetime.date.fromisoformat(day)
+        if dt0.weekday() >= 5:
+            day = (dt0 - datetime.timedelta(days=dt0.weekday() - 4)).isoformat()
+            print("weekend push: rebuilding the site of", day, flush=True)
     # code push: rebuild from the lists the last scheduled run fetched (restored from the Actions cache) – minutes instead of ~20
     if os.environ.get("QUICK") == "1" and os.path.exists(f"{ROOT}/data/menus_chains_{day}.json"):
         print("quick rebuild from cached lists", flush=True)
         run("build/build_site.py", ".", "dist", day, *preview)
         return
+    if os.environ.get("QUICK") == "1" and datetime.date.fromisoformat(day).weekday() >= 5:
+        raise SystemExit("weekend push without cached lists: nothing rebuilt (the live site stays)")
     dt = datetime.date.fromisoformat(day)
     mon = dt - datetime.timedelta(days=dt.weekday()) + datetime.timedelta(days=7 if dt.weekday() >= 5 else 0)
     week = [(mon + datetime.timedelta(days=i)).isoformat() for i in range(5)]
