@@ -785,6 +785,22 @@ def main(L, out, day, preview):
         print("lunch_info unreadable", e, file=sys.stderr)
         INFO = {}
     print("lunch info (N46)", len(INFO), file=sys.stderr)
+    # city metric (Branu 27.11.: a city opens to search engines when lists ≥ 25 % of its weekday-lunch places) → /data/cities.json
+    LUN_RE = re.compile(r"(?i)lounas|ruokala|henkilöstö|buffet|lunch")
+    LUN_CH = ("compass", "sodexo", "unicafe", "amica", "fazer", "juvenes", "semma", "kanresta", "foodandco", "food & co")
+
+    def lunch_place(v):
+        rid_ = ("osm:" + v["osm"]) if v.get("osm") else v.get("id")
+        return bool((SEEN.get(v["slug"]) or "") >= since or rid_ in LUNCHY or rid_ in INFO or LUN_RE.search(v["name"])
+                    or any(c in " ".join(map(str, v["sources"])).lower() for c in LUN_CH)
+                    or "lunch" in (v.get("opening_hours") or "").lower())
+    CSTAT = {}
+    for v in venues:
+        c_ = CSTAT.setdefault(v["city"], {"name": CITIES[v["city"]]["name"], "places": 0, "lunch_places": 0, "lists_today": 0,
+                                          "lists_week": 0, "lunch_places_with_list": 0, "pages_if_open": 0, "open": v["city"] in INDEX_CITIES})
+        lp_, wk_ = lunch_place(v), any(m and m.get("items") for m in v["ms"].values())
+        c_["places"] += 1; c_["lunch_places"] += lp_; c_["lists_week"] += wk_; c_["lists_today"] += bool(v["menu"])
+        c_["lunch_places_with_list"] += lp_ and wk_
     by_d = {}
     for v in venues:
         if v["dslug"]:
@@ -839,7 +855,7 @@ def main(L, out, day, preview):
         nmenu = {k: sum(1 for v in vs if v["menu"]) for k, vs in by_d.items()}
         idx = []
         n_area_ix = 0
-        for (dslug, dn), vs in sorted(by_d.items(), key=lambda x: x[0][1]):
+        for (dslug, dn), vs in sorted(by_d.items(), key=lambda x: x[0][1] or ""):
             withm = [v for v in vs if v["menu"]]
             nm = len(withm)
             mp = {}
@@ -913,6 +929,8 @@ def main(L, out, day, preview):
             ldh = "".join(f'<script type="application/ld+json">{json.dumps(x, ensure_ascii=False)}</script>' for x in ld)
             os.makedirs(f"{out}{path}", exist_ok=True)
             weekly = [v for v in vs if any(m and m.get("items") for m in v["ms"].values())]
+            if lg == "fi" and len(weekly) >= GATE["area"]:
+                CSTAT[vs[0]["city"]]["pages_if_open"] += 1
             ix = add_url(path, len(weekly) >= GATE["area"] and vs[0]["city"] in INDEX_CITIES, [(v["slug"], v["ms"]) for v in weekly])
             open(f"{out}{path}index.html", "w").write(page(lg, t["area_title"].format(a=dn, n=nm), desc, path, alt, body + (SHARE_JS if img else ""), preview, ldh if ix else "", img, index=ix, has_list=nm > 0))
             idx.append((dn, dslug, nm, len(vs)))
@@ -999,13 +1017,16 @@ def main(L, out, day, preview):
             body = f"""<main class="content"><nav class="crumbs"><a href="{t['home']}">{t['crumb_home']}</a>{dlink}</nav>
 <h1>{esc(t['venue_h1'].format(n=v['name']))}</h1><p class="addr">{esc(v['street'])}, {CITIES[v['city']]['name']}</p>{info_box(INFO.get(rid_) or INFO.get("sug:" + v["slug"]), lg, show_day) if not v["menu"] else ""}{near_box(v)}
 <h2>{esc(t['list_for'].format(d=ds_))}</h2>{menu_html(v['menu'], lg, v['slug'], show_day)}{week}{oiva}{web}{ad_block("content", lg) if v["menu"] else ""}
-<p class="actions"><a class="btn" href="{t['home']}?v={v['slug']}">{t['show_map']}</a> <a class="btn ghost" href="https://www.google.com/maps/dir/?api=1&destination={v['lat']},{v['lon']}" rel="nofollow noopener">{t['route']}</a> {parkpenny(v, lg)} <a class="btn ghost" href="https://www.google.com/maps/search/?api=1&amp;query={urllib.parse.quote(v['name'] + ', ' + (v['street'] or '') + ', Helsinki')}" rel="nofollow noopener">{t['g_reviews']}</a></p>
+<p class="actions"><a class="btn" href="{t['home']}?v={v['slug']}">{t['show_map']}</a> <a class="btn ghost" href="https://www.google.com/maps/dir/?api=1&destination={v['lat']},{v['lon']}" rel="nofollow noopener">{t['route']}</a> {parkpenny(v, lg)} <a class="btn ghost" href="https://www.google.com/maps/search/?api=1&amp;query={urllib.parse.quote(v['name'] + ', ' + (v['street'] or '') + ', ' + CITIES[v['city']]['name'])}" rel="nofollow noopener">{t['g_reviews']}</a></p>
 <p class="likerow">{f'<span class="popn">{LIKES[v["slug"]]} {t["pop_n"]}</span> ' if LIKES.get(v["slug"]) else ""}<button type="button" class="likebtn" data-like="{v['slug']}" data-done="{t['liked']}">{t['like']}</button></p>
 {report_form(v, lg)}</main><script src="/suggest.js?v={VER['suggest.js']}" defer></script>"""
             os.makedirs(f"{out}{path}", exist_ok=True)
             rid = ("osm:" + v["osm"]) if v.get("osm") else v.get("id")
-            ok_v = ((SEEN.get(v["slug"]) or "") >= since or v["slug"][:40] in LANDED or rid in LUNCHY
-                    or near_count(v) >= GATE["venue_near"]) and (v["city"] in INDEX_CITIES or path in PREV_SITEMAP)  # a page already in the sitemap stays
+            ok_q = ((SEEN.get(v["slug"]) or "") >= since or v["slug"][:40] in LANDED or rid in LUNCHY
+                    or near_count(v) >= GATE["venue_near"])
+            ok_v = ok_q and (v["city"] in INDEX_CITIES or path in PREV_SITEMAP)  # a page already in the sitemap stays
+            if lg == "fi" and ok_q:
+                CSTAT[v["city"]]["pages_if_open"] += 1
             ix = add_url(path, ok_v, [v["ms"], v["slug"] in LANDED])
             open(f"{out}{path}index.html", "w").write(page(lg, t["venue_title"].format(n=v["name"]), t["venue_desc"].format(n=v["name"], a=v["street"]), path, alt, body, preview,
                                                            f'<script type="application/ld+json">{json.dumps(jl, ensure_ascii=False)}</script>', index=ix, has_list=bool(v["menu"])))
@@ -1029,6 +1050,14 @@ def main(L, out, day, preview):
     open(f"{out}/404.html", "w").write(page("fi", "Sivua ei löytynyt | Päivän lounas", "", "/404", None, nf, preview, '<meta name="robots" content="noindex">'))
     open(f"{out}/robots.txt", "w").write("User-agent: *\nDisallow: /\n" if preview else f"User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {DOMAIN}/sitemap.xml\n")
     n_sm = write_sitemap(out, L, datetime.date.today().isoformat())
+    for c_ in CSTAT.values():
+        c_["share_pct"] = round(100 * c_["lunch_places_with_list"] / c_["lunch_places"]) if c_["lunch_places"] else 0
+        c_["meets_bar"] = c_["share_pct"] >= 25
+    os.makedirs(f"{out}/data", exist_ok=True)
+    json.dump({"date": show_day, "bar_pct": 25, "cities": CSTAT}, open(f"{out}/data/cities.json", "w"), ensure_ascii=False, indent=1)
+    for k_, c_ in CSTAT.items():
+        print(f"city {k_}: places {c_['places']}, weekday-lunch {c_['lunch_places']}, with list this week {c_['lunch_places_with_list']} "
+              f"({c_['share_pct']} %), today {c_['lists_today']}, pages if open {c_['pages_if_open']}, open {c_['open']}", file=sys.stderr)
     built = sum(1 for _, _, fs in os.walk(out) for f in fs if f == "index.html")
     print(f"index gate: {n_sm} of {built} pages indexable (sitemap), {built - n_sm} noindex", file=sys.stderr)
     # old restaurant addresses (before duplicate merging) keep working: 301 to the restaurant's page now

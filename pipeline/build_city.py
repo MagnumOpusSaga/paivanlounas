@@ -131,7 +131,9 @@ def main(key):
     build_registry.build(oiva, osm, addr, f"{ROOT}/data", key, f"{ROOT}/data/registry_{key}.json")
     areas = []
     for f in wfs(cfg["areas_wfs"], f"kunta='{cfg['kunta']}'"):
-        n = f["properties"]["nimi"]
+        n = f["properties"].get("nimi")
+        if not n:  # Kauniainen's statistical areas have no names: the city page alone covers the small town
+            continue
         areas.append({"type": "Feature", "geometry": f["geometry"],
                       "properties": {"nimi_fi": cfg["area_names"].get(n, n), "city": key}})
     json.dump({"type": "FeatureCollection", "features": areas}, open(f"{ROOT}/data/areas_{key}.json", "w"), ensure_ascii=False)

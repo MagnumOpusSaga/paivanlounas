@@ -261,7 +261,7 @@ with sync_playwright() as p:
         _name = _nl[len(_nl) // 2]
         pg.goto(BASE + "/", wait_until="domcontentloaded"); pg.wait_for_timeout(3000)
         pg.fill("#q2", _name); pg.wait_for_timeout(1000)
-        _row = pg.evaluate("(()=>{const l=document.querySelector('#shRows li');return l?l.innerText:''})()")
+        _row = pg.evaluate("(()=>{const l=document.querySelector('#shRows li:not(.stn):not(.prow)');return l?l.innerText:''})()")
         check(_name.lower() in _row.lower(), f"search finds a place without today's list by name ({_name!r} -> {_row[:60]!r})")
     # 3. desktop front page: list next to the map
     pg, errs = page(viewport={"width": 1280, "height": 800})
