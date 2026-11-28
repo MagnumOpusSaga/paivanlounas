@@ -81,6 +81,16 @@ for _c in ("espoo", "vantaa", "kauniainen"):
         check('content="noindex' in open(_pth).read(), f"{_c}: city page is noindex until the city is opened")
         check(f"/lounas/{_c}/" not in open(os.path.join(DIST, "sitemap.xml")).read(), f"{_c}: city page not in the sitemap yet")
 
+# 1i. every open city has its cheapest / vegetarian / buffet pages, indexable and about that city only (Espoo 28.11.)
+_sm = open(os.path.join(DIST, "sitemap.xml")).read()
+for _c, _in in (("helsinki", "Helsingissä"), ("espoo", "Espoossa")):
+    if _c not in _open:
+        continue
+    for _tp in ("halvin-lounas", "kasvislounas", "buffet-lounas"):
+        _f = os.path.join(DIST, f"{_tp}-{_c}", "index.html")
+        _h = open(_f).read() if os.path.exists(_f) else ""
+        check(_in in _h and 'name="robots"' not in _h and f"/{_tp}-{_c}/" in _sm, f"topic page /{_tp}-{_c}/ exists, is indexable and in the sitemap")
+
 # 1h. a dish dated to another day is not shown as today's lunch (28.11.: "20.11 Jauhelihakeittoa" on 27.11)
 import re as _re
 _wk = json.load(open(os.path.join(DIST, "data", "week.json")))
@@ -226,6 +236,21 @@ with sync_playwright() as p:
     check(not ov, f"360 px phone: card texts fit inside the cards {ov[:3]}")
     pg.screenshot(path="smoke-phone-360.png")
     check(not errs, f"360 px phone JS errors: {errs[:3]}")
+    # layout sweep (Branu 28.11.: "muutkin tällaset sotkut pois"): every page type fits a 390 px phone, no list bullets inside flex/grid rows
+    _samples = ["/lounas/", "/lounas/kamppi/", "/lounas/espoo/", "/halvin-lounas-helsinki/", "/halvin-lounas-espoo/", "/lounaan-hinta-helsinki/",
+                "/hernekeitto-torstai-helsinki/", "/lounasetu-helsinki/", "/tietoa/", "/tietosuoja/"]
+    _wk0 = json.load(open(os.path.join(DIST, "data", "week.json")))["venues"]
+    _samples += ["/ravintola/" + next((v["i"] for v in _wk0 if any(v["ms"].values()) and os.path.exists(os.path.join(DIST, "ravintola", v["i"], "index.html"))), "") + "/",
+                 "/ravintola/" + next((v["i"] for v in _wk0 if not v["ms"] and os.path.exists(os.path.join(DIST, "ravintola", v["i"], "index.html"))), "") + "/"]
+    for _u in [u for u in _samples if os.path.exists(os.path.join(DIST, u.strip("/"), "index.html"))]:
+        pg, errs = page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
+        pg.goto(BASE + _u, wait_until="domcontentloaded"); pg.wait_for_timeout(400)
+        _r = pg.evaluate("""() => ({w: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+            b: [...document.querySelectorAll('li')].filter(l => getComputedStyle(l).display === 'list-item' && getComputedStyle(l).listStyleType !== 'none'
+                 && /flex|grid/.test(getComputedStyle(l.parentElement).display)).length,
+            o: [...document.querySelectorAll('.picks li > *')].filter(e => e.getBoundingClientRect().right > 391).length})""")
+        check(_r["w"] <= 391 and _r["b"] == 0 and _r["o"] == 0, f"{_u} fits a 390 px phone ({_r})")
+        check(not errs, f"{_u} JS errors: {errs[:2]}")
     # areas index (Branu 28.11.: wrapped all over on the phone, painful to scroll): cards fit the screen, search finds an area
     pg, errs = page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
     pg.goto(BASE + "/lounas/", wait_until="domcontentloaded"); pg.wait_for_timeout(800)

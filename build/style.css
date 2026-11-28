@@ -303,3 +303,28 @@ ul.aidx li[hidden]{display:none}
 .aidxp details.aempty{margin:0 0 18px}.aidxp details.aempty summary{cursor:pointer;color:var(--mut);margin:4px 0 10px}
 @media(max-width:900px){ul.aidx{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){ul.aidx{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* layout sweep 28.11. (Branu: "muutkin tällaset sotkut pois") */
+/* pick rows (area, topic, article, "Lähellä tänään"): on a phone the dish got 1–3 letters ("Her…") and the area name ran off the screen
+   → two lines: name + price, then dish + area/distance */
+@media(max-width:600px){
+ .picks li{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;row-gap:2px;align-items:baseline}
+ .picks li a{grid-row:1;grid-column:1;white-space:normal;overflow-wrap:anywhere}
+ .picks .price{grid-row:1;grid-column:2;text-align:right}
+ .picks .mdish{grid-row:2;grid-column:1}
+ .picks li small{grid-row:2;grid-column:2;text-align:right;white-space:nowrap}
+ .picks .price:empty{display:none}
+}
+/* fact tables (price spread, pea soup by day, lunch benefit limits) had no style: headers ran together ("LounaitaOsuus") */
+table.facts{border-collapse:collapse;width:100%;max-width:640px;margin:8px 0 16px;font-size:15px}
+table.facts th,table.facts td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+table.facts th{font-weight:700;color:var(--mut);font-size:13px;border-bottom:2px solid var(--line)}
+table.facts tr:last-child td{border-bottom:0}
+@media(max-width:600px){table.facts{font-size:14px}table.facts th,table.facts td{padding:7px 6px}}
+/* restaurant page buttons wrapped one per row on a phone → tidy two-column grid */
+@media(max-width:600px){
+ .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ .actions .btn{text-align:center;justify-content:center;width:100%;box-sizing:border-box}
+ .actions .btn:nth-child(n+3){grid-column:1/-1}
+}
+/* side boxes: "· 8 listaa" broke onto its own line */
+.box li small{white-space:nowrap}

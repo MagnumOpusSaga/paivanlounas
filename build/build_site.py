@@ -373,6 +373,28 @@ TOPIC_T = {
 }
 
 
+
+def topic_t(lg, city):
+    """Topic page strings for a city (Branu 28.11.: Espoo gets its own cheapest / vegetarian / buffet pages)."""
+    if city == "helsinki":
+        return TOPIC_T[lg]
+    c = CITIES[city]
+
+    def tr(x):
+        if lg == "fi":
+            return x.replace("Helsingissä", c["name_in"]).replace("Helsingin", c["name_gen"]).replace("Helsinki", c["name"])
+        return x.replace("Helsinki", c["name"])
+    out = {}
+    for k, v in TOPIC_T[lg].items():
+        if isinstance(v, dict):
+            out[k] = {kk: (vv.replace("-helsinki/", f"-{city}/") if kk == "path" else tr(vv)) for kk, vv in v.items()}
+            if k == "cheap":  # the price-spread article exists for Helsinki only
+                out[k]["outro"] = re.sub(r"\s*Mitä lounas maksaa.*$", "", out[k]["outro"])
+        else:
+            out[k] = v
+    return out
+
+
 AREA_T = {
     "fi": {"cheap_h": "Alle 13 euroa", "cheap_p": "Edullisimmat lounaat alueella {a} tänään", "veg_h": "Kasvisvaihtoehdot", "veg_p": "Listalla vähintään yksi kasvisannos",
            "buf_h": "Buffet-lounaat", "buf_p": "Noutopöytä – syö niin paljon kuin jaksat", "all_h": "Kaikki {n} lounaslistaa", "all_p": "Aakkosjärjestyksessä",
@@ -465,7 +487,7 @@ def page_type(path):
     for k, pre in (("venue", ("/ravintola/", "/restaurant/")), ("area", ("/lounas/", "/lunch/"))):
         if p.startswith(pre):
             return k
-    if any(p == TOPIC_T[l][k]["path"].replace("/en", "", 1) for l in TOPIC_T for k in ("cheap", "veg", "buffet")):
+    if any(p == topic_t(l, c)[k]["path"].replace("/en", "", 1) for l in TOPIC_T for c in CITIES for k in ("cheap", "veg", "buffet")):
         return "topic"
     return "info"
 
@@ -879,7 +901,7 @@ def main(L, out, day, preview):
 <section class="top3" id="top3s" aria-labelledby="t3h" hidden><div class="t3head"><h2 id="t3h"></h2></div><div id="top3" class="t3"></div></section>
 <div class="chips" id="chips">{chips}</div><p id="count" class="count"></p><ol id="list" class="list"></ol><button id="more" class="btn ghost more" hidden></button>
 <p class="hl">{' · '.join(f'<a href="{TOPIC_T[lg][k]["path"]}">{TOPIC_T[lg][k]["h1"]}</a>' for k in ("cheap", "veg", "buffet"))} · <a href="{t['areas']}">{t['nav_areas']}</a></p>
-<p class="hl">{' · '.join(f'<a href="{t["area"].format(s=k)}">{esc(t["city_lunch"].format(c=c["name"]))}</a>' for k, c in CITIES.items() if k in INDEX_CITIES)}</p>
+<p class="hl">{' · '.join(f'<a href="{t["area"].format(s=k)}">{esc(t["city_lunch"].format(c=c["name"]))}</a>' for k, c in CITIES.items() if k in INDEX_CITIES)}{''.join(f' · <a href="{topic_t(lg, k)["cheap"]["path"]}">{esc(topic_t(lg, k)["cheap"]["h1"])}</a>' for k in CITIES if k in INDEX_CITIES and k != "helsinki")}</p>
 </section>
 <div id="map" role="region" aria-label="{t['v_map']}" data-big="{t['d_big']}" data-back="{t['d_back']}"></div>
 <div class="mtop" id="mtop"><label class="msearch"><span class="sr">{t['search_ph']}</span><input id="q2" type="search" autocomplete="off" placeholder="{t['search_ph']}"></label><button id="mfilt" type="button" class="mfbtn">{t['d_filter']}</button></div>
@@ -958,7 +980,7 @@ def main(L, out, day, preview):
                          f'<img src="{img}" alt="" width="270" height="338" loading="lazy" style="width:100%;height:auto;border-radius:12px;border:1px solid var(--line)">'
                          f'<p style="margin:12px 0 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" data-share="{img}" data-title="{esc(t["area_h1"].format(a=dn))}">{A["share_b"]}</button>'
                          f'<a class="btn ghost" href="{img}" download>{A["share_dl"]}</a></p></div>') if img else ""
-            near = sorted((k for k in by_d if k[0] != dslug), key=lambda k: (cent[k][0] - cent[(dslug, dn)][0]) ** 2 + ((cent[k][1] - cent[(dslug, dn)][1]) * 0.5) ** 2)[:5]
+            near = sorted((k for k in by_d if k[0] != dslug and k[0] not in CITIES), key=lambda k: (cent[k][0] - cent[(dslug, dn)][0]) ** 2 + ((cent[k][1] - cent[(dslug, dn)][1]) * 0.5) ** 2)[:5]
             near_li = "".join(f'<li><a href="{t["area"].format(s=k[0])}">{esc(k[1])}</a> <small>· {nmenu[k]} {t["lists"]}</small></li>' for k in near)
             lead = A["lead"].format(d=esc(ds_), n=nm, c=esc(cheapest), v=nveg) if nm else A["lead0"].format(d=esc(ds_), t=len(vs))
             path, alt = t["area"].format(s=dslug), T[other]["area"].format(s=dslug)
@@ -967,7 +989,7 @@ def main(L, out, day, preview):
 <nav class="jump" aria-label="{A['jump']}">{''.join(jumps)}</nav>
 <div class="cols"><div class="maincol">{''.join(secs)}</div>
 <aside class="side"><div class="box"><h2>{A['map_h']}</h2><p style="margin:0 0 12px;color:var(--mut);font-size:14px">{A['map_p'].format(n=nm, a=esc(dn))}</p><a class="btn" href="{t['home']}?d={dslug}">{t['show_map']}</a></div>
-{share_box}<div class="box"><h2>{A['near_h']}</h2><ul>{near_li}</ul></div>
+{share_box}<div class="box"><h2>{A['near_h']}</h2><ul>{near_li}</ul></div>{"".join(['<div class="box"><h2>' + TOPIC_T[lg]['more'] + '</h2><ul>' + "".join(f'<li><a href="{topic_t(lg, vs[0]["city"])[k]["path"]}">{esc(topic_t(lg, vs[0]["city"])[k]["h1"])}</a></li>' for k in ("cheap", "veg", "buffet")) + '</ul></div>'] if vs[0]["city"] in INDEX_CITIES and vs[0]["city"] != "helsinki" else [])}
 <div class="box tint"><h2>{A['rest_h']}</h2><p style="margin:0;font-size:14px">{A['rest_p']}</p></div></aside></div></main>"""
             desc = (A["desc"].format(a=dn, d=ds_, n=nm, c=cheapest) if nm else A["lead0"].format(d=ds_, t=len(vs)))
             ld = [{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
@@ -1014,38 +1036,39 @@ def main(L, out, day, preview):
                  f'<nav class="ajump">{"".join(jump)}</nav><section id="anearby" hidden><h2>{t["a_near_h"]}</h2><ul class="aidx"></ul></section>'
                  f'<p id="anone" class="sub" hidden>{t["a_none"]}</p>{secs}</main>' + AREAS_JS.replace("__ERR__", json.dumps(t["a_loc_err"])))
         open(f"{out}{t['areas']}index.html", "w").write(page(lg, t["areas_title"], t["areas_h1"], t["areas"], T[other]["areas"], abody, preview, index=ix))
-        # topic pages (cheapest / vegetarian / buffet in all of Helsinki), refreshed daily
-        TP = TOPIC_T[lg]
-        allm_g = [v for v in venues if v["menu"] and v["city"] == "helsinki"]  # the topic pages are about Helsinki
-        mp_g = {v["slug"]: lunch_price(v["menu"]) for v in allm_g}
-        topics = {
-            "cheap": sorted([v for v in allm_g if mp_g[v["slug"]] and mp_g[v["slug"]] < 13], key=lambda v: mp_g[v["slug"]])[:80],
-            "veg": sorted([v for v in allm_g if is_veg(v)], key=lambda v: (v["district"] or "", mp_g[v["slug"]] or 99))[:200],
-            "buffet": sorted([v for v in allm_g if re.search(r"buffet|noutopöytä|seisova", menu_text(v))], key=lambda v: (v["district"] or "", v["name"]))[:200],
-        }
-        top_areas = sorted(((k, n) for k, n in nmenu.items() if by_d[k][0]["city"] == "helsinki"), key=lambda kv: -kv[1])[:10]
-        for key, items in topics.items():
-            path, alt = TP[key]["path"], TOPIC_T[other][key]["path"]
-            ps = [mp_g[v["slug"]] for v in items if mp_g[v["slug"]]]
-            lead = TP[key]["lead"].format(d=esc(ds_), n=len(items), p=fmt_price(min(ps)) if ps else "–")
-            others_l = "".join(f'<li><a href="{TP[k]["path"]}">{esc(TP[k]["h1"])}</a></li>' for k in topics if k != key)
-            areas_l = "".join(f'<li><a href="{t["area"].format(s=k[0])}">{esc(t["area_h1"].format(a=k[1]))}</a> <small>· {n} {t["lists"]}</small></li>' for k, n in top_areas)
-            img = None
-            if key == "cheap":
-                img = share_image(out, "helsinki", "Helsinki", ds_, items, mp_g, TOPIC_T["fi"]["cheap"]["path"]) if lg == "fi" else ("/jako/helsinki.png" if os.path.exists(f"{out}/jako/helsinki.png") else None)
-            A = AREA_T[lg]
-            share_box = (f'<div class="box share"><h2>{A["share_h"]}</h2><img src="{img}" alt="" width="270" height="338" loading="lazy" style="width:100%;height:auto;border-radius:12px;border:1px solid var(--line)">'
-                         f'<p style="margin:12px 0 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" data-share="{img}" data-title="{esc(TP[key]["h1"])}">{A["share_b"]}</button>'
-                         f'<a class="btn ghost" href="{img}" download>{A["share_dl"]}</a></p></div>') if img else ""
-            ents = "".join(entry_html(v, mp_g, t, lg, show_area=True) for v in items) or f'<p class="nomenu">{TP["empty"]}</p>'
-            body = f"""<main class="content"><nav class="crumbs"><a href="{t['home']}">{t['crumb_home']}</a> › {esc(TP[key]['h1'])}</nav>
-<h1>{esc(TP[key]['h1'])} {TP['today']}</h1><p class="lead">{lead}</p>
-<div class="cols"><div class="maincol"><section class="sec">{ents}</section><p style="margin-top:22px">{TP[key]['outro']}</p></div>
-<aside class="side">{share_box}<div class="box"><h2>{TP['more']}</h2><ul>{others_l}</ul></div><div class="box"><h2>{TP['areas']}</h2><ul>{areas_l}</ul></div>
-<div class="box"><a class="btn" href="{t['home']}">{t['show_map']}</a></div></aside></div></main>"""
-            os.makedirs(f"{out}{path}", exist_ok=True)
-            ix = add_url(path, len(items) >= GATE["topic"], [(v["slug"], v["menu"]) for v in items])
-            open(f"{out}{path}index.html", "w").write(page(lg, TP[key]["title"], TP[key]["desc"].format(d=ds_, n=len(items)), path, alt, body + (SHARE_JS if img else ""), preview, "", img, index=ix))
+        # topic pages (cheapest / vegetarian / buffet per open city), refreshed daily; Espoo since 28.11.
+        for tcity in [c for c in CITIES if c == "helsinki" or c in INDEX_CITIES]:
+          TP = topic_t(lg, tcity)
+          allm_g = [v for v in venues if v["menu"] and v["city"] == tcity]
+          mp_g = {v["slug"]: lunch_price(v["menu"]) for v in allm_g}
+          topics = {
+              "cheap": sorted([v for v in allm_g if mp_g[v["slug"]] and mp_g[v["slug"]] < 13], key=lambda v: mp_g[v["slug"]])[:80],
+              "veg": sorted([v for v in allm_g if is_veg(v)], key=lambda v: (v["district"] or "", mp_g[v["slug"]] or 99))[:200],
+              "buffet": sorted([v for v in allm_g if re.search(r"buffet|noutopöytä|seisova", menu_text(v))], key=lambda v: (v["district"] or "", v["name"]))[:200],
+          }
+          top_areas = sorted(((k, n) for k, n in nmenu.items() if by_d[k][0]["city"] == tcity and k[0] not in CITIES), key=lambda kv: -kv[1])[:10]
+          for key, items in topics.items():
+              path, alt = TP[key]["path"], topic_t(other, tcity)[key]["path"]
+              ps = [mp_g[v["slug"]] for v in items if mp_g[v["slug"]]]
+              lead = TP[key]["lead"].format(d=esc(ds_), n=len(items), p=fmt_price(min(ps)) if ps else "–")
+              others_l = "".join(f'<li><a href="{TP[k]["path"]}">{esc(TP[k]["h1"])}</a></li>' for k in topics if k != key)
+              areas_l = "".join(f'<li><a href="{t["area"].format(s=k[0])}">{esc(t["area_h1"].format(a=k[1]))}</a> <small>· {n} {t["lists"]}</small></li>' for k, n in top_areas)
+              img = None
+              if key == "cheap":
+                  img = share_image(out, f"halvin-{tcity}", CITIES[tcity]["name"], ds_, items, mp_g, topic_t("fi", tcity)["cheap"]["path"]) if lg == "fi" else (f"/jako/halvin-{tcity}.png" if os.path.exists(f"{out}/jako/halvin-{tcity}.png") else None)
+              A = AREA_T[lg]
+              share_box = (f'<div class="box share"><h2>{A["share_h"]}</h2><img src="{img}" alt="" width="270" height="338" loading="lazy" style="width:100%;height:auto;border-radius:12px;border:1px solid var(--line)">'
+                           f'<p style="margin:12px 0 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" data-share="{img}" data-title="{esc(TP[key]["h1"])}">{A["share_b"]}</button>'
+                           f'<a class="btn ghost" href="{img}" download>{A["share_dl"]}</a></p></div>') if img else ""
+              ents = "".join(entry_html(v, mp_g, t, lg, show_area=True) for v in items) or f'<p class="nomenu">{TP["empty"]}</p>'
+              body = f"""<main class="content"><nav class="crumbs"><a href="{t['home']}">{t['crumb_home']}</a> › {esc(TP[key]['h1'])}</nav>
+  <h1>{esc(TP[key]['h1'])} {TP['today']}</h1><p class="lead">{lead}</p>
+  <div class="cols"><div class="maincol"><section class="sec">{ents}</section><p style="margin-top:22px">{TP[key]['outro']}</p></div>
+  <aside class="side">{share_box}<div class="box"><h2>{TP['more']}</h2><ul>{others_l}</ul></div><div class="box"><h2>{TP['areas']}</h2><ul>{areas_l}</ul></div>
+  <div class="box"><a class="btn" href="{t['home']}">{t['show_map']}</a></div></aside></div></main>"""
+              os.makedirs(f"{out}{path}", exist_ok=True)
+              ix = add_url(path, len(items) >= GATE["topic"], [(v["slug"], v["menu"]) for v in items])
+              open(f"{out}{path}index.html", "w").write(page(lg, TP[key]["title"], TP[key]["desc"].format(d=ds_, n=len(items)), path, alt, body + (SHARE_JS if img else ""), preview, "", img, index=ix))
         # venues
         today_m = [w for w in venues if w["menu"]]
         def near_count(v, km_=1.0):
