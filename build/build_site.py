@@ -433,6 +433,7 @@ def share_image(out, key, title, ds_, items, mp, url_path):
         return None
 
 
+DATED = re.compile(r"^\s*(?:(?:ma|ti|ke|to|pe|la|su)[a-zäö]*\.?\s*)?(\d{1,2})\.(\d{1,2})\.?(?=\s+[A-Za-zÅÄÖåäö])", re.I)  # "20.11 Jauhelihakeittoa", "Pe 20.11. Lohikeitto"
 SHOW_DAY = ""  # the day the static list pages show (data-sd; m.js says so on weekends)
 
 
@@ -655,6 +656,34 @@ def main(L, out, day, preview):
                 it["d"] = [decap(x) for x in it["d"]]
                 if it.get("t"):
                     it["t"] = decap(it["t"])
+    # a dish dated to another day is not today's lunch (28.11.: Lauran Kaffila showed "20.11 Jauhelihakeittoa" on 27.11 –
+    # the restaurant's page still had last week's soup). Only dates within two weeks count, so prices like 13.10 stay.
+    for v in venues:
+        for d_ in list(v["ms"]):
+            m = v["ms"][d_]
+            if not m or not m.get("items"):
+                continue
+            D_ = datetime.date.fromisoformat(d_)
+
+            def other_day(line):
+                mm = DATED.match(line or "")
+                if not mm:
+                    return False
+                try:
+                    x = datetime.date(D_.year, int(mm.group(2)), int(mm.group(1)))
+                except ValueError:
+                    return False
+                return x != D_ and abs((x - D_).days) <= 14
+            kept = []
+            for it in m["items"]:
+                if not (other_day(it.get("t")) or any(other_day(x) for x in it["d"])):  # the whole dish goes (also its "V = vegaaninen" line)
+                    kept.append(it)
+            if kept:
+                m["items"] = kept
+            else:
+                print("dated to another day, dropped:", v["name"], d_, file=sys.stderr)
+                del v["ms"][d_]
+        v["menu"] = v["ms"].get(show_day)
     sig, drop = {}, set()
     for i, v in enumerate(venues):  # same venue twice in the registry: same menu, <250 m apart, a shared name word
         if not v["menu"]:

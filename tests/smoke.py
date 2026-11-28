@@ -81,6 +81,15 @@ for _c in ("espoo", "vantaa", "kauniainen"):
         check('content="noindex' in open(_pth).read(), f"{_c}: city page is noindex until the city is opened")
         check(f"/lounas/{_c}/" not in open(os.path.join(DIST, "sitemap.xml")).read(), f"{_c}: city page not in the sitemap yet")
 
+# 1h. a dish dated to another day is not shown as today's lunch (28.11.: "20.11 Jauhelihakeittoa" on 27.11)
+import re as _re
+_wk = json.load(open(os.path.join(DIST, "data", "week.json")))
+_bad = [(v["n"], d) for v in _wk["venues"] for d, m in v["ms"].items() if m for it in m.get("items", [])
+        for x in [it.get("t") or ""] + it.get("d", []) if _re.match(r"^\s*(\d{1,2})\.(\d{1,2})\.?\s+[A-Za-zÅÄÖåäö]", x)
+        and (lambda a, b: a != b)(tuple(int(y) for y in _re.match(r"^\s*(\d{1,2})\.(\d{1,2})", x).groups()), (int(d[8:]), int(d[5:7])))
+        and abs(int(_re.match(r"^\s*(\d{1,2})", x).group(1)) - int(d[8:])) <= 14 and int(_re.match(r"^\s*\d{1,2}\.(\d{1,2})", x).group(1)) in (int(d[5:7]), int(d[5:7]) % 12 + 1, (int(d[5:7]) - 2) % 12 + 1)]
+check(not _bad, f"no dish dated to another day is shown as that day's lunch ({_bad[:3]})")
+
 # 1g. the postal code decides the city (Branu 27.11.): Ravilla, Valjakkotie 1, 00370 Helsinki sits just across the border
 _rv = os.path.join(DIST, "ravintola", "lounasravintola-ravilla", "index.html")
 if os.path.exists(_rv):
