@@ -226,6 +226,15 @@ with sync_playwright() as p:
     check(not ov, f"360 px phone: card texts fit inside the cards {ov[:3]}")
     pg.screenshot(path="smoke-phone-360.png")
     check(not errs, f"360 px phone JS errors: {errs[:3]}")
+    # areas index (Branu 28.11.: wrapped all over on the phone, painful to scroll): cards fit the screen, search finds an area
+    pg, errs = page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
+    pg.goto(BASE + "/lounas/", wait_until="domcontentloaded"); pg.wait_for_timeout(800)
+    _a = pg.evaluate("({w:document.scrollingElement.scrollWidth,n:document.querySelectorAll('ul.aidx li').length,over:[...document.querySelectorAll('ul.aidx li a')].filter(a=>a.getBoundingClientRect().right>392).length})")
+    check(_a["w"] <= 392 and _a["n"] > 20 and _a["over"] == 0, f"areas page fits a 390 px phone as cards ({_a})")
+    pg.fill("#aq", "kamp"); pg.wait_for_timeout(200)
+    _v = pg.evaluate("[...document.querySelectorAll('.acity li')].filter(l=>!l.hidden&&l.offsetParent).map(l=>l.innerText.split('\\n')[0])")
+    check(_v and all("amp" in x.lower() for x in _v), f"area search 'kamp' shows only matching areas ({_v[:4]})")
+    check(not errs, f"areas page JS errors: {errs[:3]}")
     # weekend: Friday's lists are not shown as today's lunches (Branu 27.11.: "arkilounaat jatkuvat maanantaina")
     import datetime as _dt
     _wkd = json.load(open(os.path.join(DIST, "data", "week.json")))

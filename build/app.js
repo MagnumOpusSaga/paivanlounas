@@ -392,6 +392,14 @@
   try { if (params.get("nostotesti") === "1") localStorage.setItem("pl_nostotesti", "1"); if (params.get("nostotesti") === "0") localStorage.removeItem("pl_nostotesti"); nostoTest = localStorage.getItem("pl_nostotesti") === "1"; } catch (e) {}
   try { fetch("/api/promo/active" + (nostoTest ? "?test=1" : "")).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { if (d && d.promos && d.promos.length) { PROMOS = d.promos; render(); } }).catch(function () {}); } catch (e) {}
   map.on("moveend", countZone);
+  // h1 follows the map (Branu 28.11.: one map for all of Finland): "Lounas Espoo" when the map shows Espoo
+  var H1 = document.getElementById("hh1"), CN = {}; try { CN = JSON.parse(H1.getAttribute("data-c")); } catch (e) {}
+  function cityH1() {
+    if (!H1 || !state.data) return; var c = map.getCenter(), best = null, bd = 1e9;
+    state.data.forEach(function (v) { var d = Math.pow(v.y - c.lat, 2) + Math.pow((v.x - c.lng) * 0.5, 2); if (d < bd) { bd = d; best = v; } });
+    if (best && bd < 0.0004) H1.textContent = H1.getAttribute("data-f").replace("{c}", CN[best.c || "helsinki"] || "");
+  }
+  map.on("moveend", cityH1);
   function renderAreas() {
     var show = !state.me && state.locTried;
     ["areas", "areas2"].forEach(function (id) {
@@ -700,7 +708,7 @@
     return d; } });
   new Loc().addTo(map);
   fetch("/data/week.json").then(function (r) { return r.json(); }).then(function (d) {
-    state.data = d.venues; state.days = d.days;
+    state.data = d.venues; state.days = d.days; setTimeout(function () { try { cityH1(); } catch (e) {} }, 0);
     var nPop = d.venues.filter(function (v) { return v.lk; }).length;
     document.querySelectorAll('[data-pill="pop"]').forEach(function (b) { b.hidden = nPop < 5; });
     var t = today(); state.day = d.days.indexOf(t) >= 0 ? t : d.date;

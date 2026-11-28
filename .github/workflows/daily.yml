@@ -96,7 +96,7 @@ jobs:
       - name: Fetch lunch lists and build site
         env:
           QUICK: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && '1' || '' }}
-          LOUNAS_INDEX_CITIES: "helsinki"   # keep in step with the smoke test step below
+          LOUNAS_INDEX_CITIES: "helsinki,espoo"   # keep in step with the smoke test step below
           LOUNAS_GATE: "1"   # index gate on (Branu 26.11.: decide what works best, never drop what people search)
           PUBLIC: "1"  # site open to search engines since 24.11.2026
           ADSENSE_CLIENT: ca-pub-1421922359984193
@@ -148,7 +148,7 @@ jobs:
       - name: Smoke test before deploy (fails = the old site stays live)
         env:
           LOUNAS_GATE: "1"
-          LOUNAS_INDEX_CITIES: "helsinki"   # cities open to search engines (Espoo built 27.11., opened when Branu has seen the page count)
+          LOUNAS_INDEX_CITIES: "helsinki,espoo"   # cities open to search engines (Espoo opened 28.11.: Branu "avaa Espoo"; Vantaa, Kauniainen noindex)
         run: |
           pip install --quiet playwright
           python -m playwright install --with-deps chromium > /dev/null

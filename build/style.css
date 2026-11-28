@@ -286,3 +286,20 @@ html.dark .preview{background:#5a4b00;color:#fff3b0}
 .stale.sbar{margin:0;border-radius:0;border-left:0;border-bottom:1px solid rgba(194,65,12,.25);padding:8px 16px;text-align:center}
 .stale.sbar b{display:inline;margin-right:4px}
 #shRows .stn{list-style:none;margin:0 16px 6px;padding:6px 10px;border-radius:8px;background:rgba(194,65,12,.09);font-size:13px;color:inherit}
+/* areas index (Branu 28.11.: the phone list wrapped all over; find an area without scrolling) */
+.aidxp .afind{display:flex;gap:8px;margin:6px 0 10px}
+.aidxp .afind input{flex:1;min-width:0;font:16px var(--body);padding:11px 14px;border:1px solid var(--line,#e8ddd5);border-radius:12px;background:var(--card);color:var(--ink)}
+.aidxp .ajump{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 6px;padding-bottom:4px}
+.aidxp .ajump a{flex:0 0 auto;border:1px solid var(--line,#e8ddd5);border-radius:999px;padding:6px 12px;font:600 14px var(--body);text-decoration:none;color:var(--ink);background:var(--card)}
+.aidxp .acity{scroll-margin-top:70px}
+.aidxp h2 small{font:500 14px var(--body);color:var(--mut)}
+.aidxp .acall{margin:2px 0 8px}
+ul.aidx{list-style:none;padding:0;margin:0 0 12px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+ul.aidx li a{display:block;padding:10px 12px;border:1px solid var(--line,#e8ddd5);border-radius:12px;background:var(--card);text-decoration:none;color:var(--ink);height:100%;box-sizing:border-box}
+ul.aidx li a:hover{border-color:var(--p)}
+ul.aidx b{display:block;font-weight:600;overflow-wrap:anywhere;hyphens:auto}
+ul.aidx span{display:block;font-size:13px;color:var(--mut);margin-top:2px}
+ul.aidx li[hidden]{display:none}
+.aidxp details.aempty{margin:0 0 18px}.aidxp details.aempty summary{cursor:pointer;color:var(--mut);margin:4px 0 10px}
+@media(max-width:900px){ul.aidx{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){ul.aidx{grid-template-columns:repeat(2,minmax(0,1fr))}}

@@ -219,16 +219,18 @@ T = {
     "fi": {"home": "/", "areas": "/lounas/", "area": "/lounas/{s}/", "venue": "/ravintola/{s}/", "nav_areas": "Alueet", "theme": "Vaihda tumma/vaalea tila", "other": "In English", "other_home": "/en/",
            "wd": ["maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai", "sunnuntai"],
            "wd_short": ["Ma", "Ti", "Ke", "To", "Pe", "La", "Su"],
-           "h1_home": "Lounas Helsinki", "v_map": "Kartta", "v_list": "Lista", "d_list": "Lista", "d_map": "Kartta", "d_filter": "Suodata", "d_big": "Koko kartta", "d_back": "Takaisin listaan", "sheet_label": "Lounaat lähellä", "locate": "Hae sijaintini", "sheet_more": "Näytä lisää", "as_list": "Näytä listana", "done": "Valmis", "search_ph": "Hae ruokaa tai paikkaa",
+           "h1_home": "Lounas tänään", "city_lunch": "Lounas {c}", "v_map": "Kartta", "v_list": "Lista", "d_list": "Lista", "d_map": "Kartta", "d_filter": "Suodata", "d_big": "Koko kartta", "d_back": "Takaisin listaan", "sheet_label": "Lounaat lähellä", "locate": "Hae sijaintini", "sheet_more": "Näytä lisää", "as_list": "Näytä listana", "done": "Valmis", "search_ph": "Hae ruokaa tai paikkaa",
            "pills": [("near", "Lähellä"), ("pop", "Suosituimmat"), ("cheap", "Halvimmat"), ("veg", "Kasvis"), ("stu", "Opiskelija")], "search": "Hae ravintolaa, ruokaa tai aluetta", "near": "Lähellä",
            "cats": [("soup", "Keitto"), ("fish", "Kala"), ("chicken", "Kana"), ("meat", "Liha"), ("veg", "Kasvis"), ("pasta", "Pasta"), ("pizza", "Pizza"), ("burger", "Burger"), ("asian", "Aasialainen"), ("salad", "Salaatti"), ("buffet", "Buffet")],
            "chips": [("fav", "Suosikit"), ("menu", "Vain listalliset"), ("stu", "Opiskelijahinta"), ("open", "Auki nyt"), ("u13", "Alle 13 €"), ("etu", "Lounasetu ≤ 14 €"), ("cheap", "Halvin ensin"), ("Veg", "Kasvis"), ("G", "G"), ("L", "L"), ("M", "M"), ("oivaA", "Oiva A")],
-           "title_home": "Lounas Helsinki tänään – päivän lounaslistat kartalla | Päivän lounas",
-           "desc_home": "Helsingin lounaslistat tänään ({d}): {n} ravintolan lista, hinnat, ruokavaliot ja Oiva-hymy kartalla.",
+           "title_home": "Lounas tänään – Helsinki, Espoo, Vantaa – lounaslistat kartalla | Päivän lounas",
+           "desc_home": "Päivän lounaslistat tänään ({d}): {n} ravintolan lista Helsingissä, Espoossa ja Vantaalla – hinnat, ruokavaliot ja Oiva-hymy kartalla.",
            "area_h1": "Lounas {a} tänään", "area_title": "Lounas {a} tänään – {n} lounaslistaa | Päivän lounas",
            "area_lead": "{d}: {n} ravintolan lounaslista alueella {a}. {c} Yhteensä {t} ravintolaa ja kahvilaa, Oiva-arvosanat mukana.",
-           "cheapest": "Halvin lounas tänään {p}.", "show_map": "Näytä kartalla", "areas_h1": "Lounas Helsingissä alueittain",
-           "areas_title": "Lounas Helsingissä alueittain | Päivän lounas", "lists": "listaa", "places": "paikkaa",
+           "cheapest": "Halvin lounas tänään {p}.", "show_map": "Näytä kartalla", "areas_h1": "Lounas alueittain",
+           "areas_title": "Lounas alueittain – Helsinki, Espoo, Vantaa | Päivän lounas",
+           "aq_ph": "Etsi aluetta, esim. Kallio tai Tapiola", "a_near": "Lähimmät", "a_near_h": "Lähellä sinua", "a_empty": "Alueet ilman listoja tänään ({n})",
+           "a_lists_today": "{n} listaa tänään", "a_all": "Kaikki – {c}", "a_none": "Ei osumia.", "a_loc_err": "Sijaintia ei saatu.", "lists": "listaa", "places": "paikkaa",
            "venue_h1": "{n} – lounas tänään", "venue_title": "{n} lounas tänään – lounaslista | Päivän lounas",
            "venue_desc": "{n} ({a}): päivän lounaslista, hinnat, ruokavaliot ja Oiva-arvosana.",
            "list_for": "Lounaslista {d}", "week": "Tämän viikon listat", "nearby_h": "Lähellä tänään", "g_reviews": "Arviot Google Mapsissa", "like": "Söin täällä – hyvä lounas", "liked": "Kiitos! Merkitty suositukseksi", "pop_n": "kävijää suosittelee (30 pv)", "nearby_p": "Näillä lähimmillä ravintoloilla on tämän päivän lounaslista:", "nomenu": "Tämän päivän listaa ei ole saatavilla. Katso ravintolan omat sivut.",
@@ -243,16 +245,18 @@ T = {
     "en": {"home": "/en/", "areas": "/en/lunch/", "area": "/en/lunch/{s}/", "venue": "/en/restaurant/{s}/", "nav_areas": "Areas", "theme": "Switch dark/light mode", "other": "Suomeksi", "other_home": "/",
            "wd": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
            "wd_short": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-           "h1_home": "Lunch in Helsinki", "v_map": "Map", "v_list": "List", "d_list": "List", "d_map": "Map", "d_filter": "Filter", "d_big": "Full map", "d_back": "Back to list", "sheet_label": "Lunches nearby", "locate": "Find my location", "sheet_more": "Show more", "as_list": "Show as list", "done": "Done", "search_ph": "Search food or place",
+           "h1_home": "Lunch today", "city_lunch": "Lunch in {c}", "v_map": "Map", "v_list": "List", "d_list": "List", "d_map": "Map", "d_filter": "Filter", "d_big": "Full map", "d_back": "Back to list", "sheet_label": "Lunches nearby", "locate": "Find my location", "sheet_more": "Show more", "as_list": "Show as list", "done": "Done", "search_ph": "Search food or place",
            "pills": [("near", "Nearby"), ("pop", "Most liked"), ("cheap", "Cheapest"), ("veg", "Vegetarian"), ("stu", "Student")], "search": "Search restaurant, dish or area", "near": "Near me",
            "cats": [("soup", "Soup"), ("fish", "Fish"), ("chicken", "Chicken"), ("meat", "Meat"), ("veg", "Vegetarian"), ("pasta", "Pasta"), ("pizza", "Pizza"), ("burger", "Burger"), ("asian", "Asian"), ("salad", "Salad"), ("buffet", "Buffet")],
            "chips": [("fav", "Favourites"), ("menu", "With menu"), ("stu", "Student price"), ("open", "Open now"), ("u13", "Under 13 €"), ("etu", "Meal benefit ≤ 14 €"), ("cheap", "Cheapest first"), ("Veg", "Vegetarian"), ("G", "GF"), ("L", "LF"), ("M", "DF"), ("oivaA", "Oiva A")],
-           "title_home": "Lunch in Helsinki today – lunch menus on a map | Päivän lounas",
-           "desc_home": "Helsinki lunch menus today ({d}): {n} restaurants with menus, prices, diets and food-safety ratings on a map.",
+           "title_home": "Lunch today – Helsinki, Espoo, Vantaa – lunch menus on a map | Päivän lounas",
+           "desc_home": "Lunch menus today ({d}): {n} restaurants in Helsinki, Espoo and Vantaa with menus, prices, diets and food-safety ratings on a map.",
            "area_h1": "Lunch in {a} today", "area_title": "Lunch in {a} today – {n} lunch menus | Päivän lounas",
            "area_lead": "{d}: {n} restaurants in {a} with today's lunch menu. {c} {t} restaurants and cafés in total, with Oiva food-safety ratings.",
-           "cheapest": "Cheapest lunch today {p}.", "show_map": "Show on map", "areas_h1": "Lunch in Helsinki by area",
-           "areas_title": "Lunch in Helsinki by area | Päivän lounas", "lists": "menus", "places": "places",
+           "cheapest": "Cheapest lunch today {p}.", "show_map": "Show on map", "areas_h1": "Lunch by area",
+           "areas_title": "Lunch by area – Helsinki, Espoo, Vantaa | Päivän lounas",
+           "aq_ph": "Find an area, e.g. Kallio or Tapiola", "a_near": "Nearest", "a_near_h": "Near you", "a_empty": "Areas without menus today ({n})",
+           "a_lists_today": "{n} menus today", "a_all": "All of {c}", "a_none": "No matches.", "a_loc_err": "Could not get your location.", "lists": "menus", "places": "places",
            "venue_h1": "{n} – lunch today", "venue_title": "{n} lunch today – lunch menu | Päivän lounas",
            "venue_desc": "{n} ({a}): today's lunch menu, prices, diets and Oiva food-safety rating.",
            "list_for": "Lunch menu {d}", "week": "This week's menus", "nearby_h": "Nearby today", "g_reviews": "Reviews on Google Maps", "like": "I ate here – good lunch", "liked": "Thanks! Counted as a recommendation", "pop_n": "visitors recommend (30 days)", "nearby_p": "The closest restaurants with today's lunch menu:", "nomenu": "Today's menu is not available. See the restaurant's own website.",
@@ -434,6 +438,23 @@ def share_image(out, key, title, ds_, items, mp, url_path):
 
 
 DATED = re.compile(r"^\s*(?:(?:ma|ti|ke|to|pe|la|su)[a-zäö]*\.?\s*)?(\d{1,2})\.(\d{1,2})\.?(?=\s+[A-Za-zÅÄÖåäö])", re.I)  # "20.11 Jauhelihakeittoa", "Pe 20.11. Lohikeitto"
+AREAS_JS = """<script>(function(){
+var q=document.getElementById("aq"),nb=document.getElementById("anear"),none=document.getElementById("anone"),near=document.getElementById("anearby");
+function norm(s){return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")}
+var all=[].slice.call(document.querySelectorAll(".acity li"));
+q.addEventListener("input",function(){var v=norm(q.value.trim()),hit=0;
+ all.forEach(function(li){var ok=!v||norm(li.getAttribute("data-n")).indexOf(v)>=0;li.hidden=!ok;if(ok&&v)hit++;});
+ [].forEach.call(document.querySelectorAll(".acity"),function(sec){var any=sec.querySelector("li:not([hidden])");sec.hidden=!!v&&!any;
+  var d=sec.querySelector("details");if(d){var h=!!d.querySelector("li:not([hidden])");d.open=!!v&&h;d.hidden=!!v&&!h;}});
+ none.hidden=!v||hit>0;if(v)near.hidden=true;});
+nb.addEventListener("click",function(){if(!navigator.geolocation)return;nb.disabled=true;
+ navigator.geolocation.getCurrentPosition(function(p){nb.disabled=false;var la=p.coords.latitude,lo=p.coords.longitude;
+  var r=all.map(function(li){var c=li.getAttribute("data-ll").split(",");var dy=(+c[0]-la)*111,dx=(+c[1]-lo)*55.6;return [dx*dx+dy*dy,li];})
+   .sort(function(a,b){return a[0]-b[0]}).slice(0,8);
+  var ul=near.querySelector("ul");ul.innerHTML="";r.forEach(function(x){var c=x[1].cloneNode(true);c.hidden=false;ul.appendChild(c);});
+  near.hidden=false;near.scrollIntoView({behavior:"smooth",block:"start"});},
+ function(){nb.disabled=false;none.textContent=__ERR__;none.hidden=false;},{timeout:8000,maximumAge:600000});});
+})();</script>"""
 SHOW_DAY = ""  # the day the static list pages show (data-sd; m.js says so on weekends)
 
 
@@ -763,7 +784,7 @@ def main(L, out, day, preview):
         shutil.copy(st, f"{out}/data/status.json")
     app = [{"i": v["slug"], "n": v["name"], "a": v["street"], "y": round(v["lat"], 5), "x": round(v["lon"], 5),
             "o": (v["oiva"] or {}).get("grade"), "d": v["district"], "w": v.get("website"), "ms": v["ms"],
-            **({"lk": LIKES[v["slug"]]} if LIKES.get(v["slug"]) else {})} for v in venues]
+            **({"lk": LIKES[v["slug"]]} if LIKES.get(v["slug"]) else {}), **({"c": v["city"]} if v["city"] != "helsinki" else {})} for v in venues]
     json.dump({"date": show_day, "days": days, "venues": app}, open(f"{out}/data/week.json", "w"), ensure_ascii=False, separators=(",", ":"))
 
     here = os.path.dirname(__file__)
@@ -834,7 +855,7 @@ def main(L, out, day, preview):
     for v in venues:
         if v["dslug"]:
             by_d.setdefault((v["dslug"], v["district"]), []).append(v)
-        if v["city"] != "helsinki":  # city page: "Lounas Espoo tänään" = every Espoo place
+        if True:  # city page: "Lounas Espoo tänään" = every Espoo place; /lounas/helsinki/ too (Branu 28.11.: front page for all of Finland)
             by_d.setdefault((v["city"], CITIES[v["city"]]["name"]), []).append(v)
     for lg in ("fi", "en"):
         t = T[lg]
@@ -850,7 +871,7 @@ def main(L, out, day, preview):
 <section class="panel" id="panel">
 <button type="button" id="pdone" class="pdone">{t['done']}</button>
 <div id="sel" class="selcard" hidden></div>
-<div class="ptop"><div><p class="sub" id="dlabel">{esc(ds_)}</p><h1>{t['h1_home']}</h1></div>
+<div class="ptop"><div><p class="sub" id="dlabel">{esc(ds_)}</p><h1 id="hh1" data-f="{esc(t['city_lunch'])}" data-c='{esc(json.dumps({k: c['name'] for k, c in CITIES.items()}, ensure_ascii=False))}'>{t['h1_home']}</h1></div>
 <div class="views" role="tablist"><button data-view="split" class="on">{t['v_map']}</button><button data-view="list">{t['v_list']}</button></div></div>
 <div class="cats" id="cats" role="group">{cats}</div>
 <div class="search"><input id="q" type="search" placeholder="{esc(t['search'])}" aria-label="{esc(t['search'])}"><button id="near" type="button">{t['near']}</button></div>
@@ -858,6 +879,7 @@ def main(L, out, day, preview):
 <section class="top3" id="top3s" aria-labelledby="t3h" hidden><div class="t3head"><h2 id="t3h"></h2></div><div id="top3" class="t3"></div></section>
 <div class="chips" id="chips">{chips}</div><p id="count" class="count"></p><ol id="list" class="list"></ol><button id="more" class="btn ghost more" hidden></button>
 <p class="hl">{' · '.join(f'<a href="{TOPIC_T[lg][k]["path"]}">{TOPIC_T[lg][k]["h1"]}</a>' for k in ("cheap", "veg", "buffet"))} · <a href="{t['areas']}">{t['nav_areas']}</a></p>
+<p class="hl">{' · '.join(f'<a href="{t["area"].format(s=k)}">{esc(t["city_lunch"].format(c=c["name"]))}</a>' for k, c in CITIES.items() if k in INDEX_CITIES)}</p>
 </section>
 <div id="map" role="region" aria-label="{t['v_map']}" data-big="{t['d_big']}" data-back="{t['d_back']}"></div>
 <div class="mtop" id="mtop"><label class="msearch"><span class="sr">{t['search_ph']}</span><input id="q2" type="search" autocomplete="off" placeholder="{t['search_ph']}"></label><button id="mfilt" type="button" class="mfbtn">{t['d_filter']}</button></div>
@@ -962,20 +984,36 @@ def main(L, out, day, preview):
                 CSTAT[vs[0]["city"]]["pages_if_open"] += 1
             ix = add_url(path, len(weekly) >= GATE["area"] and vs[0]["city"] in INDEX_CITIES, [(v["slug"], v["ms"]) for v in weekly])
             open(f"{out}{path}index.html", "w").write(page(lg, t["area_title"].format(a=dn, n=nm), desc, path, alt, body + (SHARE_JS if img else ""), preview, ldh if ix else "", img, index=ix, has_list=nm > 0))
-            idx.append((dn, dslug, nm, len(vs)))
+            idx.append((dn, dslug, nm, len(vs), round(sum(v["lat"] for v in vs) / len(vs), 4), round(sum(v["lon"] for v in vs) / len(vs), 4)))
             if ix:
                 n_area_ix += 1
         city_of_area = {k[0]: vs_[0]["city"] for k, vs_ in by_d.items()}
-        def _li(n, s, m, tt):
-            return f'<li><a href="{t["area"].format(s=s)}">{esc(n)}</a> <small>{m} {t["lists"]} · {tt} {t["places"]}</small></li>'
-        lis = "".join(_li(*x) for x in idx if city_of_area.get(x[1]) == "helsinki")
-        for _c in [c for c in CITIES if c != "helsinki" and any(city_of_area.get(x[1]) == c for x in idx)]:  # other cities under their own heading
-            _xs = [x for x in idx if city_of_area.get(x[1]) == _c]
-            lis += f'</ul><h2>{esc(CITIES[_c]["name"])}</h2><ul class="areas">' + "".join(_li(*x) for x in sorted(_xs, key=lambda x: (x[1] != _c, x[0])))
+        # areas index (Branu 28.11.: on the phone the list wrapped all over the place, and scrolling through it is painful):
+        # search box, city jump chips, "nearest" by location, cards in two columns, areas without lists folded away
+        def _li(n, s_, m, tt, la, lo):
+            return (f'<li data-n="{esc(n.lower())}" data-ll="{la},{lo}"><a href="{t["area"].format(s=s_)}"><b>{esc(n)}</b>'
+                    f'<span>{m} {t["lists"]} · {tt} {t["places"]}</span></a></li>')
+        secs, jump = "", []
+        for _c in [c for c in CITIES if any(city_of_area.get(x[1]) == c for x in idx)]:
+            _xs = [x for x in idx if city_of_area.get(x[1]) == _c and x[1] != _c]
+            _cp = next((x for x in idx if x[1] == _c), None)  # the city's own page (all places in the city)
+            _full = sorted([x for x in _xs if x[2]], key=lambda x: x[0])
+            _empty = sorted([x for x in _xs if not x[2]], key=lambda x: x[0])
+            _n = CSTAT.get(_c, {}).get("lists_today", 0)
+            jump.append(f'<a href="#c-{_c}">{esc(CITIES[_c]["name"])}</a>')
+            secs += (f'<section class="acity" id="c-{_c}"><h2>{esc(CITIES[_c]["name"])} <small>{t["a_lists_today"].format(n=_n)}</small></h2>'
+                     + (f'<p class="acall"><a href="{t["area"].format(s=_cp[1])}">{esc(t["a_all"].format(c=CITIES[_c]["name"]))} →</a></p>' if _cp else "")
+                     + f'<ul class="aidx">{"".join(_li(*x) for x in _full)}</ul>'
+                     + (f'<details class="aempty"><summary>{t["a_empty"].format(n=len(_empty))}</summary><ul class="aidx">{"".join(_li(*x) for x in _empty)}</ul></details>' if _empty else "")
+                     + "</section>")
         os.makedirs(f"{out}{t['areas']}", exist_ok=True)
-        ix = add_url(t["areas"], n_area_ix >= GATE["areas_index"], idx)
-        open(f"{out}{t['areas']}index.html", "w").write(page(lg, t["areas_title"], t["areas_h1"], t["areas"], T[other]["areas"],
-                                                              f'<main class="content"><h1>{t["areas_h1"]}</h1><ul class="areas">{lis}</ul></main>', preview, index=ix))
+        ix = add_url(t["areas"], n_area_ix >= GATE["areas_index"], [x[:4] for x in idx])
+        abody = (f'<main class="content aidxp"><h1>{t["areas_h1"]}</h1>'
+                 f'<div class="afind"><input id="aq" type="search" autocomplete="off" placeholder="{esc(t["aq_ph"])}" aria-label="{esc(t["aq_ph"])}">'
+                 f'<button type="button" id="anear" class="btn ghost">{t["a_near"]}</button></div>'
+                 f'<nav class="ajump">{"".join(jump)}</nav><section id="anearby" hidden><h2>{t["a_near_h"]}</h2><ul class="aidx"></ul></section>'
+                 f'<p id="anone" class="sub" hidden>{t["a_none"]}</p>{secs}</main>' + AREAS_JS.replace("__ERR__", json.dumps(t["a_loc_err"])))
+        open(f"{out}{t['areas']}index.html", "w").write(page(lg, t["areas_title"], t["areas_h1"], t["areas"], T[other]["areas"], abody, preview, index=ix))
         # topic pages (cheapest / vegetarian / buffet in all of Helsinki), refreshed daily
         TP = TOPIC_T[lg]
         allm_g = [v for v in venues if v["menu"] and v["city"] == "helsinki"]  # the topic pages are about Helsinki
