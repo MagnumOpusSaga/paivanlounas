@@ -75,7 +75,7 @@ check(_bad == 0, f"lunch facts boxes only on pages without today's list and alwa
 
 # 1f. a new city's pages stay out of search engines until Branu opens the city (LOUNAS_INDEX_CITIES; spam rule)
 _open = set((os.environ.get("LOUNAS_INDEX_CITIES") or "helsinki").split(","))
-for _c in ("espoo",):
+for _c in ("espoo", "vantaa", "kauniainen"):
     _pth = os.path.join(DIST, "lounas", _c, "index.html")
     if os.path.exists(_pth) and _c not in _open and os.environ.get("LOUNAS_GATE") == "1":
         check('content="noindex' in open(_pth).read(), f"{_c}: city page is noindex until the city is opened")

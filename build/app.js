@@ -338,7 +338,9 @@
     ["Viikki", 60.2270, 25.0170], ["Malmi", 60.2510, 25.0110],
     // Espoo (27.11.2026)
     ["Keilaniemi", 60.1765, 24.8290], ["Otaniemi", 60.1860, 24.8270], ["Tapiola", 60.1755, 24.8050], ["Leppävaara", 60.2190, 24.8130],
-    ["Matinkylä", 60.1600, 24.7380], ["Espoon keskus", 60.2050, 24.6560]];
+    ["Matinkylä", 60.1600, 24.7380], ["Espoon keskus", 60.2050, 24.6560],
+    // Vantaa, Kauniainen (28.11.2026)
+    ["Aviapolis", 60.3040, 24.9560], ["Tikkurila", 60.2920, 25.0440], ["Myyrmäki", 60.2610, 24.8540], ["Kauniainen", 60.2110, 24.7290]];
   var myArea = null; try { myArea = localStorage.getItem("pl_area"); } catch (e) {}
   // ---- Nosto (paid promoted places, 27.11.2026): one area = the nearest of AREAS within 1.5 km of you / the map centre.
   // A promo is always labelled "Mainos" with the payer's name; at most 2 per area per day; counted only when really on screen.

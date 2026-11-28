@@ -20,6 +20,27 @@ CITIES = {
                  (60.1600, 24.7380), (60.1545, 24.6560)],
         "center": (60.1990, 24.7760),
     },
+    # Vantaa and Kauniainen (Branu 28.11.: "laajennetaan joka päivä", capital region first) – on the map, noindex until "avaa <kaupunki>"
+    "vantaa": {
+        "name": "Vantaa", "name_in": "Vantaalla", "name_gen": "Vantaan", "kunta": "092",
+        "postal": [f"01{n:03d}" for n in range(200, 800, 10)],
+        "addr_wfs": "PKS_osoiteluettelo", "addr_city": "Vantaa",
+        "areas_wfs": "Seutukartta_aluejako_tilastoalue",
+        "area_names": {},
+        # Aviapolis, airport, Tikkurila, Myyrmäki, Kivistö, Koivukylä
+        "hubs": [(60.3040, 24.9560), (60.3170, 24.9630), (60.2920, 25.0440), (60.2610, 24.8540), (60.3150, 24.8450),
+                 (60.3230, 25.0610)],
+        "center": (60.2934, 24.9700),
+    },
+    "kauniainen": {
+        "name": "Kauniainen", "name_in": "Kauniaisissa", "name_gen": "Kauniaisten", "kunta": "235",
+        "postal": ["02700", "02701", "02705"],
+        "addr_wfs": "PKS_osoiteluettelo", "addr_city": "Kauniainen",
+        "areas_wfs": "Seutukartta_aluejako_tilastoalue",
+        "area_names": {},
+        "hubs": [(60.2110, 24.7290)],
+        "center": (60.2110, 24.7290),
+    },
 }
 
 
@@ -35,6 +56,10 @@ def city_of_postal(pc):
         return None
     if pc.startswith("00"):
         return "helsinki"
-    if pc.startswith("02") and pc not in ("02700", "02701", "02705"):  # 027xx = Kauniainen
+    if pc in ("02700", "02701", "02705"):
+        return "kauniainen"
+    if pc.startswith("02"):
         return "espoo"
+    if pc.startswith("01") and "01200" <= pc < "01800":  # 012xx–017xx Vantaa (011xx Sipoo, 018xx+ Nurmijärvi…)
+        return "vantaa"
     return None
